@@ -3,148 +3,34 @@ import re
 from extractText import extract_text_from_pdf
 from extractPFCData import output_PFC_params
 from extractText import extract_unit_opertaion_from_method
-
-def check_purge_blocks_settings(text, pfcData):
-    blocks = text.split("Block: ")
-    remainingInlets = list(pfcData.keys())
-    purge_blocks = []
-    for block in blocks:
-        first_line = block.split('\n')[0] if block else ''
-        firstBlockAfterPurge = False
-        finalPurgeBlock = None
-        lastPurgeBuffer = False
-        firstPurgeEntered = False
-
-        if 'Purge' in first_line:
-            firstPurgeEntered = True
-            manflow_match = re.search(r'ManFlow:\s*(\d+\.?\d*)\s*{\%}', block)
-            column_match = re.search(r'Column:\s*(.*)', block)
-            outlet_match = re.search(r'Outlet:\s*(.*)', block)
-            bubbletrap_match = re.search(r'BubbleTrap:\s*(.*)', block)
-            QD_match = re.search(r'QD\s*(.*)', block)
-            base_match = re.search(r'Base:\s*(.*)', block)
-            end_block_match = re.search(r'(\d+\.?\d*)\s*End_Block', block)
+from purgeValidation import check_purge_blocks_settings_pdf
+from streamlit_pdf_viewer import pdf_viewer
+import pdfplumber
+import base64
+import streamlit.components.v1 as components
+from PyPDF2 import PdfReader, PdfWriter
+from reportlab.pdfgen import canvas
+from reportlab.lib import colors
+import io
+from pdfminer.high_level import extract_pages
+from pdfminer.layout import LTTextBoxHorizontal
+from annotatePDF import annotate_doc
 
 
-            inlet_match = re.search(r'Inlet:\s*(.*)', block)
-
-            
-            if base_match:
-                base_value = base_match.group(1).strip().split(', ')[0]
-            else:
-                base_value = ' '
-            
-            if end_block_match:
-                end_block_value = float(end_block_match.group(1))
-
-            else:
-                end_block_match = ' '
-
-            if manflow_match:
-                flow_value = float(manflow_match.group(1))
-            else:
-                flow_value = ' '
-            if column_match:
-                column_setting = column_match.group(1).strip()
-            else:
-                column_setting = ' '
-            if outlet_match:
-                outlet_setting = outlet_match.group(1).strip()
-            else:
-                outlet_setting = ' '
-            if bubbletrap_match:
-                bubbletrap_setting = bubbletrap_match.group(1).strip()
-            else:
-                bubbletrap_setting = ' '
-            if QD_match:
-                QD_match = QD_match.group().strip().replace(" ", "")
-            else:
-                QD_match = ' '
-
-            if re.search('volume', base_value.lower()): 
-                block_name = first_line.strip()
-                inlet_number = None
-                if inlet_match:
-                    inlet_spec = inlet_match.group(1).strip()
-                    # Handle cases like "Closed, Inlet4" or "Inlet1, Closed"
-                    for part in inlet_spec.split(','):
-                        part = part.strip()
-
-                        if 'Inlet' in part and part != 'Inlet':
-                            inlet_number = ''.join(filter(str.isdigit, part))
-                            inlet_setting = 'Inlet'+inlet_number
-                        elif 'Sample' in part:
-                            inlet_number = 'Sample'
-                            inlet_setting = 'Sample'
-
-                    currentPurgeBlock = ({
-                        'block_name': block_name,
-                        'manflow': flow_value,
-                        'column_setting': column_setting,
-                        'outlet_setting': outlet_setting,
-                        'bubbletrap_setting': bubbletrap_setting,
-                        'inlet_QD_setting': QD_match, 
-                        'inlet_setting': inlet_setting,
-                        'end_block_setting': end_block_value
-
-                    })
-
-
-                    purge_blocks.append(currentPurgeBlock)
-
-                    finalPurgeBlock = currentPurgeBlock
-
-
-                #remove any inlets that are present in purges, list should be empty at end of purges or dict lookups should be blank
-                    if inlet_setting in remainingInlets:
-                        remainingInlets.pop(remainingInlets.index(inlet_setting))
-
-
-
-
-            
-        elif firstPurgeEntered and not firstBlockAfterPurge:
-            if finalPurgeBlock is not None:
-                
-                inlet_match = re.search(r'Inlet:\s*(.*)', block)
-                inlet_match = inlet_match.group(1).strip()
-
-                if (finalPurgeBlock['inlet_setting'] in inlet_match):
-                    lastPurgeBuffer = True
-
+def display_pdf(file):
+    # Opening file from file path
+    with open(file, "rb") as f:
+        base64_pdf = base64.b64encode(f.read()).decode('utf-8')
     
-    if not purge_blocks:
-        return [], False
-        
-    standard_settings_correct = all(
-        block['manflow'] == 60.0 and 
-        ('Bypass_Both' in block['column_setting'] or 'Bypass' in block['column_setting']) and
-        block['outlet_setting'] == 'Waste' and
-        block['bubbletrap_setting'] == 'Bypass' and pfcData.get(block['inlet_setting']).get('qd') == block['inlet_QD_setting']
-        for block in purge_blocks[:-1]
-    )
+    # Embedding PDF in HTML
+    pdf_display = f'<iframe src="data:application/pdf;base64,{base64_pdf}" width="700" height="1000" type="application/pdf"></iframe>'
     
-    last_purge_correct = (
-        purge_blocks[-1]['manflow'] == 60.0 and 
-        ('Bypass_Both' in purge_blocks[-1]['column_setting'] or 'Bypass' in purge_blocks[-1]['column_setting']) and
-        'Waste' in purge_blocks[-1]['outlet_setting'] and 20.0 == purge_blocks[-1]['end_block_setting'] and
-        'Inline' in purge_blocks[-1]['bubbletrap_setting'] and pfcData.get(purge_blocks[-1]['inlet_setting']).get('qd') == purge_blocks[-1]['inlet_QD_setting']
-    )
-
-    allInletsPurged = True
-    inletsNotPurged = []
-    for val in remainingInlets:
-        if (pfcData.get(val).get('qd')).strip()!= '':
-            allInletsPurged = False
-            inletsNotPurged.append(val)
-
-    
-    all_correct = standard_settings_correct and last_purge_correct and lastPurgeBuffer and allInletsPurged
-
-    return purge_blocks, all_correct, lastPurgeBuffer, allInletsPurged, inletsNotPurged
+    # Displaying File
+    st.markdown(pdf_display, unsafe_allow_html=True)
 
 
-def create_inlet_qd_interface2():
+
+def create_inlet_qd_interface():
     st.title("UNICORN Method Validator")
 
     uploaded_file = st.file_uploader("Upload UNICORN Method PDF", type="pdf")
@@ -196,9 +82,10 @@ def create_inlet_qd_interface2():
 
         for i in default_qd_map.keys():
             if qdMap.get(ss.get(i)) == None:
-                qdAssignment = ' '
-                velocityAssignment = ' ' 
+                qdAssignment = 'QD00015'
+                velocityAssignment = '300'
                 directionAssignment = ' ' 
+                
             else:
                 qdAssignment = qdMap.get(ss.get(i)).get('composition')
                 velocityAssignment = qdMap.get(ss.get(i)).get('velocity')
@@ -207,6 +94,10 @@ def create_inlet_qd_interface2():
             default_qd_map[i]['qd'] = qdAssignment
             default_qd_map[i]['flow_rate'] = velocityAssignment
             default_qd_map[i]['direction'] = directionAssignment
+    
+        default_qd_map['Sample']['qd'] = 'QD00015'
+        default_qd_map['Inlet4']['flow_rate'] = '300'
+        default_qd_map['Inlet1']['flow_rate'] = '300'
 
     st.header("Verify Inlet Parameters")
     
@@ -242,8 +133,10 @@ def create_inlet_qd_interface2():
 
     # Create columns for Pump B Inlets
     st.subheader("Pump B Inlets")
+
     for inlet in ['Inlet4', 'Inlet5', 'Inlet6', 'Inlet7']:
-        col1, col2, col3 = st.columns(3)
+        col1, col2, col3 = st.columns(3, vertical_alignment = "center")
+
         with col1:
             inlet_data[f'{inlet}_qd'] = st.text_input(
                 f"{inlet} QD Number",
@@ -311,19 +204,23 @@ def create_inlet_qd_interface2():
 
 
 def main():
-    result = create_inlet_qd_interface2()
+    result = create_inlet_qd_interface()
 
     if result['submit_pressed']:
         st.info("Processing document and comparing QD numbers...")
         
         # Process the PDF and analyze purge blocks
         outputFile = extract_text_from_pdf(result['uploaded_file'], 'output2')
+        #st.markdown(f'<pre>{text}</pre>', unsafe_allow_html=True)
+        
+
         with open(outputFile, 'r') as file:
             text = file.read()
             
+            
 
             # Check purge blocks
-            purge_blocks, all_correct, lastPurgeBuffer, allInletsPurged, inletsNotPurged = check_purge_blocks_settings(text, result['inlet_data'])
+            purge_blocks, all_correct, lastPurgeBuffer, allInletsPurged, inletsNotPurged = check_purge_blocks_settings_pdf(text, result['inlet_data'])
             
             # Display results
             st.header("Purge Block Analysis Results")
@@ -335,6 +232,7 @@ def main():
             
             st.subheader("Detailed Block Settings:")
 
+            all_incorrect = []
             for block in purge_blocks:
                 # Validate settings for this block
                 is_last_block = block == purge_blocks[-1]
@@ -343,42 +241,77 @@ def main():
                 
                 # Check each setting and add to list if incorrect
                 if block['manflow'] != 60.0:
-                    incorrect_settings.append(('ManFlow', block['manflow'], '60.0%'))
+                    incorrect_settings.append(('ManFlow', block['manflow'], '60.0%', block['locations'].get('manflow')))
                     
                 if not ('Bypass_Both' in block['column_setting'] or 'Bypass' in block['column_setting']):
-                    incorrect_settings.append(('Column', block['column_setting'], 'Bypass_Both'))
+                    incorrect_settings.append(('Column', block['column_setting'], 'Bypass_Both', block['locations'].get('column')))
                     
                 if block['outlet_setting'] != 'Waste':
-                    incorrect_settings.append(('Outlet', block['outlet_setting'], 'Waste'))
+                    incorrect_settings.append(('Outlet', block['outlet_setting'], 'Waste', block['locations'].get('outlet')))
                     
                 expected_bubbletrap = 'Inline' if is_last_block else 'Bypass'
                 if block['bubbletrap_setting'] != expected_bubbletrap:
-                    incorrect_settings.append(('BubbleTrap', block['bubbletrap_setting'], expected_bubbletrap))
+                    incorrect_settings.append(('BubbleTrap', block['bubbletrap_setting'], expected_bubbletrap, block['locations'].get('bubbletrap')))
 
                 expected_qdNumber = result['inlet_data'].get(block['inlet_setting']).get('qd')
                 if expected_qdNumber.strip() != block['inlet_QD_setting']:
-                    incorrect_settings.append(('QD Number', block['inlet_QD_setting'], expected_qdNumber))
+                    incorrect_settings.append(('QD Number', block['inlet_QD_setting'], expected_qdNumber, block['locations'].get('QD')))
                 
                 if is_last_block:
                     if 20.0 != block['end_block_setting']:
-                        incorrect_settings.append(('Final Purge should be 20L', block['end_block_setting'], 20.0))
+                        incorrect_settings.append(('Final Purge should be 20L', block['end_block_setting'], 20.0, block['locations'].get('endBlock')))
+                        
                 
+                all_incorrect.extend(incorrect_settings)
                 # Only show blocks with incorrect settings
                 if incorrect_settings:
                     with st.expander(f"❌ Block: {block['block_name']}"):
                         col1, col2 = st.columns(2)
                         with col1:
                             st.write("Incorrect Settings:")
-                            for setting, current_value, expected_value in incorrect_settings:
+                            for setting, current_value, expected_value, location in incorrect_settings:
                                 st.write(f"• {setting}: {current_value}")
                         with col2:
                             st.write("Expected Values:")
-                            for setting, current_value, expected_value in incorrect_settings:
+                            for setting, current_value, expected_value, location in incorrect_settings:
                                 st.write(f"• {setting}: {expected_value}")
+
+                    
+
+            
+
 
             with st.expander(f"❌ Failed to Purge"):
                 for i in inletsNotPurged:
-                    st.write(i + " was not purged with" + result['inlet_data'].get(i).get('qd'))
+                    st.write(i + " was not purged with " + result['inlet_data'].get(i).get('qd'))
+            
+
+            highlights = [
+                {
+                    'page': 0,
+                    'loc': (104.03028869628906, 97.61709594726562, 131.03839111328125, 108.64652252197266),
+                    'text': "This is an important section"
+                }, 
+                {
+                    'page': 0,
+                    'loc': (130, 382, 267, 400),
+                    'text': "This is an important section"
+                }, 
+                {
+                    'page': 0,
+                    'loc': (71.63995361328125, 471.6002502441406, 574.667724609375, 482.62966918945314),
+                    'text': "This is an important section"
+                }
+
+            ]
+
+
+            # Save uploaded file to disk temporarily
+            if result['uploaded_file'] is not None:
+                annotate_doc(result['uploaded_file'], "annotated_example2.pdf", highlights)
+                display_pdf("annotated_example2.pdf")
+
+     
 
 if __name__ == "__main__":
     main()
