@@ -3,18 +3,17 @@ import re
 from extractText import extract_text_from_pdf
 from extractPFCData import output_PFC_params
 from extractText import extract_unit_opertaion_from_method
-from purgeValidation import check_purge_blocks_settings_pdf
 from streamlit_pdf_viewer import pdf_viewer
-import pdfplumber
 import base64
 import streamlit.components.v1 as components
 from PyPDF2 import PdfReader, PdfWriter
 from reportlab.pdfgen import canvas
 from reportlab.lib import colors
-import io
 from pdfminer.high_level import extract_pages
 from pdfminer.layout import LTTextBoxHorizontal
 from annotatePDF import annotate_doc
+from checkPDFPurge import find_highlight_loc
+from checkPDFPurge import check_purge_blocks_settings_pdf2
 
 
 def display_pdf(file):
@@ -217,98 +216,23 @@ def main():
         with open(outputFile, 'r') as file:
             text = file.read()
             
-            
-
-            # Check purge blocks
-            purge_blocks, all_correct, lastPurgeBuffer, allInletsPurged, inletsNotPurged = check_purge_blocks_settings_pdf(text, result['inlet_data'])
-            
             # Display results
             st.header("Purge Block Analysis Results")
-            
-            if all_correct:
-                st.success("✅ All purge blocks have correct settings")
-            else:
-                st.error("❌ Some purge blocks have incorrect settings")
-            
-            st.subheader("Detailed Block Settings:")
-
-            all_incorrect = []
-            for block in purge_blocks:
-                # Validate settings for this block
-                is_last_block = block == purge_blocks[-1]
-
-                incorrect_settings = []
-                
-                # Check each setting and add to list if incorrect
-                if block['manflow'] != 60.0:
-                    incorrect_settings.append(('ManFlow', block['manflow'], '60.0%', block['locations'].get('manflow')))
-                    
-                if not ('Bypass_Both' in block['column_setting'] or 'Bypass' in block['column_setting']):
-                    incorrect_settings.append(('Column', block['column_setting'], 'Bypass_Both', block['locations'].get('column')))
-                    
-                if block['outlet_setting'] != 'Waste':
-                    incorrect_settings.append(('Outlet', block['outlet_setting'], 'Waste', block['locations'].get('outlet')))
-                    
-                expected_bubbletrap = 'Inline' if is_last_block else 'Bypass'
-                if block['bubbletrap_setting'] != expected_bubbletrap:
-                    incorrect_settings.append(('BubbleTrap', block['bubbletrap_setting'], expected_bubbletrap, block['locations'].get('bubbletrap')))
-
-                expected_qdNumber = result['inlet_data'].get(block['inlet_setting']).get('qd')
-                if expected_qdNumber.strip() != block['inlet_QD_setting']:
-                    incorrect_settings.append(('QD Number', block['inlet_QD_setting'], expected_qdNumber, block['locations'].get('QD')))
-                
-                if is_last_block:
-                    if 20.0 != block['end_block_setting']:
-                        incorrect_settings.append(('Final Purge should be 20L', block['end_block_setting'], 20.0, block['locations'].get('endBlock')))
-                        
-                
-                all_incorrect.extend(incorrect_settings)
-                # Only show blocks with incorrect settings
-                if incorrect_settings:
-                    with st.expander(f"❌ Block: {block['block_name']}"):
-                        col1, col2 = st.columns(2)
-                        with col1:
-                            st.write("Incorrect Settings:")
-                            for setting, current_value, expected_value, location in incorrect_settings:
-                                st.write(f"• {setting}: {current_value}")
-                        with col2:
-                            st.write("Expected Values:")
-                            for setting, current_value, expected_value, location in incorrect_settings:
-                                st.write(f"• {setting}: {expected_value}")
-
-                    
-
-            
-
-
-            with st.expander(f"❌ Failed to Purge"):
-                for i in inletsNotPurged:
-                    st.write(i + " was not purged with " + result['inlet_data'].get(i).get('qd'))
-            
-
-            highlights = [
-                {
-                    'page': 0,
-                    'loc': (104.03028869628906, 97.61709594726562, 131.03839111328125, 108.64652252197266),
-                    'text': "This is an important section"
-                }, 
-                {
-                    'page': 0,
-                    'loc': (130, 382, 267, 400),
-                    'text': "This is an important section"
-                }, 
-                {
-                    'page': 0,
-                    'loc': (71.63995361328125, 471.6002502441406, 574.667724609375, 482.62966918945314),
-                    'text': "This is an important section"
-                }
-
-            ]
-
 
             # Save uploaded file to disk temporarily
             if result['uploaded_file'] is not None:
+                purgeBlockData, inletsNotPurged = find_highlight_loc(text, result['uploaded_file'], result['inlet_data'])
+                highlights = check_purge_blocks_settings_pdf2(purgeBlockData, result['inlet_data'])
+                if not highlights:
+                    st.success("✅ All purge blocks have correct settings")
+                else:
+                    st.error("❌ Some purge blocks have incorrect settings")
+                
                 annotate_doc(result['uploaded_file'], "annotated_example2.pdf", highlights)
+
+                with st.expander(f"❌ Failed to Purge"):
+                    for i in inletsNotPurged:
+                        st.write(i + " was not purged with " + result['inlet_data'].get(i).get('qd'))
                 display_pdf("annotated_example2.pdf")
 
      
