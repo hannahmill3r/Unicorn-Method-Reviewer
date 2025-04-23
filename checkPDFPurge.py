@@ -1,5 +1,6 @@
 import fitz
 import re
+import numpy as np
 
 def find_highlight_loc(textDoc, pdf_path, pfcData):
 
@@ -13,6 +14,8 @@ def find_highlight_loc(textDoc, pdf_path, pfcData):
     equillibrationBlockData = []
     trackedInletQDs = []
     lastPurgeRead = False
+    firstBaseRead = False
+    LFlow = None
 
     # Loop through each page
     for page_num in range(len(doc)):
@@ -28,6 +31,11 @@ def find_highlight_loc(textDoc, pdf_path, pfcData):
 
                     for span in line["spans"]:
                         text = span["text"]
+                        #first base contains information on column height and width
+                        if "base: " in text.lower() and firstBaseRead == False:
+                            firstBaseRead = True
+                            LFlow = calc_LFlow(text)
+
                         if "block:" in text.lower() and "purge" in text.lower() and not lastPurgeRead:
 
 
@@ -95,12 +103,12 @@ def find_highlight_loc(textDoc, pdf_path, pfcData):
             if unpurgedQD not in trackedInletQDs:
                 inletsNotPurged.append(val)
     doc.close()
-    return purgeBlockData, inletsNotPurged, equillibrationBlockData
+    return purgeBlockData, inletsNotPurged, equillibrationBlockData, LFlow
 
 
 def queryMainstreamBlock(block):
     # Find matches and store their locations
-    currentPurgeBlock = {}
+    currentMSBlock = {}
     manflow_match = re.search(r'ManFlow:\s*(\d+\.?\d*)\s*{\%}', block)
     column_match = re.search(r'Column:\s*(.*)', block)
     filter_match = re.search(r'Filter:\s*(.*)', block)
@@ -180,10 +188,10 @@ def check_MS_blocks_settings_pdf(MS_blocks, pfcData):
             incorrectFieldText.append("Expected Inline filter")
             incorrectField = True
         if int(block["settings"]['fraction_setting'])*5 != block["settings"]['end_block_setting']:
-            incorrectFieldText.append("Expected final volume to be 5L")
+            incorrectFieldText.append("Expected final volume to be 5 x (# of mainstreams)")
             incorrectField = True
         if int(block["settings"]['fraction_setting']) != numberofMSFromCampaignPlanner:
-            incorrectFieldText.append(f"Expected number of mainstreams to be:")
+            incorrectFieldText.append(f"Expected number of mainstreams to be:{numberofMSFromCampaignPlanner}")
             incorrectField = True
         if block['settings']['manflow']!= 60.0:
             incorrectFieldText.append("Expected 60% ManFlow")
@@ -262,7 +270,7 @@ def queryPurgeBlock(block):
     return currentPurgeBlock
 
 
-def check_purge_blocks_settings_pdf2(purge_blocks, pfcData):
+def check_purge_block_settings(purge_blocks, pfcData):
     highlights = []
     incorrectField = False
     firstBlock = True
@@ -289,6 +297,9 @@ def check_purge_blocks_settings_pdf2(purge_blocks, pfcData):
             incorrectField = True
         if "Bypass" not in block["settings"]['bubbletrap_setting']:
             incorrectFieldText.append("Expected bubbletrap bypass")
+            incorrectField = True
+        if "Waste" not in block["settings"]['outlet_setting']:
+            incorrectFieldText.append("All purges should go to waste")
             incorrectField = True
         if methodQD != block["settings"]['inlet_QD_setting']:
             
@@ -333,4 +344,30 @@ def check_purge_blocks_settings_pdf2(purge_blocks, pfcData):
 
 
 
+def calc_LFlow(text):
+    base = re.search(r'base:\s*(.*)', text.lower())
 
+    columnDiameter = 0
+
+    base_stripped = base.group(1).strip().split(', ')
+    vc = re.sub(r'[A-Za-z]', '', base_stripped[1].split()[0])
+    vc = re.sub(r'=', '', vc)
+    volumeOfBuffer = float(vc)*2
+
+    for param in base_stripped:
+        if "_" in param:
+            words = param.split("_")
+            ind = words.index("x")
+            if words[ind-1] =="h":
+                columnDiameter = re.sub(r'[A-Za-z]', '', words[ind+1])
+            elif words[ind-1] =="d":
+                columnDiameter = re.sub(r'[A-Za-z]', '', words[ind-2])
+    if columnDiameter == 0:
+        return None
+    else:
+        CSA = (float(columnDiameter)**2*np.pi)/4
+        VFlow = (volumeOfBuffer/15)*60
+        LFlow = (VFlow/CSA)*1000
+        print(np.round(LFlow))
+
+        return LFlow
