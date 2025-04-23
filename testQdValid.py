@@ -14,6 +14,7 @@ from pdfminer.layout import LTTextBoxHorizontal
 from annotatePDF import annotate_doc
 from checkPDFPurge import find_highlight_loc
 from checkPDFPurge import check_purge_blocks_settings_pdf2
+from checkPDFPurge import check_MS_blocks_settings_pdf
 
 
 def display_pdf(file):
@@ -81,8 +82,8 @@ def create_inlet_qd_interface():
 
         for i in default_qd_map.keys():
             if qdMap.get(ss.get(i)) == None:
-                qdAssignment = 'QD00015'
-                velocityAssignment = '300'
+                qdAssignment = ' '
+                velocityAssignment = ' '
                 directionAssignment = ' ' 
                 
             else:
@@ -221,14 +222,19 @@ def main():
 
             # Save uploaded file to disk temporarily
             if result['uploaded_file'] is not None:
-                purgeBlockData, inletsNotPurged = find_highlight_loc(text, result['uploaded_file'], result['inlet_data'])
+                purgeBlockData, inletsNotPurged, equillibrationBlockData = find_highlight_loc(text, result['uploaded_file'], result['inlet_data'])
                 highlights = check_purge_blocks_settings_pdf2(purgeBlockData, result['inlet_data'])
+                highlightsMS = check_MS_blocks_settings_pdf(equillibrationBlockData, result['inlet_data'])
+
+                mergedHighlights = [item for sublist in [highlights, highlightsMS] for item in sublist]
+
+
                 if not highlights:
                     st.success("✅ All purge blocks have correct settings")
                 else:
                     st.error("❌ Some purge blocks have incorrect settings")
                 
-                annotate_doc(result['uploaded_file'], "annotated_example2.pdf", highlights)
+                annotate_doc(result['uploaded_file'], "annotated_example2.pdf", mergedHighlights)
 
                 with st.expander(f"❌ Failed to Purge"):
                     for i in inletsNotPurged:
