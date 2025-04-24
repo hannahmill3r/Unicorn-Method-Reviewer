@@ -12,9 +12,8 @@ from reportlab.lib import colors
 from pdfminer.high_level import extract_pages
 from pdfminer.layout import LTTextBoxHorizontal
 from annotatePDF import annotate_doc
-from checkPDFPurge import find_highlight_loc
-from checkPDFPurge import check_purge_block_settings
-from checkPDFPurge import check_MS_blocks_settings_pdf
+from proAMainLoop import find_highlight_loc
+from blockVerification import check_purge_block_settings, check_MS_blocks_settings_pdf, check_column_params, check_indiv_blocks_settings_pdf
 
 
 def display_pdf(file):
@@ -98,6 +97,41 @@ def create_inlet_qd_interface():
         default_qd_map['Sample']['qd'] = 'QD00015'
         default_qd_map['Inlet4']['flow_rate'] = '300'
         default_qd_map['Inlet1']['flow_rate'] = '300'
+
+    st.header("Verify Column Parameters")
+    column_disabled = uploaded_PFC_file is None
+    column_params = {'columnHeight': 17, "columnDiameter":45, "contactTime": 15}
+
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        column_params['columnHeight'] = st.text_input(
+            "Column Bed Height",
+            value=column_params['columnHeight'],
+            key="columnHeight",
+            disabled=column_disabled
+        )
+    with col2:
+        column_params['columnDiameter'] = st.text_input(
+            "Column Diameter",
+            value=column_params['columnDiameter'],
+            key="diameter",
+            disabled=column_disabled
+        )
+    with col3:
+        column_params['contactTime'] = st.text_input(
+            "Contact Time",
+            value=column_params['contactTime'],
+            key="time",
+            disabled=column_disabled
+        )
+    
+    st.header("Verify Number of Mainstreams")
+    numMS = st.text_input("Number of Mainstreams",
+            value=0,
+            key="numMS",
+            disabled=column_disabled
+        )
+
 
     st.header("Verify Inlet Parameters")
     
@@ -196,10 +230,12 @@ def create_inlet_qd_interface():
 
     return {
         'inlet_data': default_qd_map,
+        'column_params': column_params,
         'uploaded_file': uploaded_file,
         'output_file': outputFile,
         'validation_state': validation_state,
-        'submit_pressed': submit_pressed
+        'submit_pressed': submit_pressed,
+        'number_of_MS': numMS
     }
 
 
@@ -222,11 +258,15 @@ def main():
 
             # Save uploaded file to disk temporarily
             if result['uploaded_file'] is not None:
-                purgeBlockData, inletsNotPurged, equillibrationBlockData, LFlow = find_highlight_loc(text, result['uploaded_file'], result['inlet_data'])
+                purgeBlockData, inletsNotPurged, equillibrationBlockData, columnParams, individualBlockData = find_highlight_loc(text, result['uploaded_file'], result['inlet_data'])
                 highlights = check_purge_block_settings(purgeBlockData, result['inlet_data'])
-                highlightsMS = check_MS_blocks_settings_pdf(equillibrationBlockData, result['inlet_data'])
+                highlightsMS = check_MS_blocks_settings_pdf(equillibrationBlockData, result['inlet_data'], result["number_of_MS"])
+                highlightsColumnParams = check_column_params(columnParams, result['column_params'])
+                highlightsIndiv = check_indiv_blocks_settings_pdf(individualBlockData, result['inlet_data'], result['column_params'])
 
                 mergedHighlights = [item for sublist in [highlights, highlightsMS] for item in sublist]
+                mergedHighlights = [item for sublist in [highlightsColumnParams, mergedHighlights] for item in sublist]
+                mergedHighlights = [item for sublist in [highlightsIndiv, mergedHighlights] for item in sublist]
 
 
                 if not highlights:
