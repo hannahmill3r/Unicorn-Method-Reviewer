@@ -3,38 +3,6 @@ import re
 from pathlib import Path
 from extractText import closest_match_unit_op
 
-def read_docx(file_path):
-    """Read content from a docx file processing paragraphs and tables in sequential order"""
-    doc = docx.Document(file_path)
-    full_text = []
-    
-    # Process elements in order of appearance by iterating through doc.element.body
-    for element in doc.element.body:
-        # Handle paragraphs
-        if element.tag.endswith('p'):
-            paragraph = element.text.strip()
-            if paragraph:  # Only add non-empty paragraphs
-                full_text.append(paragraph)
-        
-        # Handle tables
-        elif element.tag.endswith('tbl'):
-            table = doc.tables[len([e for e in doc.element.body[:doc.element.body.index(element)] 
-                                  if e.tag.endswith('tbl')])]
-            for row in table.rows:
-                row_text = []
-                for cell in row.cells:
-                    # Get text from cell paragraphs
-                    cell_text = ' '.join(paragraph.text.strip() 
-                                       for paragraph in cell.paragraphs 
-                                       if paragraph.text.strip())
-                    if cell_text:
-                        row_text.append(cell_text)
-                if row_text:  # Only add non-empty rows
-                    full_text.append(' | '.join(row_text))
-
-    return '\n'.join(full_text)
-
-
 
 def read_docx2(file_path):
     """Read content from a docx file separating into nested lists by unit operation"""
