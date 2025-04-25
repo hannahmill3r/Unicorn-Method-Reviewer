@@ -1,3 +1,5 @@
+docx==0.2.4
+easyocr==1.7.2
 numpy==2.2.0
 pandas==2.2.3
 pathlib==1.0.1
@@ -5,11 +7,10 @@ pdfplumber==0.11.4
 pip==25.0.1
 PyMuPDF==1.25.5
 PyPDF2==3.0.1
-re
+requests==2.30.0
 streamlit==1.44.1
 streamlit-pdf-viewer==0.0.22
 fitz
 pypdf
 difflib
 reportlab
-pdfminer
