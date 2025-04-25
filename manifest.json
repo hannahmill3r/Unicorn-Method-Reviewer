@@ -6,7 +6,7 @@
       "entrypoint": "testQdValid.py"
     },
     "python": {
-      "version": "3.13.3",
+      "version": "3.11.9",
       "package_manager": {
         "name": "pip",
         "version": "25.0.1",
