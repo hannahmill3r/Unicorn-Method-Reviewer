@@ -102,7 +102,7 @@ def find_highlight_loc(textDoc, pdf_path, pfcData):
                                     "location": (x0, y0, x1, y1),
                                     "settings": MSBlockSettings
                                 })
-                        elif "block:" in text.lower() and "pre_sani_rinse" in text.lower():
+                        elif "block:" in text.lower() and "purge" not in text.lower():
                             #get the location in the PDF of the first Block Line
                             x0 = span["origin"][0]  # Left x coordinate
                             y0 = span["origin"][1]-8  # Top y coordinate
@@ -111,13 +111,16 @@ def find_highlight_loc(textDoc, pdf_path, pfcData):
 
                                     
                             indivBlockSettings = queryIndividualBlocks(blocks[blockCounter])
-                            if MSBlockSettings !={}:
-                                individualBlockData.append({
-                                    "blockName": text,
-                                    "blockPage": page_num+1, 
-                                    "location": (x0, y0, x1, y1),
-                                    "settings": indivBlockSettings
-                                })
+                            if indivBlockSettings !={}:
+                                if "sameasmain" in indivBlockSettings['base_setting'].lower() or "volume" in indivBlockSettings['base_setting'].lower():
+                                    individualBlockData.append({
+                                        "blockName": text,
+                                        "blockPage": page_num+1, 
+                                        "location": (x0, y0, x1, y1),
+                                        "settings": indivBlockSettings
+                                    })
+
+                            #TODO: check here if elution is in the block, because theres a few additional things that need to be checked here
 
                         if "Block: " in text:
                             blockCounter+=1

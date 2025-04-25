@@ -32,8 +32,11 @@ def queryIndividualBlocks(block):
     
     multi_flow_match = re.finditer(r' Flow:\s*(.*)', block)
     flowMatches = []
+    flowTags = []
     for match in multi_flow_match:
-        flowMatches.append(''.join(filter(str.isdigit, match.group(1).strip())))
+        flowTag = re.search(r'#\s*(.*)', match.group(1).strip()).group(1).strip()
+        flowMatches.append(''.join(filter(str.isdigit, match.group(1).strip().split('#')[0])))
+        flowTags.append(flowTag)
 
 
     base_value = base_match.group(1).strip().split(', ')[0] if base_match else ' '
@@ -61,6 +64,9 @@ def queryIndividualBlocks(block):
                 inlet_number = 'Sample'
                 inlet_setting = 'Sample'
 
+        if inlet_number == None:
+            return{}
+
 
         currentBlock = {
             'column_setting': column_setting,
@@ -72,6 +78,7 @@ def queryIndividualBlocks(block):
             'base_setting': base_value, 
             'reset_setting': reset_match, 
             "flow_setting": ', '.join(flowMatches),
+            "flow_tags": flowTags,
             'fraction_setting': numberOfMS, 
             'manflow': flow_value,
             'inlet_QD_setting': QD_match_value, 

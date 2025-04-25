@@ -167,14 +167,19 @@ def check_indiv_blocks_settings_pdf(indiv_blocks, pfcData, columnParam):
     incorrectField = False
 
     LFlow = calc_LFlow(float(columnParam["columnHeight"]), float(columnParam["columnDiameter"]), float(columnParam["contactTime"]))["linearFlow"]
+    
 
     for block in indiv_blocks:
         incorrectFieldText = []
         incorrectField = False
 
         direct = pfcData[block['settings']['inlet_setting']]['direction']
-
-        if direct.lower() not in block["settings"]['column_setting'].lower():
+        
+        if "flush" in block['blockName'].lower():
+            if "Bypass" not in block["settings"]['column_setting']:
+                incorrectFieldText.append(f"Expected {direct}")
+                incorrectField = True
+        elif direct.lower() not in block["settings"]['column_setting'].lower():
             incorrectFieldText.append(f"Expected {direct}")
             incorrectField = True
         if "Inline" not in block["settings"]['filter_setting']:
@@ -183,20 +188,58 @@ def check_indiv_blocks_settings_pdf(indiv_blocks, pfcData, columnParam):
         if "Inline" not in block["settings"]['bubbletrap_setting']:
             incorrectFieldText.append("Expected bubbletrap bypass")
             incorrectField = True
-        if "Waste" not in block["settings"]['outlet_setting']:
+
+        #all outlets go to wast EXCEPT for elution
+        if "Waste" not in block["settings"]['outlet_setting'] and "watch_uv" not in block['blockName'].lower():
             incorrectFieldText.append("Expected waste outlet")
             incorrectField = True
-        if round(LFlow) != float(block['settings']['flow_setting']) and round(LFlow, 1) != float(block['settings']['flow_setting']) and round(LFlow, 2) != float(block['settings']['flow_setting']):
-            incorrectFieldText.append(f"Expected {round(LFlow, 2)} flow")
+        elif "MS_Outlet" not in block["settings"]['outlet_setting'] and "watch_uv" in block['blockName'].lower():
+            incorrectFieldText.append("Elution should go to MS outlet")
             incorrectField = True
+
+        if "," in block['settings']['flow_setting']:
+            listOfFlows = block['settings']['flow_setting'].strip().split(",")
+
+            for i in range(len(listOfFlows)):
+                flow = float(listOfFlows[i])
+                tag = block['settings']['flow_tags'][i]
+
+                if ("sani" in tag.lower() or "first_cv_equil" in tag.lower()):
+                    if flow != round(LFlow) and flow != round(LFlow, 1) and flow != round(LFlow, 2):
+                        incorrectFieldText.append(f"Expected {round(LFlow, 2)} for pre sani flow rate")
+                        incorrectField = True
+                elif flow != float(pfcData[block['settings']['inlet_setting']]['flow_rate']) :
+                    incorrectFieldText.append("Unexpected Flow Value")
+                    incorrectField = True
+                #TODO: ELSE wash 1 or charge has a seperate flow rate
+
+        elif ("sani" in block['settings']['flow_tags'][0].lower() or "first_cv_equil" in block['settings']['flow_tags'][0].lower()):
+            if round(LFlow) != float(block['settings']['flow_setting']) and round(LFlow, 1) != float(block['settings']['flow_setting']) and round(LFlow, 2) != float(block['settings']['flow_setting']):
+                incorrectFieldText.append(f"Expected {round(LFlow, 2)} flow")
+                incorrectField = True
+        elif float(block['settings']['flow_setting']) != float(pfcData[block['settings']['inlet_setting']]['flow_rate']):
+            incorrectFieldText.append(f"Expected {(pfcData[block['settings']['inlet_setting']]['flow_rate'])} flow")
+            incorrectField = True
+
         if block['settings']['setmark_setting'] not in block["blockName"]:
             incorrectFieldText.append("Incorrect setmark naming")
             incorrectField = True
-        if block['settings']['snapshot_setting'] != block['settings']['setmark_setting'] + " End":
+
+        if ((block['settings']['snapshot_setting'] != block['settings']['setmark_setting'] + " End") and (block['settings']['snapshot_setting'] != block['settings']['setmark_setting'] + "_End")) and block['settings']['snapshot_setting'] != " ":
             incorrectFieldText.append("Incorrect snapshot naming")
             incorrectField = True
-
-        #TODO: add totalizer reset and insure correct pump is used
+        #pump A
+        if "flush" not in block['blockName'].lower():
+            if "rinse" in block['blockName'].lower() or "wash_1" in block['blockName'].lower() or "wash_3" in block['blockName'].lower() or "equil" in block['blockName'].lower() or "elution" in block['blockName'].lower() or "charge" in block['blockName'].lower():
+                if ("pa" not in block['settings']['reset_setting'].lower()):
+                    incorrectFieldText.append("Totalizer should be reset through pump A")
+                    incorrectField = True
+            #pump B
+            else:
+                if ("pb" not in block['settings']['reset_setting'].lower()):
+                    incorrectFieldText.append("Totalizer should be reset through pump B")
+                    incorrectField = True
+        #TODO: check inlets?
 
         if incorrectField:
             highlights.append({
