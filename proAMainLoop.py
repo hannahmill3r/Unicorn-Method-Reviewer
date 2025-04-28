@@ -1,7 +1,7 @@
 import fitz
 import re
 import numpy as np
-from queryMethodCodeBlocks import queryIndividualBlocks, queryPurgeBlock
+from queryMethodCodeBlocks import queryIndividualBlocks, queryPurgeBlock, query_watch, queryFinalBlock
 
 def find_highlight_loc(textDoc, pdf_path, pfcData):
 
@@ -17,7 +17,9 @@ def find_highlight_loc(textDoc, pdf_path, pfcData):
     trackedInletQDs = []
     lastPurgeRead = False
     firstBaseRead = False
+    finalBlock = False
     columnParams = {}
+    watchBlockData = []
 
     # Loop through each page
     for page_num in range(len(doc)):
@@ -102,6 +104,22 @@ def find_highlight_loc(textDoc, pdf_path, pfcData):
                                     "location": (x0, y0, x1, y1),
                                     "settings": MSBlockSettings
                                 })
+                        elif "block:" in text.lower() and "watch" in text.lower():
+                            x0 = span["origin"][0]  # Left x coordinate
+                            y0 = span["origin"][1]-8  # Top y coordinate
+                            x1 = x0 + span["bbox"][2] - span["bbox"][0]  # Right x coordinate
+                            y1 = y0 + span["bbox"][3] - span["bbox"][1]  # Bottom y coordinate
+
+                                    
+                            watchBlockSettings = query_watch(blocks[blockCounter])
+                            if watchBlockSettings !={}:
+                                watchBlockData = {
+                                    "blockName": text,
+                                    "blockPage": page_num+1, 
+                                    "location": (x0, y0, x1, y1),
+                                    "settings": watchBlockSettings
+                                }
+
                         elif "block:" in text.lower() and "purge" not in text.lower():
                             #get the location in the PDF of the first Block Line
                             x0 = span["origin"][0]  # Left x coordinate
@@ -119,9 +137,10 @@ def find_highlight_loc(textDoc, pdf_path, pfcData):
                                         "location": (x0, y0, x1, y1),
                                         "settings": indivBlockSettings
                                     })
-
-                            #TODO: check here if elution is in the block, because theres a few additional things that need to be checked here
-
+                        #Grab data from last block to check end of run delay and 
+                        if "Block: " in text and blockCounter == len(blocks)-1:
+                            fianalBlock = queryFinalBlock(blocks[blockCounter])
+                            
                         if "Block: " in text:
                             blockCounter+=1
 
@@ -134,7 +153,7 @@ def find_highlight_loc(textDoc, pdf_path, pfcData):
             if unpurgedQD not in trackedInletQDs:
                 inletsNotPurged.append(val)
     doc.close()
-    return purgeBlockData, inletsNotPurged, equillibrationBlockData, columnParams, individualBlockData
+    return purgeBlockData, inletsNotPurged, equillibrationBlockData, columnParams, individualBlockData, watchBlockData, finalBlock
 
 
 def extractColumnData(text):

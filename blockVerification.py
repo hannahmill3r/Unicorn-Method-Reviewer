@@ -1,4 +1,6 @@
 from proAMainLoop import calc_LFlow
+from extractText import closest_match_unit_op
+
 def check_column_params(methodsColumnParams, pfcColumnParams):
     highlights = []
     incorrectField = False
@@ -179,6 +181,10 @@ def check_indiv_blocks_settings_pdf(indiv_blocks, pfcData, columnParam):
             if "Bypass" not in block["settings"]['column_setting']:
                 incorrectFieldText.append(f"Expected {direct}")
                 incorrectField = True
+            if block["settings"]['manflow'] != ' ' and block["settings"]['manflow'] != 60.0:
+                incorrectFieldText.append("Expected 60% manflow")
+                incorrectField = True
+
         elif direct.lower() not in block["settings"]['column_setting'].lower():
             incorrectFieldText.append(f"Expected {direct}")
             incorrectField = True
@@ -221,7 +227,14 @@ def check_indiv_blocks_settings_pdf(indiv_blocks, pfcData, columnParam):
             incorrectFieldText.append(f"Expected {(pfcData[block['settings']['inlet_setting']]['flow_rate'])} flow")
             incorrectField = True
 
-        if block['settings']['setmark_setting'] not in block["blockName"]:
+        if "flush" in block["blockName"].lower():
+            match, ratio = closest_match_unit_op(block['settings']['setmark_setting'], [block["blockName"]])
+
+            if ratio < .20:
+                incorrectFieldText.append("Please double check setmark naming, similarity score was low")
+                incorrectField = True
+
+        elif block['settings']['setmark_setting'] not in block["blockName"]:
             incorrectFieldText.append("Incorrect setmark naming")
             incorrectField = True
 
@@ -239,6 +252,7 @@ def check_indiv_blocks_settings_pdf(indiv_blocks, pfcData, columnParam):
                 if ("pb" not in block['settings']['reset_setting'].lower()):
                     incorrectFieldText.append("Totalizer should be reset through pump B")
                     incorrectField = True
+            
         #TODO: check inlets?
 
         if incorrectField:
@@ -249,6 +263,30 @@ def check_indiv_blocks_settings_pdf(indiv_blocks, pfcData, columnParam):
 
     return highlights
 
-#TODO: add elution checks
+def check_watch_settings(block):
+
+    highlights = []
+    incorrectField = False
+
+    incorrectFieldText = []
+    incorrectField = False
+
+    #all outlets go to wast EXCEPT for elution
+    if  "MS_Outlet" not in block["settings"]['outlet_setting']:
+        incorrectFieldText.append("Elution should go to MS outlet")
+        incorrectField = True
+
+    if block['settings']['backside_setting'] >= block['settings']['peak_protect_setting']:
+        incorrectFieldText.append("Peak protection should be greater than backside cut.")
+        incorrectField = True
+
+    if incorrectField:
+        highlights.append({
+            "blockData": block, 
+            "annotationText": incorrectFieldText
+        })
+
+    return highlights
+
 
 #TODO: add scouting run checks

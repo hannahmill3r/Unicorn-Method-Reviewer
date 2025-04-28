@@ -2,6 +2,7 @@
 # importing required classes
 from pypdf import PdfReader
 from difflib import SequenceMatcher
+import fitz
 
 def closest_match_unit_op(search_string, string_array):
     # Initialize variables to track best match
@@ -24,7 +25,7 @@ def closest_match_unit_op(search_string, string_array):
             best_ratio = ratio
             best_match = candidate
     
-    return best_match
+    return best_match, best_ratio
 
 
 def extract_text_from_pdf(pdfPath, outputFilePath):
@@ -37,6 +38,7 @@ def extract_text_from_pdf(pdfPath, outputFilePath):
             file.write('\n')
 
     return outputFilePath+'.txt'
+
 
 def extract_unit_opertaion_from_method(outputFile, options):
     # Split the text into lines
@@ -52,5 +54,5 @@ def extract_unit_opertaion_from_method(outputFile, options):
                 clean_line = line.strip()
                 if clean_line:
                     methodUnitOp = ' '.join(clean_line.split()[5:])
-
-                    return closest_match_unit_op(methodUnitOp, options)
+                    match, ratio = closest_match_unit_op(methodUnitOp, options)
+                    return match

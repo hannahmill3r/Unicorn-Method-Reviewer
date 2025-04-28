@@ -142,3 +142,80 @@ def queryPurgeBlock(block):
                 'end_block_setting': end_block_value
             }
     return currentPurgeBlock
+
+
+def query_watch(block):
+    # Find matches and store their locations
+    watchBlock = {}
+
+    outlet_match = re.search(r'Outlet:\s*(.*)', block)
+
+
+    watch_values = [' '] * 3  # Initialize list with 3 empty spaces
+    watch_pattern = re.finditer(r'watch:\s*(.*)', block.lower())
+    count = 0
+    for watch_match in watch_pattern:
+        components = watch_match.group(1).strip().split(', ')
+        
+        # Find any numeric values associated with 'au'
+        for component in components:
+            if 'au' in component:
+                numbers = [float(token) for token in component.split() 
+                          if token.replace('.','').isdigit()]
+                if numbers:
+                    watch_values[count] = numbers[0]
+        count +=1
+
+    outlet_setting = outlet_match.group(1).strip() if outlet_match else ' '
+
+    #if theres more than one, return string listing all matches. This should only be applicable in the first purge
+
+    watchBlock = {
+        'frontside_setting': watch_values[0],
+        'peak_protect_setting': watch_values[1],
+        'backside_setting': watch_values[2], 
+        'outlet_setting': outlet_setting
+    }
+    return watchBlock
+
+def queryFinalBlock(block):
+    # Find matches and store their locations
+    finalBlock = {}
+
+    lines = block.split('\n')
+    print(lines[0])
+
+    for line in lines:
+        if "run" in line.lower():
+            newline = line.split()
+            print(newline, line)
+        print(line)
+    outlet_match = re.search(r'Outlet:\s*(.*)', block)
+
+
+    watch_values = [' '] * 3  # Initialize list with 3 empty spaces
+    watch_pattern = re.finditer(r'watch:\s*(.*)', block.lower())
+    count = 0
+    for watch_match in watch_pattern:
+        components = watch_match.group(1).strip().split(', ')
+        
+        # Find any numeric values associated with 'au'
+        for component in components:
+            if 'au' in component:
+                numbers = [float(token) for token in component.split() 
+                          if token.replace('.','').isdigit()]
+                if numbers:
+                    watch_values[count] = numbers[0]
+        count +=1
+
+    outlet_setting = outlet_match.group(1).strip() if outlet_match else ' '
+
+    #if theres more than one, return string listing all matches. This should only be applicable in the first purge
+
+    finalBlock = {
+        'frontside_setting': watch_values[0],
+        'peak_protect_setting': watch_values[1],
+        'backside_setting': watch_values[2], 
+        'outlet_setting': outlet_setting
+    }
+    return finalBlock
