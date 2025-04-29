@@ -73,15 +73,15 @@ def list_unit_ops(pages):
     
 def extract_process_info(array):
     process_info = {
-        'regeneration': {'direction': '', 'velocity': '', 'composition': ''},
-        'equilibration': {'direction': '', 'velocity': '', 'composition': ''},
-        'charge': {'direction': '', 'velocity': '', 'composition': ''},
-        'sanitization': {'direction': '', 'velocity': '', 'composition': ''},
-        'wash1': {'direction': '', 'velocity': '', 'composition': ''},
-        'wash2': {'direction': '', 'velocity': '', 'composition': ''},
-        'wash3': {'direction': '', 'velocity': '', 'composition': ''},
-        'elution': {'direction': '', 'velocity': '', 'composition': ''},
-        'storage': {'direction': '', 'velocity': '', 'composition': ''}
+        'regeneration': {'direction': '', 'velocity': '', 'composition': '','residenceTime': ''},
+        'equilibration': {'direction': '', 'velocity': '', 'composition': '','residenceTime': ''},
+        'charge': {'direction': '', 'velocity': '', 'composition': '','residenceTime': ''},
+        'sanitization': {'direction': '', 'velocity': '', 'composition': '','residenceTime': ''},
+        'wash1': {'direction': '', 'velocity': '', 'composition': '','residenceTime': ''},
+        'wash2': {'direction': '', 'velocity': '', 'composition': '','residenceTime': ''},
+        'wash3': {'direction': '', 'velocity': '', 'composition': '','residenceTime': ''},
+        'elution': {'direction': '', 'velocity': '', 'composition': '','residenceTime': ''},
+        'storage': {'direction': '', 'velocity': '', 'composition': '','residenceTime': ''}
     }
     
     default_flow = ''
@@ -125,14 +125,20 @@ def extract_process_info(array):
             if 'flow direction' in lower_item:
                 process_info[current_step]['direction'] = parts[1] if len(parts) > 1 else ''
             # Flow velocity - only capturing NMT value
-            elif any(term in lower_item for term in ['flow velocity', 'velocity', 'flow:']):
-                if 'nmt' in lower_item and 'cm/hr' in lower_item:
-                    # Extract the NMT value
-                    try:
-                        value = item[item.lower().find('nmt'):].split()[1]
-                        process_info[current_step]['velocity'] = value
-                    except:
-                        pass
+            elif any(term in lower_item for term in ['flow velocity', 'velocity', 'flow:', 'residence']):
+
+                # Extract the NMT value
+                try:
+                    value = item[item.lower().find('nmt'):].split()[1]
+                    process_info[current_step]['velocity'] = value
+                except:
+                    pass
+
+                try:
+                    value = item[item.lower().find('nlt'):].split()[1]
+                    process_info[current_step]['residenceTime'] = value
+                except:
+                    pass
             # Composition
             elif any(term in lower_item for term in ['composition:', 'buffer composition']):
                 process_info[current_step]['composition'] = parts[1] if len(parts) > 1 else ''
@@ -141,7 +147,7 @@ def extract_process_info(array):
         for step in process_info:
             if process_info[step]['direction'] == '' and default_flow:
                 process_info[step]['direction'] = default_flow
-
+    print(process_info)
     return process_info
 
 
