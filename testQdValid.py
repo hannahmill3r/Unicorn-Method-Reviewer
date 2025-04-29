@@ -30,6 +30,16 @@ def display_pdf(file):
 
 
 def create_inlet_qd_interface():
+    #st.set_page_config(layout="wide")
+    st.set_page_config(
+    page_title="UNICORN Method Validator",
+    page_icon="🧊",
+    layout="wide",
+    initial_sidebar_state="expanded",
+    menu_items={
+        'About': "# This is a header. This is an *extremely* cool app!"
+    }
+)
     st.title("UNICORN Method Validator")
 
     uploaded_file = st.file_uploader("Upload UNICORN Method PDF", type="pdf")
@@ -61,42 +71,34 @@ def create_inlet_qd_interface():
         st.info("Please upload UNICORN Method PDF first before uploading PFC document")
 
     default_qd_map = {
-        'Inlet1': {'qd': ' ', 'flow_rate': ' ', 'direction': ' '},
-        'Inlet2': {'qd': ' ', 'flow_rate': ' ', 'direction': ' '},
-        'Inlet3': {'qd': ' ', 'flow_rate': ' ', 'direction': ' '},
-        'Sample': {'qd': ' ', 'flow_rate': ' ', 'direction': ' '},
-        'Inlet4': {'qd': ' ', 'flow_rate': ' ', 'direction': ' '},
-        'Inlet5': {'qd': ' ', 'flow_rate': ' ', 'direction': ' '},
-        'Inlet6': {'qd': ' ', 'flow_rate': ' ', 'direction': ' '},
-        'Inlet7': {'qd': ' ', 'flow_rate': ' ', 'direction': ' '}
+        'Equilibration': {'inlet': 'Inlet 1', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' '},
+        'Elution': {'inlet': 'Inlet 2', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' '},
+        'Wash 1': {'inlet': 'Inlet 3', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' '},
+        'Wash 3': {'inlet': 'Inlet 3', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' '},
+        'Charge': {'inlet': 'Sample', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' '},
+        'Sanitization': {'inlet': 'Inlet 4', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' '},
+        'Storage': {'inlet': 'Inlet 5', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' '},
+        'Regeneration': {'inlet': 'Inlet 6', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' '},
+        'Wash 2': {'inlet': 'Inlet 7', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' '}
     }
     
     inputs_disabled = uploaded_PFC_file is None
-
+    
     if not inputs_disabled:
         qdMap = output_PFC_params(uploaded_PFC_file, selected_option)
-        ss = {'Inlet1': 'equilibration', 'Inlet2': 'elution', 'Inlet3': 'wash3', 
-              'Sample': 'charge','Inlet4': 'sanitization', 'Inlet5': 'storage', 
-              'Inlet6': 'regeneration', 'Inlet7': 'wash2'}  
+          
 
         for i in default_qd_map.keys():
-            if qdMap.get(ss.get(i)) == None:
-                qdAssignment = ' '
-                velocityAssignment = ' '
-                directionAssignment = ' ' 
-                
-            else:
-                qdAssignment = qdMap.get(ss.get(i)).get('composition')
-                velocityAssignment = qdMap.get(ss.get(i)).get('velocity')
-                directionAssignment = qdMap.get(ss.get(i)).get('direction')
+            qdAssignment = qdMap.get(i).get('composition')
+            velocityAssignment =  qdMap.get(i).get('velocity')
+            directionAssignment = qdMap.get(i).get('direction')
+            residenceAssignment =  qdMap.get(i).get('residenceTime')
 
             default_qd_map[i]['qd'] = qdAssignment
             default_qd_map[i]['flow_rate'] = velocityAssignment
             default_qd_map[i]['direction'] = directionAssignment
-    
-        default_qd_map['Sample']['qd'] = 'QD00015'
-        default_qd_map['Inlet4']['flow_rate'] = '300'
-        default_qd_map['Inlet1']['flow_rate'] = '300'
+            default_qd_map[i]['residence time'] = residenceAssignment
+
 
     st.header("Verify Column Parameters")
     column_disabled = uploaded_PFC_file is None
@@ -137,60 +139,80 @@ def create_inlet_qd_interface():
     
     # Create columns for Pump A Inlets
     st.subheader("Pump A Inlets")
-    inlet_data = {}
     directOptions = ['Downflow', 'Upflow', ' ']
     
-    for inlet in ['Inlet1', 'Inlet2', 'Inlet3', 'Sample']:
-        col1, col2, col3 = st.columns(3)
+    for buffer in ['Equilibration', 'Elution', 'Wash 1', "Wash 3", 'Charge']:
+        col0, col1, col2, col3, col4 = st.columns([2.25, 3,3,3,3], vertical_alignment = "center")
+        inlet = default_qd_map[buffer].get('inlet')
+        with col0:
+            st.write(buffer)
+
         with col1:
-            inlet_data[f'{inlet}_qd'] = st.text_input(
+            default_qd_map[buffer]['qd'] = st.text_input(
                 f"{inlet} QD Number",
-                value=default_qd_map[inlet]['qd'],
-                key=f"{inlet}_qd",
+                value= default_qd_map[buffer].get('qd'),
+                key=f"{buffer}_qd",
                 disabled=inputs_disabled
             )
         with col2:
-            inlet_data[f'{inlet}_flow'] = st.text_input(
+            default_qd_map[buffer]['flow_rate'] = st.text_input(
                 f"{inlet} Flow Rate (cm/h)",
-                value=default_qd_map[inlet]['flow_rate'],
-                key=f"{inlet}_flow",
+                value= default_qd_map[buffer].get('flow_rate'),
+                key=f"{buffer}_flow",
                 disabled=inputs_disabled
             )
         with col3:
-            inlet_data[f'{inlet}_direction'] = st.selectbox(
+            default_qd_map[buffer]['direction'] = st.selectbox(
                 f"{inlet} Flow Direction",
                 directOptions,
-                key=f"{inlet}_direction",
-                index=directOptions.index(default_qd_map[inlet]['direction']),
+                key=f"{buffer}_direction",
+                index=directOptions.index(default_qd_map[buffer].get('direction')),
+                disabled=inputs_disabled
+            )
+        with col4:
+            default_qd_map[buffer]['residence time'] = st.text_input(
+                f"{inlet} Residence Time (NLT)",
+                value=default_qd_map[buffer].get('residence time'),
+                key=f"{buffer}_residence_time",
                 disabled=inputs_disabled
             )
 
     # Create columns for Pump B Inlets
     st.subheader("Pump B Inlets")
 
-    for inlet in ['Inlet4', 'Inlet5', 'Inlet6', 'Inlet7']:
-        col1, col2, col3 = st.columns(3, vertical_alignment = "center")
+    for buffer in ['Sanitization', 'Storage', 'Regeneration',  'Wash 2']:
+        col0, col1, col2, col3, col4 = st.columns([2.25, 3,3,3,3], vertical_alignment = "center")
+        inlet = default_qd_map[buffer].get('inlet')
+        with col0:
+            st.write(buffer)
 
         with col1:
-            inlet_data[f'{inlet}_qd'] = st.text_input(
+            default_qd_map[buffer]['qd'] = st.text_input(
                 f"{inlet} QD Number",
-                value=default_qd_map[inlet]['qd'],
-                key=f"{inlet}_qd",
+                value= default_qd_map[buffer].get('qd'),
+                key=f"{buffer}_qd",
                 disabled=inputs_disabled
             )
         with col2:
-            inlet_data[f'{inlet}_flow'] = st.text_input(
+            default_qd_map[buffer]['flow_rate'] = st.text_input(
                 f"{inlet} Flow Rate (cm/h)",
-                value=default_qd_map[inlet]['flow_rate'],
-                key=f"{inlet}_flow",
+                value= default_qd_map[buffer].get('flow_rate'),
+                key=f"{buffer}_flow",
                 disabled=inputs_disabled
             )
         with col3:
-            inlet_data[f'{inlet}_direction'] = st.selectbox(
+            default_qd_map[buffer]['direction'] = st.selectbox(
                 f"{inlet} Flow Direction",
                 directOptions,
-                key=f"{inlet}_direction",
-                index=directOptions.index(default_qd_map[inlet]['direction']),
+                key=f"{buffer}_direction",
+                index=directOptions.index(default_qd_map[buffer].get('direction')),
+                disabled=inputs_disabled
+            )
+        with col4:
+            default_qd_map[buffer]['residence time'] = st.text_input(
+                f"{inlet} Residence Time (NLT)",
+                value=default_qd_map[buffer].get('residence time'),
+                key=f"{buffer}_residence_time",
                 disabled=inputs_disabled
             )
 
@@ -209,8 +231,8 @@ def create_inlet_qd_interface():
     
     if validate_button:
         all_valid = True
-        for inlet in default_qd_map.keys():
-            qd = inlet_data[f'{inlet}_qd']
+        for buffer in default_qd_map.keys():
+            qd = default_qd_map[buffer]['qd']
             if qd and not is_valid_qd(qd):
                 st.error(f"Invalid QD format for {inlet}. Format should be 'QD' followed by 5 digits (e.g., QD00015)")
                 all_valid = False

@@ -59,7 +59,7 @@ def queryIndividualBlocks(block):
             part = part.strip()
             if 'Inlet' in part and part != 'Inlet':
                 inlet_number = ''.join(filter(str.isdigit, part))
-                inlet_setting = 'Inlet'+inlet_number
+                inlet_setting = 'Inlet '+inlet_number
             elif 'Sample' in part:
                 inlet_number = 'Sample'
                 inlet_setting = 'Sample'
@@ -127,7 +127,7 @@ def queryPurgeBlock(block):
                 part = part.strip()
                 if 'Inlet' in part and part != 'Inlet':
                     inlet_number = ''.join(filter(str.isdigit, part))
-                    inlet_setting = 'Inlet'+inlet_number
+                    inlet_setting = 'Inlet '+inlet_number
                 elif 'Sample' in part:
                     inlet_number = 'Sample'
                     inlet_setting = 'Sample'
@@ -183,13 +183,12 @@ def queryFinalBlock(block):
     finalBlock = {}
 
     lines = block.split('\n')
-    print(lines[0])
+
 
     for line in lines:
         if "run" in line.lower():
             newline = line.split()
-            print(newline, line)
-        print(line)
+
     outlet_match = re.search(r'Outlet:\s*(.*)', block)
 
 

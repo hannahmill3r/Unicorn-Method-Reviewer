@@ -54,7 +54,13 @@ def check_purge_block_settings(purge_blocks, pfcData):
 
         incorrectFieldText = []
         incorrectField = False
-        methodQD = pfcData[block['settings']['inlet_setting']]['qd']
+        pfcQD = ' '
+        for key in pfcData.keys():
+            if block['settings']['inlet_setting'] == pfcData[key]['inlet']:
+                if pfcData[key]['qd'].strip() != '' and pfcData[key]['direction'].strip() != '' and pfcData[key]['flow_rate'] != '':
+                    pfcQD = pfcData[key]['qd']
+                pass    
+            #methodQD = pfcData[block['settings']['inlet_setting']]['qd']
 
 
         if firstBlock == True:
@@ -76,9 +82,8 @@ def check_purge_block_settings(purge_blocks, pfcData):
         if "Waste" not in block["settings"]['outlet_setting']:
             incorrectFieldText.append("All purges should go to waste")
             incorrectField = True
-        if methodQD != block["settings"]['inlet_QD_setting']:
-            
-            incorrectFieldText.append(f"Expected {methodQD}")
+        if pfcQD != block["settings"]['inlet_QD_setting']: 
+            incorrectFieldText.append(f"Expected {pfcQD}")
             incorrectField = True
         #other settings check
 
@@ -88,7 +93,11 @@ def check_purge_block_settings(purge_blocks, pfcData):
                 "annotationText": incorrectFieldText
             })
 
-    methodQD = pfcData[purge_blocks[-1]['settings']['inlet_setting']]['qd']
+    for key in pfcData.keys():
+        if purge_blocks[-1]['settings']['inlet_setting'] == pfcData[key]['inlet']:
+            if pfcData[key]['qd'].strip() != '' and pfcData[key]['direction'].strip() != '' and pfcData[key]['flow_rate'] != '':
+                pfcQD = pfcData[key]['qd']
+
 
 
     
@@ -104,8 +113,8 @@ def check_purge_block_settings(purge_blocks, pfcData):
     if 20.0 != purge_blocks[-1]["settings"]['end_block_setting']:
         incorrectFieldText.append("Expected 20.0 volume purge")
         incorrectField = True
-    if  methodQD != purge_blocks[-1]["settings"]['inlet_QD_setting']:
-        incorrectFieldText.append(f"Expected {methodQD}")
+    if  pfcQD != purge_blocks[-1]["settings"]['inlet_QD_setting']:
+        incorrectFieldText.append(f"Expected {pfcQD}")
         incorrectField = True
 
 
@@ -128,8 +137,7 @@ def check_MS_blocks_settings_pdf(MS_blocks, pfcData, numberofMS):
 
         incorrectFieldText = []
         incorrectField = False
-        methodQD = pfcData[block['settings']['inlet_setting']]['qd']
-
+        methodQD = pfcData['Equilibration']['qd']
 
 
         if "Bypass" not in block["settings"]['column_setting']:
@@ -168,26 +176,45 @@ def check_indiv_blocks_settings_pdf(indiv_blocks, pfcData, columnParam):
     highlights = []
     incorrectField = False
 
-    LFlow = calc_LFlow(float(columnParam["columnHeight"]), float(columnParam["columnDiameter"]), float(columnParam["contactTime"]))["linearFlow"]
-    
+    equilLFlow = calc_LFlow(float(columnParam["columnHeight"]), float(columnParam["columnDiameter"]), float(columnParam["contactTime"]))["linearFlow"]
 
+    print('hello')
     for block in indiv_blocks:
         incorrectFieldText = []
         incorrectField = False
+        direct = pfcQD = residenceTime = flowRate= ''
+        closestMatch, ratio = closest_match_unit_op(block['blockName'], pfcData.keys())
 
-        direct = pfcData[block['settings']['inlet_setting']]['direction']
-        
+
+        for key in pfcData.keys():
+
+            if 'rinse' in block['blockName'].lower() and pfcData.get(key).get('inlet') == block['settings']['inlet_setting']:
+                pfcQD = pfcData[key]['qd']
+                direct = pfcData[key]['direction']
+                flowRate = pfcData[key]['flow_rate']
+                residenceTime = pfcData[key]['residence time']
+                #print(key)
+                print(block['blockName'], key, pfcData.get(key).get('inlet'))
+            elif key == closestMatch and "rinse" not in block['blockName'].lower():
+                #print(key)
+                pfcQD = pfcData[key]['qd']
+                direct = pfcData[key]['direction']
+                flowRate = pfcData[key]['flow_rate']
+                residenceTime = pfcData[key]['residence time']
+                print(block['blockName'], key)
+
         if "flush" in block['blockName'].lower():
             if "Bypass" not in block["settings"]['column_setting']:
-                incorrectFieldText.append(f"Expected {direct}")
+                incorrectFieldText.append(f"Expected Bypass")
                 incorrectField = True
             if block["settings"]['manflow'] != ' ' and block["settings"]['manflow'] != 60.0:
                 incorrectFieldText.append("Expected 60% manflow")
                 incorrectField = True
 
-        elif direct.lower() not in block["settings"]['column_setting'].lower():
-            incorrectFieldText.append(f"Expected {direct}")
-            incorrectField = True
+        elif direct.strip() != '':
+            if direct.lower() not in block["settings"]['column_setting'].lower():
+                incorrectFieldText.append(f"Expected {direct}")
+                incorrectField = True
         if "Inline" not in block["settings"]['filter_setting']:
             incorrectFieldText.append("Expected Inline filter")
             incorrectField = True
@@ -211,21 +238,35 @@ def check_indiv_blocks_settings_pdf(indiv_blocks, pfcData, columnParam):
                 tag = block['settings']['flow_tags'][i]
 
                 if ("sani" in tag.lower() or "first_cv_equil" in tag.lower()):
-                    if flow != round(LFlow) and flow != round(LFlow, 1) and flow != round(LFlow, 2):
-                        incorrectFieldText.append(f"Expected {round(LFlow, 2)} for pre sani flow rate")
+                    if flow != round(equilLFlow) and flow != round(equilLFlow, 1) and flow != round(equilLFlow, 2):
+                        incorrectFieldText.append(f"Expected {round(equilLFlow, 2)} for pre sani flow rate")
                         incorrectField = True
-                elif flow != float(pfcData[block['settings']['inlet_setting']]['flow_rate']) :
-                    incorrectFieldText.append("Unexpected Flow Value")
-                    incorrectField = True
+                elif flowRate.strip()!='':
+                    if ("wash" in block["blockName"].lower() and "1" in block["blockName"].lower()) or "charge" in block["blockName"].lower():
+                        resTimeLFlow = calc_LFlow_from_residence_time(float(columnParam["columnHeight"]), float(residenceTime))
+                        if flow != round(resTimeLFlow) and flow != round(resTimeLFlow, 1) and flow != round(resTimeLFlow, 2):
+                            incorrectFieldText.append(f"Expected {round(resTimeLFlow, 2)} for flow rate")
+                            incorrectField = True
+                    elif round(flow) != round(float(flowRate)):
+                        incorrectFieldText.append("Unexpected Flow Value")
+                        incorrectField = True
                 #TODO: ELSE wash 1 or charge has a seperate flow rate
 
         elif ("sani" in block['settings']['flow_tags'][0].lower() or "first_cv_equil" in block['settings']['flow_tags'][0].lower()):
-            if round(LFlow) != float(block['settings']['flow_setting']) and round(LFlow, 1) != float(block['settings']['flow_setting']) and round(LFlow, 2) != float(block['settings']['flow_setting']):
-                incorrectFieldText.append(f"Expected {round(LFlow, 2)} flow")
+            if round(equilLFlow) != float(block['settings']['flow_setting']) and round(equilLFlow, 1) != float(block['settings']['flow_setting']) and round(equilLFlow, 2) != float(block['settings']['flow_setting']):
+                incorrectFieldText.append(f"Expected {round(equilLFlow, 2)} flow")
                 incorrectField = True
-        elif float(block['settings']['flow_setting']) != float(pfcData[block['settings']['inlet_setting']]['flow_rate']):
-            incorrectFieldText.append(f"Expected {(pfcData[block['settings']['inlet_setting']]['flow_rate'])} flow")
-            incorrectField = True
+        elif flowRate.strip()!='':
+            if ("wash" in block["blockName"].lower() and "1" in block["blockName"].lower()) or "charge" in block["blockName"].lower():
+                    flow = float(block['settings']['flow_setting'])
+                    resTimeLFlow = calc_LFlow_from_residence_time(float(columnParam["columnHeight"]), float(residenceTime))
+
+                    if flow != round(resTimeLFlow) and flow != round(resTimeLFlow, 1) and flow != round(resTimeLFlow, 2):
+                        incorrectFieldText.append(f"Expected {round(resTimeLFlow, 2)} for flow rate")
+                        incorrectField = True
+            elif float(block['settings']['flow_setting']) != float(flowRate):
+                incorrectFieldText.append(f"Expected {(pfcData[block['settings']['inlet_setting']]['flow_rate'])} flow")
+                incorrectField = True
 
         if "flush" in block["blockName"].lower():
             match, ratio = closest_match_unit_op(block['settings']['setmark_setting'], [block["blockName"]])
@@ -290,3 +331,11 @@ def check_watch_settings(block):
 
 
 #TODO: add scouting run checks
+
+
+def calc_LFlow_from_residence_time(columnHeight, residenceTime):
+    try:
+        chargeFlow = float(columnHeight)/(float(residenceTime)/60)
+        return chargeFlow
+    except:
+        return 0

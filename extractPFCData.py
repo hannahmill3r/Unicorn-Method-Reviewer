@@ -73,15 +73,15 @@ def list_unit_ops(pages):
     
 def extract_process_info(array):
     process_info = {
-        'regeneration': {'direction': '', 'velocity': '', 'composition': '','residenceTime': ''},
-        'equilibration': {'direction': '', 'velocity': '', 'composition': '','residenceTime': ''},
-        'charge': {'direction': '', 'velocity': '', 'composition': '','residenceTime': ''},
-        'sanitization': {'direction': '', 'velocity': '', 'composition': '','residenceTime': ''},
-        'wash1': {'direction': '', 'velocity': '', 'composition': '','residenceTime': ''},
-        'wash2': {'direction': '', 'velocity': '', 'composition': '','residenceTime': ''},
-        'wash3': {'direction': '', 'velocity': '', 'composition': '','residenceTime': ''},
-        'elution': {'direction': '', 'velocity': '', 'composition': '','residenceTime': ''},
-        'storage': {'direction': '', 'velocity': '', 'composition': '','residenceTime': ''}
+        'Regeneration': {'direction': '', 'velocity': '', 'composition': '','residenceTime': 'N/A'},
+        'Equilibration': {'direction': '', 'velocity': '', 'composition': '','residenceTime': 'N/A'},
+        'Charge': {'direction': '', 'velocity': '', 'composition': '','residenceTime': 'N/A'},
+        'Sanitization': {'direction': '', 'velocity': '', 'composition': '','residenceTime': 'N/A'},
+        'Wash 1': {'direction': '', 'velocity': '', 'composition': '','residenceTime': 'N/A'},
+        'Wash 2': {'direction': '', 'velocity': '', 'composition': '','residenceTime': 'N/A'},
+        'Wash 3': {'direction': '', 'velocity': '', 'composition': '','residenceTime': 'N/A'},
+        'Elution': {'direction': '', 'velocity': '', 'composition': '','residenceTime': 'N/A'},
+        'Storage': {'direction': '', 'velocity': '', 'composition': '','residenceTime': 'N/A'}
     }
     
     default_flow = ''
@@ -98,29 +98,30 @@ def extract_process_info(array):
         # Detect current process step
         if 'step' in lower_item:
             if 'regeneration' in lower_item:
-                current_step = 'regeneration'
+                current_step = 'Regeneration'
             elif 'sanitization' in lower_item:
-                current_step = 'sanitization'
+                current_step = 'Sanitization'
             elif 'elution' in lower_item:
-                current_step = 'elution'
+                current_step = 'Elution'
             elif 'storage' in lower_item:
-                current_step = 'storage'
+                current_step = 'Storage'
             elif 'charge' in lower_item:
-                current_step = 'charge'
+                current_step = 'Charge'
             
 
         # Handle wash steps specifically
         if 'wash 1' in lower_item:
-            current_step = 'wash1'
+            current_step = 'Wash 1'
         elif 'wash 2' in lower_item:
-            current_step = 'wash2'
+            current_step = 'Wash 2'
         elif 'wash 3' in lower_item:
-            current_step = 'wash3'
+            current_step = 'Wash 3'
         elif 'equilibration' in lower_item:
-                current_step = 'equilibration'
+            current_step = 'Equilibration'
 
         # If we're in a process step, capture its parameters
         if current_step:
+
             # Flow direction
             if 'flow direction' in lower_item:
                 process_info[current_step]['direction'] = parts[1] if len(parts) > 1 else ''
@@ -137,6 +138,7 @@ def extract_process_info(array):
                 try:
                     value = item[item.lower().find('nlt'):].split()[1]
                     process_info[current_step]['residenceTime'] = value
+
                 except:
                     pass
             # Composition
@@ -147,19 +149,19 @@ def extract_process_info(array):
         for step in process_info:
             if process_info[step]['direction'] == '' and default_flow:
                 process_info[step]['direction'] = default_flow
-    print(process_info)
+
     return process_info
 
 
 def extract_process_info2(array):
     process_info = {
-        'regeneration': {'direction': '', 'velocity': '', 'composition': ''},
-        'sanitization': {'direction': '', 'velocity': '', 'composition': ''},
-        'wash1': {'direction': '', 'velocity': '', 'composition': ''},
-        'wash2': {'direction': '', 'velocity': '', 'composition': ''},
-        'wash3': {'direction': '', 'velocity': '', 'composition': ''},
-        'elution': {'direction': '', 'velocity': '', 'composition': ''},
-        'storage': {'direction': '', 'velocity': '', 'composition': ''}
+        'Gegeneration': {'direction': '', 'velocity': '', 'composition': ''},
+        'Sanitization': {'direction': '', 'velocity': '', 'composition': ''},
+        'Wash 1': {'direction': '', 'velocity': '', 'composition': ''},
+        'Wash 2': {'direction': '', 'velocity': '', 'composition': ''},
+        'Wash 3': {'direction': '', 'velocity': '', 'composition': ''},
+        'Elution': {'direction': '', 'velocity': '', 'composition': ''},
+        'Storage': {'direction': '', 'velocity': '', 'composition': ''}
     }
     
     default_flow = ''
@@ -187,11 +189,11 @@ def extract_process_info2(array):
 
         # Handle wash steps specifically
         if 'wash 1' in lower_item:
-            current_step = 'wash1'
+            current_step = 'Wash 1'
         elif 'wash 2' in lower_item:
-            current_step = 'wash2'
+            current_step = 'Wash 2'
         elif 'wash 3' in lower_item:
-            current_step = 'wash3'
+            current_step = 'Wash 3'
 
         # If we're in a process step, capture its parameters
         if current_step:
