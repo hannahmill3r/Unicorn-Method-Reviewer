@@ -46,13 +46,13 @@ Maintains consistency of QD mappings across:
 
 ```python
 {
-    'manflow': flow_value,
-    'column_setting': column_setting,
-    'outlet_setting': outlet_setting,
-    'bubbletrap_setting': bubbletrap_setting,
-    'inlet_QD_setting': QD_match_value,
-    'inlet_setting': inlet_setting,
-    'end_block_setting': end_block_value
+    'manflow': float,
+    'column_setting': str,
+    'outlet_setting': str,
+    'bubbletrap_setting': str,
+    'inlet_QD_setting': str,
+    'inlet_setting': str,
+    'end_block_setting': float
 }
 ```
 
@@ -75,8 +75,8 @@ Each method parameter that does not match expected output, is recorded in a dict
 dictionary described above, and the annotated text is a list of all of the incorrect warning statements associated with that block.
 ```python
 {
-    "blockData": purge_blocks[-1],
-    "annotationText": incorrectFieldText
+    "blockData": dict,
+    "annotationText": list
 }
 ```
 
