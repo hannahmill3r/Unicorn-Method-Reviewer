@@ -50,6 +50,58 @@ def check_purge_block_settings(purge_blocks, pfcData):
     incorrectField = False
     firstBlock = True
 
+
+    for block in purge_blocks[-1::]:
+        if 'pump_a_purge' in block['blockName'].lower():
+            purge_blocks.remove(block)
+            if block['settings']['manflow']!= 60.0:
+                incorrectFieldText.append("Expected 60% ManFlow")
+                incorrectField = True
+            if"Inline" not in block["settings"]['bubbletrap_setting']:
+                incorrectFieldText.append("Expected bubbletrap bypass")
+                incorrectField = True
+            if "Waste" not in block["settings"]['outlet_setting']:
+                incorrectFieldText.append("All purges should go to waste")
+                incorrectField = True
+            if "Inlet 1" != block["settings"]['inlet_setting']: 
+                incorrectFieldText.append(f"Expected Inlet 1")
+                incorrectField = True
+            if "Bypass" not in block["settings"]['column_setting']:
+                incorrectFieldText.append("Expected column bypass")
+                incorrectField = True
+            if block['settings']['filter_setting']!= "Inline":
+                incorrectFieldText.append("Expected inline filter")
+                incorrectField = True
+            if "time" not in block['settings']['base_setting'].lower():
+                incorrectFieldText.append("Expected Pump A purge to be in time")
+                incorrectField = True
+
+        elif 'pump_b_purge' in block['blockName'].lower():
+            purge_blocks.remove(block)
+            if block['settings']['manflow']!= 60.0:
+                incorrectFieldText.append("Expected 60% ManFlow")
+                incorrectField = True
+            if"Bypass" not in block["settings"]['bubbletrap_setting']:
+                incorrectFieldText.append("Expected bubbletrap bypass")
+                incorrectField = True
+            if "Waste" not in block["settings"]['outlet_setting']:
+                incorrectFieldText.append("All purges should go to waste")
+                incorrectField = True
+            if "Inlet 7" != block["settings"]['inlet_setting']: 
+                incorrectFieldText.append(f"Expected Inlet 7")
+                incorrectField = True
+            if "Bypass" not in block["settings"]['column_setting']:
+                incorrectFieldText.append("Expected column bypass")
+                incorrectField = True
+            if block['settings']['filter_setting']!= "Bypass":
+                incorrectFieldText.append("Expected bypass filter")
+                incorrectField = True
+            if "time" not in block['settings']['base_setting'].lower():
+                incorrectFieldText.append("Expected Pump B purge to be in time")
+                incorrectField = True
+
+            
+
     for block in purge_blocks[:-1]:
 
         incorrectFieldText = []
@@ -116,6 +168,9 @@ def check_purge_block_settings(purge_blocks, pfcData):
     if  pfcQD != purge_blocks[-1]["settings"]['inlet_QD_setting']:
         incorrectFieldText.append(f"Expected {pfcQD}")
         incorrectField = True
+
+
+
 
 
     if incorrectField:

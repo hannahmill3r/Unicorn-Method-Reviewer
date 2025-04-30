@@ -53,7 +53,7 @@ def find_highlight_loc(textDoc, pdf_path, pfcData):
                                 "location": (x0, y0, x1, y1)
                             }
 
-                        if "block:" in text.lower() and "purge" in text.lower() and not lastPurgeRead:
+                        if "block:" in text.lower() and "purge" in text.lower():
 
 
                             #get the location in the PDF of the first Block Line
@@ -79,7 +79,8 @@ def find_highlight_loc(textDoc, pdf_path, pfcData):
                                 if blockSettings["inlet_setting"] in remainingInlets:
                                     remainingInlets.pop(remainingInlets.index(blockSettings["inlet_setting"]))
 
-                                finalPurgeBlock = blockCounter
+                                if "purge_a_pump" not in text.lower() and "purge_a_pump" not in text.lower():
+                                    finalPurgeBlock = blockCounter
                                 firstPurge = False
 
                             

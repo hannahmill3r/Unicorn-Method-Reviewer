@@ -99,7 +99,9 @@ def queryPurgeBlock(block):
     QD_match = re.search(r'QD\s*(.*)', block)
     base_match = re.search(r'Base:\s*(.*)', block)
     end_block_match = re.search(r'(\d+\.?\d*)\s*End_Block', block)
+    filter_match = re.search(r'Filter:\s*(.*)', block)
     inlet_match = re.search(r'Inlet:\s*(.*)', block)
+    title = re.search(r'Block:\s*(.*)', block)
 
     multi_column_math = re.finditer(r'Column:\s*(.*)', block)
     columnMatches = []
@@ -113,12 +115,14 @@ def queryPurgeBlock(block):
     outlet_setting = outlet_match.group(1).strip() if outlet_match else ' '
     bubbletrap_setting = bubbletrap_match.group(1).strip() if bubbletrap_match else ' '
     QD_match_value = QD_match.group().strip().replace(" ", "") if QD_match else ' '
+    title_match_value = title.group().strip().replace(" ", "") if title else ' '
+    filter_setting = filter_match.group(1).strip() if filter_match else ' '
 
     #if theres more than one, return string listing all matches. This should only be applicable in the first purge
     if len(columnMatches)>1:
         column_setting = ', '.join(columnMatches)
 
-    if re.search('volume', base_value.lower()):
+    if re.search('volume', base_value.lower()) or 'pump_a_purge' in title_match_value.lower() or 'pump_b_purge' in title_match_value.lower():
 
         inlet_number = None
         if inlet_match:
@@ -137,9 +141,11 @@ def queryPurgeBlock(block):
                 'column_setting': column_setting,
                 'outlet_setting': outlet_setting,
                 'bubbletrap_setting': bubbletrap_setting,
+                'filter_setting': filter_setting,
                 'inlet_QD_setting': QD_match_value,
                 'inlet_setting': inlet_setting,
-                'end_block_setting': end_block_value
+                'end_block_setting': end_block_value, 
+                'base_setting': base_value
             }
     return currentPurgeBlock
 
