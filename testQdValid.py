@@ -16,6 +16,68 @@ from proAMainLoop import find_highlight_loc
 from blockVerification import check_purge_block_settings, check_watch_settings, check_MS_blocks_settings_pdf, check_column_params, check_indiv_blocks_settings_pdf
 
 
+def writeColumns(default_qd_map, requiredBuffers, inputs_disabled, directOptions):
+    """
+    Creates a Streamlit interface for configuring pump parameters for both Pump A and B inlets
+    
+    Args:
+        default_qd_map (dict): Dictionary containing default values for each buffer
+        requiredBuffers (list): List of buffers that are required and should be marked with *
+        inputs_disabled (bool): Whether input fields should be disabled
+        directOptions (list): Available options for flow direction
+    """
+    
+    # Helper function to create input fields for a buffer
+    def create_buffer_inputs(buffer, inlet):
+        """Creates standardized input fields for each buffer"""
+        # Create 5 columns with specific width ratios
+        cols = st.columns([2.25, 3,3,3,3], vertical_alignment="center")
+        
+        # Column 0: Buffer name (with * if required)
+        with cols[0]:
+            buffer_label = f"{buffer}*" if buffer in requiredBuffers else buffer
+            st.write(buffer_label)
+            
+        # Create input fields across columns
+        field_configs = [
+            ('qd', f"{inlet} QD Number", f"{buffer}_qd"),
+            ('flow_rate', f"{inlet} Flow Rate (cm/h)", f"{buffer}_flow"),
+            ('direction', f"{inlet} Flow Direction", f"{buffer}_direction"),
+            ('residence time', f"{inlet} Residence Time (NLT)", f"{buffer}_residence_time")
+        ]
+        
+        # Create input fields in columns 1-4
+        for i, (key, label, field_key) in enumerate(field_configs, 1):
+            with cols[i]:
+                if key == 'direction':
+                    # Special handling for direction dropdown
+                    default_qd_map[buffer][key] = st.selectbox(
+                        label,
+                        directOptions,
+                        key=field_key,
+                        index=directOptions.index(default_qd_map[buffer].get(key)),
+                        disabled=inputs_disabled
+                    )
+                else:
+                    # Standard text input for other fields
+                    default_qd_map[buffer][key] = st.text_input(
+                        label,
+                        value=default_qd_map[buffer].get(key),
+                        key=field_key,
+                        disabled=inputs_disabled
+                    )
+
+    # Process Pump A Inlets
+    pump_a_buffers = ['Equilibration', 'Elution', 'Wash 1', "Wash 3", 'Charge']
+    for buffer in pump_a_buffers:
+        create_buffer_inputs(buffer, default_qd_map[buffer].get('inlet'))
+
+    # Process Pump B Inlets
+    st.subheader("Pump B Inlets")
+    pump_b_buffers = ['Sanitization', 'Storage', 'Regeneration', 'Wash 2']
+    for buffer in pump_b_buffers:
+        create_buffer_inputs(buffer, default_qd_map[buffer].get('inlet'))
+
 def display_pdf(file):
     # Opening file from file path
     with open(file, "rb") as f:
@@ -30,6 +92,7 @@ def display_pdf(file):
 
 
 def create_inlet_qd_interface():
+
     #st.set_page_config(layout="wide")
     st.set_page_config(
     page_title="UNICORN Method Validator",
@@ -83,8 +146,7 @@ def create_inlet_qd_interface():
     }
     
     inputs_disabled = uploaded_PFC_file is None
-    
-    if not inputs_disabled:
+    def fill_default_sample_map(default_qd_map):
         qdMap = output_PFC_params(uploaded_PFC_file, selected_option)
           
 
@@ -98,6 +160,11 @@ def create_inlet_qd_interface():
             default_qd_map[i]['flow_rate'] = velocityAssignment
             default_qd_map[i]['direction'] = directionAssignment
             default_qd_map[i]['residence time'] = residenceAssignment
+        return default_qd_map
+    
+    if not inputs_disabled:
+        default_qd_map = fill_default_sample_map(default_qd_map)
+        
 
 
     st.header("Verify Column Parameters")
@@ -136,85 +203,15 @@ def create_inlet_qd_interface():
 
 
     st.header("Verify Inlet Parameters")
-    
+
+
     # Create columns for Pump A Inlets
     st.subheader("Pump A Inlets")
     directOptions = ['Downflow', 'Upflow', ' ']
+    requiredBuffers = ['Sanitization', 'Equilibration', 'Wash 1', 'Storage']
     
-    for buffer in ['Equilibration', 'Elution', 'Wash 1', "Wash 3", 'Charge']:
-        col0, col1, col2, col3, col4 = st.columns([2.25, 3,3,3,3], vertical_alignment = "center")
-        inlet = default_qd_map[buffer].get('inlet')
-        with col0:
-            st.write(buffer)
-
-        with col1:
-            default_qd_map[buffer]['qd'] = st.text_input(
-                f"{inlet} QD Number",
-                value= default_qd_map[buffer].get('qd'),
-                key=f"{buffer}_qd",
-                disabled=inputs_disabled
-            )
-        with col2:
-            default_qd_map[buffer]['flow_rate'] = st.text_input(
-                f"{inlet} Flow Rate (cm/h)",
-                value= default_qd_map[buffer].get('flow_rate'),
-                key=f"{buffer}_flow",
-                disabled=inputs_disabled
-            )
-        with col3:
-            default_qd_map[buffer]['direction'] = st.selectbox(
-                f"{inlet} Flow Direction",
-                directOptions,
-                key=f"{buffer}_direction",
-                index=directOptions.index(default_qd_map[buffer].get('direction')),
-                disabled=inputs_disabled
-            )
-        with col4:
-            default_qd_map[buffer]['residence time'] = st.text_input(
-                f"{inlet} Residence Time (NLT)",
-                value=default_qd_map[buffer].get('residence time'),
-                key=f"{buffer}_residence_time",
-                disabled=inputs_disabled
-            )
-
-    # Create columns for Pump B Inlets
-    st.subheader("Pump B Inlets")
-
-    for buffer in ['Sanitization', 'Storage', 'Regeneration',  'Wash 2']:
-        col0, col1, col2, col3, col4 = st.columns([2.25, 3,3,3,3], vertical_alignment = "center")
-        inlet = default_qd_map[buffer].get('inlet')
-        with col0:
-            st.write(buffer)
-
-        with col1:
-            default_qd_map[buffer]['qd'] = st.text_input(
-                f"{inlet} QD Number",
-                value= default_qd_map[buffer].get('qd'),
-                key=f"{buffer}_qd",
-                disabled=inputs_disabled
-            )
-        with col2:
-            default_qd_map[buffer]['flow_rate'] = st.text_input(
-                f"{inlet} Flow Rate (cm/h)",
-                value= default_qd_map[buffer].get('flow_rate'),
-                key=f"{buffer}_flow",
-                disabled=inputs_disabled
-            )
-        with col3:
-            default_qd_map[buffer]['direction'] = st.selectbox(
-                f"{inlet} Flow Direction",
-                directOptions,
-                key=f"{buffer}_direction",
-                index=directOptions.index(default_qd_map[buffer].get('direction')),
-                disabled=inputs_disabled
-            )
-        with col4:
-            default_qd_map[buffer]['residence time'] = st.text_input(
-                f"{inlet} Residence Time (NLT)",
-                value=default_qd_map[buffer].get('residence time'),
-                key=f"{buffer}_residence_time",
-                disabled=inputs_disabled
-            )
+    writeColumns(default_qd_map, requiredBuffers, inputs_disabled, directOptions)
+    
 
     def is_valid_qd(qd):
         qd = qd.strip(' ')
@@ -228,22 +225,38 @@ def create_inlet_qd_interface():
     validation_state = {'is_valid': False}
 
     validate_button = st.button("Validate Parameters", disabled=inputs_disabled)
+
     
     if validate_button:
-        all_valid = True
+        invalidError = []
+
+        #check if any required feilds are empty, dont need sanitization flow rate as it uses presani rinse calculation
+        for buffer in requiredBuffers:
+            if not default_qd_map[buffer]['qd'].strip() or (not default_qd_map[buffer]['flow_rate'].strip() and buffer!='Sanitization')or not default_qd_map[buffer]['direction'].strip():
+                invalidError.append(f"{buffer} is missing required information")
+            
+
+        # Check QD format for all fields that have values
         for buffer in default_qd_map.keys():
             qd = default_qd_map[buffer]['qd']
-            if qd and not is_valid_qd(qd):
-                st.error(f"Invalid QD format for {inlet}. Format should be 'QD' followed by 5 digits (e.g., QD00015)")
-                all_valid = False
+            if qd.strip() and not is_valid_qd(qd):
+                invalidError.append(f"Invalid QD format for {buffer}. Format should be 'QD' followed by 5 digits (e.g., QD00015)")
+            try:
+                flowRateNumber = float(default_qd_map[buffer]['flow_rate'])
+            except:
+                if default_qd_map[buffer]['flow_rate'].strip():
+                    invalidError.append(f"Expected flow rate to be a number for {buffer}. (e.g., 300)")
         
-        if all_valid:
+        if invalidError == []:
             st.success("All parameters are valid!")
             st.session_state['qd_validated'] = True
             validation_state['is_valid'] = True
         else:
             st.session_state['qd_validated'] = False
             validation_state['is_valid'] = False
+            col1 = st.columns(1)
+            st.error('\n\n'.join(invalidError))
+
 
     submit_pressed = st.button(
         "Submit for Comparison", 
@@ -291,7 +304,7 @@ def main():
 
 
 
-                if not highlights:
+                if not mergedHighlights:
                     st.success("✅ All purge blocks have correct settings")
                 else:
                     st.error("❌ Some purge blocks have incorrect settings")

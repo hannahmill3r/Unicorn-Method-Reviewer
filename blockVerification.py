@@ -82,7 +82,7 @@ def check_purge_block_settings(purge_blocks, pfcData):
         if "Waste" not in block["settings"]['outlet_setting']:
             incorrectFieldText.append("All purges should go to waste")
             incorrectField = True
-        if pfcQD != block["settings"]['inlet_QD_setting']: 
+        if pfcQD != block["settings"]['inlet_QD_setting'] and pfcQD.strip()!='': 
             incorrectFieldText.append(f"Expected {pfcQD}")
             incorrectField = True
         #other settings check
@@ -177,8 +177,6 @@ def check_indiv_blocks_settings_pdf(indiv_blocks, pfcData, columnParam):
     incorrectField = False
 
     equilLFlow = calc_LFlow(float(columnParam["columnHeight"]), float(columnParam["columnDiameter"]), float(columnParam["contactTime"]))["linearFlow"]
-
-    print('hello')
     for block in indiv_blocks:
         incorrectFieldText = []
         incorrectField = False
@@ -193,15 +191,13 @@ def check_indiv_blocks_settings_pdf(indiv_blocks, pfcData, columnParam):
                 direct = pfcData[key]['direction']
                 flowRate = pfcData[key]['flow_rate']
                 residenceTime = pfcData[key]['residence time']
-                #print(key)
-                print(block['blockName'], key, pfcData.get(key).get('inlet'))
+
             elif key == closestMatch and "rinse" not in block['blockName'].lower():
-                #print(key)
                 pfcQD = pfcData[key]['qd']
                 direct = pfcData[key]['direction']
                 flowRate = pfcData[key]['flow_rate']
                 residenceTime = pfcData[key]['residence time']
-                print(block['blockName'], key)
+
 
         if "flush" in block['blockName'].lower():
             if "Bypass" not in block["settings"]['column_setting']:

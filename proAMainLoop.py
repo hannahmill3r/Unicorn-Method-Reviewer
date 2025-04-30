@@ -20,6 +20,7 @@ def find_highlight_loc(textDoc, pdf_path, pfcData):
     finalBlock = False
     columnParams = {}
     watchBlockData = []
+    connection = []
 
     # Loop through each page
     for page_num in range(len(doc)):
@@ -87,6 +88,8 @@ def find_highlight_loc(textDoc, pdf_path, pfcData):
                             base_value = base_match.group(1).strip().split(', ')[0] if base_match else ' '
                             if re.search('volume', base_value.lower()):
                                 lastPurgeRead = True
+                            elif re.search('connect', text.lower()) and re.search('inlet', text.lower()):
+                                connection.append(extract_connect_info(blocks[blockCounter]))
 
                         if "block:" in text.lower() and "mainstream" in text.lower():
                             #get the location in the PDF of the first Block Line
@@ -153,6 +156,9 @@ def find_highlight_loc(textDoc, pdf_path, pfcData):
             if unpurgedQD not in trackedInletQDs:
                 inletsNotPurged.append(val)
     doc.close()
+
+    update_inlet_qd_settings(connection, purgeBlockData, equillibrationBlockData)
+
     return purgeBlockData, inletsNotPurged, equillibrationBlockData, columnParams, individualBlockData, watchBlockData, finalBlock
 
 
@@ -199,3 +205,67 @@ def calc_LFlow(columnHeight, columnDiameter, contactTime):
         "columnVolume": CV,
         "linearFlow": LFlow
     }
+
+
+def extract_connect_info(method_block):
+    """
+    Analyzes a method block to find connection information and associated QD numbers
+    
+    Args:
+        method_block (str): The UNICORN method block text
+    
+    Returns:
+        dict: Dictionary mapping inlets to their QD numbers
+    """
+    connections = {}
+    
+    # Check if block contains "Connect" and "Inlet"
+    if "Connect" in method_block and "Inlet" in method_block:
+        # Look for QD pattern in the surrounding blocks
+        for line in method_block.split('\n'):
+
+                
+            # Look for inlet specification    
+            if "Connect" in line and "Inlet" in line:
+                # Extract inlet name
+                inlet = line.split("to")[1].split("and")[0].strip()
+                
+
+            if "QD" in line:
+                # Extract QD number
+                qd_number = line.split("QD")[1].strip().split()[0]
+                connections[inlet] = f"QD{qd_number}"
+                
+    return connections
+
+
+def update_inlet_qd_settings(connection, purgeBlockData, equillibrationBlockData):
+    """
+    Updates QD settings for empty inlet settings in purge and equilibration blocks
+    
+    Args:
+        connection (list): List of dictionaries containing inlet to QD mappings
+        purgeBlockData (list): List of purge block configurations
+        equillibrationBlockData (list): List of equilibration block configurations
+    """
+    # Process each connection mapping
+    for connect in connection:
+        # Skip empty connection mappings
+        if not connect:
+            continue
+            
+        # For each inlet in the connection mapping
+        for inlet, qd_number in connect.items():
+            # Update all matching purge blocks that have empty QD settings
+            for block in purgeBlockData:
+                # Check if inlet matches and QD setting is empty
+                if (block['settings']['inlet_setting'] == inlet and 
+                    block['settings']['inlet_QD_setting'].strip() == ''):
+                    block['settings']['inlet_QD_setting'] = qd_number
+                    
+            # Update all matching equilibration blocks that have empty QD settings
+            for block in equillibrationBlockData:
+                # Check if inlet matches and QD setting is empty
+                if (block['settings']['inlet_setting'] == inlet and 
+                    block['settings']['inlet_QD_setting'].strip() == ''):
+                    block['settings']['inlet_QD_setting'] = qd_number

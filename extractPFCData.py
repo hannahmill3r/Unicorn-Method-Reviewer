@@ -150,68 +150,12 @@ def extract_process_info(array):
             if process_info[step]['direction'] == '' and default_flow:
                 process_info[step]['direction'] = default_flow
 
-    return process_info
-
-
-def extract_process_info2(array):
-    process_info = {
-        'Gegeneration': {'direction': '', 'velocity': '', 'composition': ''},
-        'Sanitization': {'direction': '', 'velocity': '', 'composition': ''},
-        'Wash 1': {'direction': '', 'velocity': '', 'composition': ''},
-        'Wash 2': {'direction': '', 'velocity': '', 'composition': ''},
-        'Wash 3': {'direction': '', 'velocity': '', 'composition': ''},
-        'Elution': {'direction': '', 'velocity': '', 'composition': ''},
-        'Storage': {'direction': '', 'velocity': '', 'composition': ''}
-    }
-    
-    default_flow = ''
-    current_step = None
-    current_wash = None
-    
-    for item in array:
-        if 'all column flow directions are downflow' in item.lower():
-            default_flow = 'Downflow'
-            
-        parts = item.split('|')
-        parts = [p.strip() for p in parts]
-        lower_item = item.lower()
-
-        # Detect current process step
-        if 'step' in lower_item:
-            if 'regeneration' in lower_item:
-                current_step = 'regeneration'
-            elif 'sanitization' in lower_item:
-                current_step = 'sanitization'
-            elif 'elution' in lower_item:
-                current_step = 'elution'
-            elif 'storage' in lower_item:
-                current_step = 'storage'
-
-        # Handle wash steps specifically
-        if 'wash 1' in lower_item:
-            current_step = 'Wash 1'
-        elif 'wash 2' in lower_item:
-            current_step = 'Wash 2'
-        elif 'wash 3' in lower_item:
-            current_step = 'Wash 3'
-
-        # If we're in a process step, capture its parameters
-        if current_step:
-            # Flow direction
-            if 'flow direction' in lower_item:
-                process_info[current_step]['direction'] = parts[1] if len(parts) > 1 else ''
-            # Flow velocity - checking both explicit and implicit cases
-            elif any(term in lower_item for term in ['flow velocity', 'velocity', 'flow:']):
-                if 'cm/hr' in lower_item and len(parts) > 1:
-                    process_info[current_step]['velocity'] = parts[1]
-            # Composition
-            elif any(term in lower_item for term in ['composition:', 'buffer composition']):
-                process_info[current_step]['composition'] = parts[1] if len(parts) > 1 else ''
-
-        # Set default flow direction if not specified
-        for step in process_info:
-            if process_info[step]['direction'] == '' and default_flow:
-                process_info[step]['direction'] = default_flow
+    #sometimes parameters are shared across charge and equilibration, if one is empty and the other has a value, replace the empty value
+    for key in process_info['Charge'].keys():
+        if process_info['Charge'][key].strip() == '' and process_info['Equilibration'][key].strip() != '':
+            process_info['Charge'][key] = process_info['Equilibration'][key]
+        elif process_info['Charge'][key].strip() != '' and process_info['Equilibration'][key].strip() == '':
+            process_info['Equilibration'][key] = process_info['Charge'][key]
 
     return process_info
 
