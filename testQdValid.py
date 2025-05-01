@@ -40,20 +40,21 @@ def writeColumns(default_qd_map, requiredBuffers, inputs_disabled, directOptions
             
         # Create input fields across columns
         field_configs = [
-            ('qd', f"{inlet} QD Number", f"{buffer}_qd"),
-            ('flow_rate', f"{inlet} Flow Rate (cm/h)", f"{buffer}_flow"),
-            ('direction', f"{inlet} Flow Direction", f"{buffer}_direction"),
-            ('residence time', f"{inlet} Residence Time (NLT)", f"{buffer}_residence_time")
+            ('qd', f"{inlet} QD Number", f"{buffer}_qd", "QD"),
+            ('flow_rate', f"{inlet} Flow Rate (cm/h)", f"{buffer}_flow", "Flow Rate"),
+            ('direction', f"{inlet} Flow Direction", f"{buffer}_direction", "Flow Direction"),
+            ('residence time', f"{inlet} Residence Time (NLT)", f"{buffer}_residence_time", "Residence Time")
         ]
         
         # Create input fields in columns 1-4
-        for i, (key, label, field_key) in enumerate(field_configs, 1):
+        for i, (key, helpLabel, field_key, label) in enumerate(field_configs, 1):
             with cols[i]:
                 if key == 'direction':
                     # Special handling for direction dropdown
                     default_qd_map[buffer][key] = st.selectbox(
                         label,
                         directOptions,
+                        help = helpLabel,
                         key=field_key,
                         index=directOptions.index(default_qd_map[buffer].get(key)),
                         disabled=inputs_disabled
@@ -63,6 +64,7 @@ def writeColumns(default_qd_map, requiredBuffers, inputs_disabled, directOptions
                     default_qd_map[buffer][key] = st.text_input(
                         label,
                         value=default_qd_map[buffer].get(key),
+                        help = helpLabel,
                         key=field_key,
                         disabled=inputs_disabled
                     )
