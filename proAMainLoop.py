@@ -1,7 +1,7 @@
 import fitz
 import re
 import numpy as np
-from queryMethodCodeBlocks import queryIndividualBlocks, queryPurgeBlock, query_watch, queryFinalBlock
+from queryMethodCodeBlocks import queryIndividualBlocks, query_watch, queryFinalBlock
 
 def find_highlight_loc(textDoc, pdf_path, pfcData):
 
@@ -63,7 +63,7 @@ def find_highlight_loc(textDoc, pdf_path, pfcData):
                             y1 = y0 + span["bbox"][3] - span["bbox"][1]  # Bottom y coordinate
 
                                     
-                            blockSettings = queryPurgeBlock(blocks[blockCounter])
+                            blockSettings = queryIndividualBlocks(blocks[blockCounter])
                             if blockSettings !={}:
                                 purgeBlockData.append({
                                     "blockName": text,

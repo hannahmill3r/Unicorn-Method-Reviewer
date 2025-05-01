@@ -1,5 +1,6 @@
 from proAMainLoop import calc_LFlow
 from extractText import closest_match_unit_op
+import re
 
 def check_column_params(methodsColumnParams, pfcColumnParams):
     highlights = []
@@ -51,9 +52,11 @@ def check_purge_block_settings(purge_blocks, pfcData):
     firstBlock = True
 
 
-    for block in purge_blocks[-1::]:
-        if 'pump_a_purge' in block['blockName'].lower():
+    #analyse pump a and b seperately, time based blocks dont have anything we validate so remove them from other purge blocks as well
+    for block in purge_blocks[::-1]:
+        if 'purge_a_pump' in block['blockName'].lower():
             purge_blocks.remove(block)
+
             if block['settings']['manflow']!= 60.0:
                 incorrectFieldText.append("Expected 60% ManFlow")
                 incorrectField = True
@@ -76,8 +79,9 @@ def check_purge_block_settings(purge_blocks, pfcData):
                 incorrectFieldText.append("Expected Pump A purge to be in time")
                 incorrectField = True
 
-        elif 'pump_b_purge' in block['blockName'].lower():
+        elif 'purge_b_pump' in block['blockName'].lower():
             purge_blocks.remove(block)
+            
             if block['settings']['manflow']!= 60.0:
                 incorrectFieldText.append("Expected 60% ManFlow")
                 incorrectField = True
@@ -99,6 +103,9 @@ def check_purge_block_settings(purge_blocks, pfcData):
             if "time" not in block['settings']['base_setting'].lower():
                 incorrectFieldText.append("Expected Pump B purge to be in time")
                 incorrectField = True
+        elif re.search('time', block['settings']['base_setting'].lower()):
+            purge_blocks.remove(block)
+
 
             
 
@@ -106,6 +113,7 @@ def check_purge_block_settings(purge_blocks, pfcData):
 
         incorrectFieldText = []
         incorrectField = False
+
         pfcQD = ' '
         for key in pfcData.keys():
             if block['settings']['inlet_setting'] == pfcData[key]['inlet']:
