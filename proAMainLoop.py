@@ -108,6 +108,7 @@ def find_highlight_loc(textDoc, pdf_path, pfcData):
                                     "location": (x0, y0, x1, y1),
                                     "settings": MSBlockSettings
                                 })
+
                         elif "block:" in text.lower() and "watch" in text.lower():
                             x0 = span["origin"][0]  # Left x coordinate
                             y0 = span["origin"][1]-8  # Top y coordinate
@@ -123,6 +124,9 @@ def find_highlight_loc(textDoc, pdf_path, pfcData):
                                     "location": (x0, y0, x1, y1),
                                     "settings": watchBlockSettings
                                 }
+
+                            individualBlockData[-1]['settings']['snapshot_setting'] = watchBlockData['settings']['snapshot_setting'][-1]
+                            individualBlockData[-1]['settings']['end_block_setting'] = watchBlockData['settings']['end_block_setting'][-1]
 
                         elif "block:" in text.lower() and "purge" not in text.lower():
                             #get the location in the PDF of the first Block Line

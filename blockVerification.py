@@ -170,7 +170,7 @@ def check_purge_block_settings(purge_blocks, pfcData):
     if "Inline" not in purge_blocks[-1]["settings"]['bubbletrap_setting']:
         incorrectFieldText.append("Expected bubbletrap bypass")
         incorrectField = True
-    if 20.0 != purge_blocks[-1]["settings"]['end_block_setting']:
+    if float(20.0) != float(purge_blocks[-1]["settings"]['end_block_setting']):
         incorrectFieldText.append("Expected 20.0 volume purge")
         incorrectField = True
     if  pfcQD != purge_blocks[-1]["settings"]['inlet_QD_setting']:
@@ -209,8 +209,8 @@ def check_MS_blocks_settings_pdf(MS_blocks, pfcData, numberofMS):
         if "Inline" not in block["settings"]['filter_setting']:
             incorrectFieldText.append("Expected Inline filter")
             incorrectField = True
-        if int(block["settings"]['fraction_setting'])*5 != block["settings"]['end_block_setting']:
-            incorrectFieldText.append("Expected final volume to be 5 x (# of mainstreams)")
+        if float(block["settings"]['fraction_setting'])*5 != float(block["settings"]['end_block_setting']):
+            incorrectFieldText.append("Expected final volume to be 5 x (# of mainstreams), got, "+ block["settings"]['end_block_setting'])
             incorrectField = True
         if int(block["settings"]['fraction_setting']) != int(numberofMS):
             incorrectFieldText.append(f"Expected number of mainstreams to be: {numberofMS}")
@@ -244,22 +244,26 @@ def check_indiv_blocks_settings_pdf(indiv_blocks, pfcData, columnParam):
         incorrectFieldText = []
         incorrectField = False
         direct = pfcQD = residenceTime = flowRate= ''
-        closestMatch, ratio = closest_match_unit_op(block['blockName'], pfcData.keys())
+        closestTitleMatch, ratio = closest_match_unit_op(block['blockName'], pfcData.keys())
+        closesTagMatch, ratioTag = closest_match_unit_op(block['settings']['flow_tags'][-1].split('_Flowrate')[0], pfcData.keys())
+        newMatch = ''
 
+
+        if (closesTagMatch!=closestTitleMatch):
+            if "rinse" in block['blockName'].lower():
+                closestTitleMatch, ratnew = closest_match_unit_op(block['settings']['flow_tags'][-1].split('_Flowrate')[0]+" Rinse", pfcData.keys())
 
         for key in pfcData.keys():
+            #presani does have specific rinse information described and extracted from the pfc
 
-            if 'rinse' in block['blockName'].lower() and pfcData.get(key).get('inlet') == block['settings']['inlet_setting']:
+            #TODO: RINSE 3 WILL BE WRONG HERE!
+            if key == closestTitleMatch :
+                
                 pfcQD = pfcData[key]['qd']
                 direct = pfcData[key]['direction']
                 flowRate = pfcData[key]['flow_rate']
                 residenceTime = pfcData[key]['residence time']
-
-            elif key == closestMatch and "rinse" not in block['blockName'].lower():
-                pfcQD = pfcData[key]['qd']
-                direct = pfcData[key]['direction']
-                flowRate = pfcData[key]['flow_rate']
-                residenceTime = pfcData[key]['residence time']
+                CV = pfcData[key]['CV']
 
 
         if "flush" in block['blockName'].lower():
@@ -309,7 +313,6 @@ def check_indiv_blocks_settings_pdf(indiv_blocks, pfcData, columnParam):
                     elif round(flow) != round(float(flowRate)):
                         incorrectFieldText.append("Unexpected Flow Value")
                         incorrectField = True
-                #TODO: ELSE wash 1 or charge has a seperate flow rate
 
         elif ("sani" in block['settings']['flow_tags'][0].lower() or "first_cv_equil" in block['settings']['flow_tags'][0].lower()):
             if round(equilLFlow) != float(block['settings']['flow_setting']) and round(equilLFlow, 1) != float(block['settings']['flow_setting']) and round(equilLFlow, 2) != float(block['settings']['flow_setting']):
@@ -352,6 +355,26 @@ def check_indiv_blocks_settings_pdf(indiv_blocks, pfcData, columnParam):
                 if ("pb" not in block['settings']['reset_setting'].lower()):
                     incorrectFieldText.append("Totalizer should be reset through pump B")
                     incorrectField = True
+
+
+        #check the column volumes
+
+    
+
+        try:
+            if float(block['settings']['end_block_setting'])!= float(CV) and 'flush' not in block['blockName'].lower():
+                incorrectFieldText.append(f"Expected {CV} breakpoint volume")
+                incorrectField = True
+
+            if 'flush' in block['blockName'].lower() and float(block['settings']['end_block_setting'])!= float(20.0):
+                block['settings']['end_block_setting']
+                incorrectFieldText.append(f"Expected flush to have 20.0 breakpoint volume")
+                incorrectField = True
+
+        except:
+            incorrectFieldText.append(f"I was unable to process the formatting for the breakpoint volume, please double check it")
+            incorrectField = True
+
             
         #TODO: check inlets?
 

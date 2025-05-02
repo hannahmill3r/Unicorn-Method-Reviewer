@@ -12,7 +12,7 @@ from reportlab.lib import colors
 from pdfminer.high_level import extract_pages
 from pdfminer.layout import LTTextBoxHorizontal
 from annotatePDF import annotate_doc
-from proAMainLoop import find_highlight_loc
+from proAMainLoop import find_highlight_loc, calc_LFlow
 from blockVerification import check_purge_block_settings, check_watch_settings, check_MS_blocks_settings_pdf, check_column_params, check_indiv_blocks_settings_pdf
 
 
@@ -31,7 +31,7 @@ def writeColumns(default_qd_map, requiredBuffers, inputs_disabled, directOptions
     def create_buffer_inputs(buffer, inlet):
         """Creates standardized input fields for each buffer"""
         # Create 5 columns with specific width ratios
-        cols = st.columns([2.25, 3,3,3,3], vertical_alignment="center")
+        cols = st.columns([2.25, 3,3,3,3,3], vertical_alignment="center")
         
         # Column 0: Buffer name (with * if required)
         with cols[0]:
@@ -43,7 +43,8 @@ def writeColumns(default_qd_map, requiredBuffers, inputs_disabled, directOptions
             ('qd', f"{inlet} QD Number", f"{buffer}_qd", "QD"),
             ('flow_rate', f"{inlet} Flow Rate (cm/h)", f"{buffer}_flow", "Flow Rate"),
             ('direction', f"{inlet} Flow Direction", f"{buffer}_direction", "Flow Direction"),
-            ('residence time', f"{inlet} Residence Time (NLT)", f"{buffer}_residence_time", "Residence Time")
+            ('residence time', f"{inlet} Residence Time (NLT)", f"{buffer}_residence_time", "Residence Time"),
+            ('CV', f"{inlet} Column Volume (CV)", f"{buffer}_CV", "Charge Volume (CV)")
         ]
         
         # Create input fields in columns 1-4
@@ -70,13 +71,13 @@ def writeColumns(default_qd_map, requiredBuffers, inputs_disabled, directOptions
                     )
 
     # Process Pump A Inlets
-    pump_a_buffers = ['Equilibration', 'Elution', 'Wash 1', "Wash 3", 'Charge']
+    pump_a_buffers = ['Equilibration', 'Elution', 'Wash 1', "Wash 3", 'Charge', 'Pre Sanitization', 'Pre Sani Rinse', 'Storage Rinse']
     for buffer in pump_a_buffers:
         create_buffer_inputs(buffer, default_qd_map[buffer].get('inlet'))
 
     # Process Pump B Inlets
     st.subheader("Pump B Inlets")
-    pump_b_buffers = ['Sanitization', 'Storage', 'Regeneration', 'Wash 2']
+    pump_b_buffers = ['Post Sanitization', 'Post Sani Rinse', 'Storage', 'Regeneration', 'Wash 2']
     for buffer in pump_b_buffers:
         create_buffer_inputs(buffer, default_qd_map[buffer].get('inlet'))
 
@@ -136,42 +137,27 @@ def create_inlet_qd_interface():
         st.info("Please upload UNICORN Method PDF first before uploading PFC document")
 
     default_qd_map = {
-        'Equilibration': {'inlet': 'Inlet 1', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' '},
-        'Elution': {'inlet': 'Inlet 2', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' '},
-        'Wash 1': {'inlet': 'Inlet 3', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' '},
-        'Wash 3': {'inlet': 'Inlet 3', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' '},
-        'Charge': {'inlet': 'Sample', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' '},
-        'Sanitization': {'inlet': 'Inlet 4', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' '},
-        'Storage': {'inlet': 'Inlet 5', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' '},
-        'Regeneration': {'inlet': 'Inlet 6', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' '},
-        'Wash 2': {'inlet': 'Inlet 7', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' '}
+        'Equilibration': {'inlet': 'Inlet 1', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' '},
+        'Elution': {'inlet': 'Inlet 2', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' '},
+        'Wash 1': {'inlet': 'Inlet 3', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' '},
+        'Wash 3': {'inlet': 'Inlet 3', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' '},
+        'Charge': {'inlet': 'Sample', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' '},
+        'Storage': {'inlet': 'Inlet 5', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' '},
+        'Regeneration': {'inlet': 'Inlet 6', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' '},
+        'Pre Sanitization': {'inlet': 'Inlet 1', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' '},
+        'Pre Sani Rinse': {'inlet': 'Inlet 1', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' '},
+        'Post Sanitization': {'inlet': 'Inlet 1', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' '},
+        'Post Sani Rinse': {'inlet': 'Inlet 1', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' '},
+        'Storage Rinse': {'inlet': 'Inlet 1', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' '},
+        'Wash 2': {'inlet': 'Inlet 7', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' '}
     }
     
-    inputs_disabled = uploaded_PFC_file is None
-    def fill_default_sample_map(default_qd_map):
-        qdMap = output_PFC_params(uploaded_PFC_file, selected_option)
-          
 
-        for i in default_qd_map.keys():
-            qdAssignment = qdMap.get(i).get('composition')
-            velocityAssignment =  qdMap.get(i).get('velocity')
-            directionAssignment = qdMap.get(i).get('direction')
-            residenceAssignment =  qdMap.get(i).get('residenceTime')
-
-            default_qd_map[i]['qd'] = qdAssignment
-            default_qd_map[i]['flow_rate'] = velocityAssignment
-            default_qd_map[i]['direction'] = directionAssignment
-            default_qd_map[i]['residence time'] = residenceAssignment
-        return default_qd_map
-    
-    if not inputs_disabled:
-        default_qd_map = fill_default_sample_map(default_qd_map)
-        
 
 
     st.header("Verify Column Parameters")
     column_disabled = uploaded_PFC_file is None
-    column_params = {'columnHeight': 17, "columnDiameter":45, "contactTime": 15}
+    column_params = {'columnHeight': '', "columnDiameter":'', "contactTime": ''}
 
     col1, col2, col3 = st.columns(3)
     with col1:
@@ -202,6 +188,40 @@ def create_inlet_qd_interface():
             key="numMS",
             disabled=column_disabled
         )
+    
+    columnParamsIncomplete = True
+    for key in column_params.keys():
+        if column_params[key].strip() =='':
+            columnParamsIncomplete = True
+        else:
+            columnParamsIncomplete = False
+
+    inputs_disabled = uploaded_PFC_file is None or columnParamsIncomplete
+    def fill_default_sample_map(default_qd_map, column_params):
+        
+        qdMap = output_PFC_params(uploaded_PFC_file, selected_option)
+          
+
+        for i in default_qd_map.keys():
+            print(i)
+            if 'sani' in i.lower():
+                velocityAssignment = round(calc_LFlow(float(column_params['columnHeight']), float(column_params['columnDiameter']), float(column_params['contactTime']))["linearFlow"])
+            else:
+                velocityAssignment =  qdMap.get(i).get('velocity')
+            qdAssignment = qdMap.get(i).get('composition')
+            directionAssignment = qdMap.get(i).get('direction')
+            residenceAssignment =  qdMap.get(i).get('residenceTime')
+            cvAssignment =  qdMap.get(i).get('CV')
+
+            default_qd_map[i]['qd'] = qdAssignment
+            default_qd_map[i]['flow_rate'] = velocityAssignment
+            default_qd_map[i]['direction'] = directionAssignment
+            default_qd_map[i]['residence time'] = residenceAssignment
+            default_qd_map[i]['CV'] = cvAssignment
+        return default_qd_map
+    
+    if not inputs_disabled:
+        default_qd_map = fill_default_sample_map(default_qd_map, column_params)
 
 
     st.header("Verify Inlet Parameters")
@@ -210,7 +230,7 @@ def create_inlet_qd_interface():
     # Create columns for Pump A Inlets
     st.subheader("Pump A Inlets")
     directOptions = ['Downflow', 'Upflow', ' ']
-    requiredBuffers = ['Sanitization', 'Equilibration', 'Wash 1', 'Storage']
+    requiredBuffers = ['Post Sanitization', 'Equilibration', 'Wash 1', 'Storage']
     
     writeColumns(default_qd_map, requiredBuffers, inputs_disabled, directOptions)
     
@@ -232,9 +252,9 @@ def create_inlet_qd_interface():
     if validate_button:
         invalidError = []
 
-        #check if any required feilds are empty, dont need sanitization flow rate as it uses presani rinse calculation
+        #check if any required feilds are empty
         for buffer in requiredBuffers:
-            if not default_qd_map[buffer]['qd'].strip() or (not default_qd_map[buffer]['flow_rate'].strip() and buffer!='Sanitization')or not default_qd_map[buffer]['direction'].strip():
+            if not default_qd_map[buffer]['qd'].strip() or not default_qd_map[buffer]['flow_rate'].strip() or not default_qd_map[buffer]['direction'].strip():
                 invalidError.append(f"{buffer} is missing required information")
             
 

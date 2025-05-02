@@ -13,10 +13,10 @@ def read_docx2(file_path):
     is_first_page = True
     
     def is_unit_op_header(text):
-        return "LB2273 Unit Op" in text and "Process Flow Chart" in text
+        return "unit" in text.lower() and 'op' in text.lower() and "process flow chart" in text.lower()
     
     def is_downstream_header(text):
-        return "LB2273 Downstream Process Flow Chart" in text
+        return "Downstream Process Flow Chart" in text
     
     # Process elements in order of appearance
     for element in doc.element.body:
@@ -73,19 +73,25 @@ def list_unit_ops(pages):
     
 def extract_process_info(array):
     process_info = {
-        'Regeneration': {'direction': '', 'velocity': '', 'composition': '','residenceTime': 'N/A'},
-        'Equilibration': {'direction': '', 'velocity': '', 'composition': '','residenceTime': 'N/A'},
-        'Charge': {'direction': '', 'velocity': '', 'composition': '','residenceTime': 'N/A'},
-        'Sanitization': {'direction': '', 'velocity': '', 'composition': '','residenceTime': 'N/A'},
-        'Wash 1': {'direction': '', 'velocity': '', 'composition': '','residenceTime': 'N/A'},
-        'Wash 2': {'direction': '', 'velocity': '', 'composition': '','residenceTime': 'N/A'},
-        'Wash 3': {'direction': '', 'velocity': '', 'composition': '','residenceTime': 'N/A'},
-        'Elution': {'direction': '', 'velocity': '', 'composition': '','residenceTime': 'N/A'},
-        'Storage': {'direction': '', 'velocity': '', 'composition': '','residenceTime': 'N/A'}
+        'Regeneration': {'direction': '', 'velocity': '', 'composition': '','residenceTime': 'N/A', 'CV': ' '},
+        'Pre Sani Rinse': {'direction': '', 'velocity': '--', 'composition': '','residenceTime': 'N/A', 'CV': ' '},
+        'Equilibration': {'direction': '', 'velocity': '', 'composition': '','residenceTime': 'N/A', 'CV': ' '},
+        'Charge': {'direction': '', 'velocity': '', 'composition': '','residenceTime': 'N/A', 'CV': ' '},
+        'Pre Sanitization': {'direction': '', 'velocity': '--', 'composition': '','residenceTime': 'N/A', 'CV': ' '},
+        'Post Sanitization': {'direction': '', 'velocity': '--', 'composition': '','residenceTime': 'N/A', 'CV': ' '},
+        'Wash 1': {'direction': '', 'velocity': '', 'composition': '','residenceTime': 'N/A', 'CV': ' '},
+        'Wash 2': {'direction': '', 'velocity': '', 'composition': '','residenceTime': 'N/A', 'CV': ' '},
+        'Wash 3': {'direction': '', 'velocity': '', 'composition': '','residenceTime': 'N/A', 'CV': ' '},
+        'Elution': {'direction': '', 'velocity': '', 'composition': '','residenceTime': 'N/A', 'CV': ' '},
+        'Storage Rinse': {'direction': '', 'velocity': '', 'composition': '','residenceTime': 'N/A', 'CV': ' '},
+        'Post Sani Rinse': {'direction': '', 'velocity': '', 'composition': '','residenceTime': 'N/A', 'CV': ' '},
+        'Elution': {'direction': '', 'velocity': '', 'composition': '','residenceTime': 'N/A', 'CV': ' '},
+        'Storage': {'direction': '', 'velocity': '--', 'composition': '','residenceTime': 'N/A', 'CV': ' '}
     }
     
     default_flow = ''
     current_step = None
+    newStep = None
     
     for item in array:
         if 'all column flow directions are downflow' in item.lower():
@@ -100,13 +106,14 @@ def extract_process_info(array):
             if 'regeneration' in lower_item:
                 current_step = 'Regeneration'
             elif 'sanitization' in lower_item:
-                current_step = 'Sanitization'
+                current_step = 'Post Sanitization'
             elif 'elution' in lower_item:
                 current_step = 'Elution'
             elif 'storage' in lower_item:
                 current_step = 'Storage'
             elif 'charge' in lower_item:
                 current_step = 'Charge'
+            
             
 
         # Handle wash steps specifically
@@ -118,32 +125,45 @@ def extract_process_info(array):
             current_step = 'Wash 3'
         elif 'equilibration' in lower_item:
             current_step = 'Equilibration'
+        elif 'pre' in lower_item and ('use' in lower_item or 'sani' in lower_item) and 'rinse' in lower_item:
+            current_step = 'Pre Sani Rinse'
+        elif 'pre' in lower_item and ('use' in lower_item or 'sani' in lower_item) and 'rinse' not in lower_item:
+            current_step = 'Pre Sanitization'
+
 
         # If we're in a process step, capture its parameters
         if current_step:
+            #TODO: if the current step is sanitization or storage, look for a rinse?
+            newStep = current_step
+            if 'rinse' in lower_item:
+                if current_step + " Rinse" in process_info.keys():
+                    newStep = current_step + " Rinse"
+                
 
             # Flow direction
             if 'flow direction' in lower_item:
-                process_info[current_step]['direction'] = parts[1] if len(parts) > 1 else ''
+                process_info[newStep]['direction'] = parts[1] if len(parts) > 1 else ''
             # Flow velocity - only capturing NMT value
+            elif 'cv' in parts[0].lower() and 'volume' in  parts[0].lower():
+                process_info[newStep]['CV'] = parts[1] if len(parts) > 1 else ''
             elif any(term in lower_item for term in ['flow velocity', 'velocity', 'flow:', 'residence']):
 
                 # Extract the NMT value
                 try:
                     value = item[item.lower().find('nmt'):].split()[1]
-                    process_info[current_step]['velocity'] = value
+                    process_info[newStep]['velocity'] = value
                 except:
                     pass
 
                 try:
                     value = item[item.lower().find('nlt'):].split()[1]
-                    process_info[current_step]['residenceTime'] = value
+                    process_info[newStep]['residenceTime'] = value
 
                 except:
                     pass
             # Composition
             elif any(term in lower_item for term in ['composition:', 'buffer composition']):
-                process_info[current_step]['composition'] = parts[1] if len(parts) > 1 else ''
+                process_info[newStep]['composition'] = parts[1] if len(parts) > 1 else ''
 
         # Set default flow direction if not specified
         for step in process_info:
@@ -152,10 +172,15 @@ def extract_process_info(array):
 
     #sometimes parameters are shared across charge and equilibration, if one is empty and the other has a value, replace the empty value
     for key in process_info['Charge'].keys():
-        if process_info['Charge'][key].strip() == '' and process_info['Equilibration'][key].strip() != '':
-            process_info['Charge'][key] = process_info['Equilibration'][key]
-        elif process_info['Charge'][key].strip() != '' and process_info['Equilibration'][key].strip() == '':
-            process_info['Equilibration'][key] = process_info['Charge'][key]
+        if key!= 'CV':
+            if process_info['Charge'][key].strip() == '' and process_info['Equilibration'][key].strip() != '':
+                process_info['Charge'][key] = process_info['Equilibration'][key]
+            elif process_info['Charge'][key].strip() != '' and process_info['Equilibration'][key].strip() == '':
+                process_info['Equilibration'][key] = process_info['Charge'][key]
+
+    for key in process_info.keys():
+        if key + " Rinse" in process_info.keys() and process_info[key]['velocity'].strip() !='' and process_info[key + ' Rinse']['velocity'].strip() == '':
+            process_info[key + ' Rinse']['velocity'] = process_info[key]['velocity'].strip()
 
     return process_info
 

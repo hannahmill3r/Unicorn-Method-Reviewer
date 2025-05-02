@@ -11,21 +11,31 @@ def queryIndividualBlocks(block):
     outlet_match = re.search(r'Outlet:\s*(.*)', block)
     bubbletrap_match = re.search(r'BubbleTrap:\s*(.*)', block)
     base_match = re.search(r'Base:\s*(.*)', block)
-    end_block_match = re.search(r'(\d+\.?\d*)\s*End_Block', block)
+    snapshot_match = re.search(r'Snapshot:\s*(.*)', block)
     inlet_match = re.search(r'Inlet:\s*(.*)', block)
     reset_match = re.search(r'FIT\s*(.*)', block)
     fraction_match = re.search(r'Fractions:\s*(.*)', block)
     manflow_match = re.search(r'ManFlow:\s*(\d+\.?\d*)\s*{\%}', block)
     QD_match = re.search(r'QD\s*(.*)', block)
-    snapshot_match = re.search(r'Snapshot:\s*(.*)', block)
     setmark_match = re.search(r'Set mark:\s*(.*)', block)
-    title = re.search(r'Block:\s*(.*)', block)
     multi_column_math = re.finditer(r'Column:\s*(.*)', block)
     columnMatches = []
     for match in multi_column_math:
         columnMatches.append(match.group(1).strip())
 
-    title_match_value = title.group().strip().replace(" ", "") if title else ' '
+    multi_end_block_match = re.finditer(r'(\d+\.?\d*)\s*End_Block', block)
+    endMatches = []
+    end_block_setting = ''
+    for match in multi_end_block_match:  
+        endMatches.append(match.group(1).strip() if match else ' ')
+
+    if len(endMatches)>0:
+        for val in endMatches[::-1]:
+            if float(val)!=float(0.00) or end_block_setting == '':
+                end_block_setting = val
+                
+    
+
 
 
     #if theres more than one, return string listing all matches. This should only be applicable in the first purge
@@ -56,7 +66,6 @@ def queryIndividualBlocks(block):
 
 
     base_value = base_match.group(1).strip().split(', ')[0] if base_match else ' '
-    end_block_value = float(end_block_match.group(1)) if end_block_match else ' '
     outlet_setting = outlet_match.group(1).strip() if outlet_match else ' '
     bubbletrap_setting = bubbletrap_match.group(1).strip() if bubbletrap_match else ' '
     filter_setting = filter_match.group(1).strip() if filter_match else ' '
@@ -88,7 +97,7 @@ def queryIndividualBlocks(block):
             'outlet_setting': outlet_setting,
             'bubbletrap_setting': bubbletrap_setting,
             'inlet_setting': inlet_setting,
-            'end_block_setting': end_block_value, 
+            'end_block_setting': end_block_setting, 
             'filter_setting': filter_setting, 
             'base_setting': base_value, 
             'reset_setting': reset_match, 
@@ -99,6 +108,7 @@ def queryIndividualBlocks(block):
             'inlet_QD_setting': QD_match_value, 
             'snapshot_setting': snapshot_match, 
             'setmark_setting': setmark_match
+
         }
 
     return currentBlock
@@ -109,6 +119,18 @@ def query_watch(block):
     watchBlock = {}
 
     outlet_match = re.search(r'Outlet:\s*(.*)', block)
+
+
+
+    multi_snap_match = re.finditer(r'Snapshot:\s*(.*)', block)
+    snapMatches = []
+    for match in multi_snap_match:  
+        snapMatches.append(match.group(1).strip() if match else ' ')
+
+    multi_end_block_match = re.finditer(r'(\d+\.?\d*)\s*End_Block', block)
+    endMatches = []
+    for match in multi_end_block_match:  
+        endMatches.append(match.group(1).strip() if match else ' ')
 
 
     watch_values = [' '] * 3  # Initialize list with 3 empty spaces
@@ -134,7 +156,9 @@ def query_watch(block):
         'frontside_setting': watch_values[0],
         'peak_protect_setting': watch_values[1],
         'backside_setting': watch_values[2], 
-        'outlet_setting': outlet_setting
+        'outlet_setting': outlet_setting, 
+        'end_block_setting': endMatches, 
+        'snapshot_setting': snapMatches, 
     }
     return watchBlock
 
