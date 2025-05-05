@@ -13,7 +13,7 @@ from pdfminer.high_level import extract_pages
 from pdfminer.layout import LTTextBoxHorizontal
 from annotatePDF import annotate_doc
 from proAMainLoop import find_highlight_loc, calc_LFlow
-from blockVerification import check_purge_block_settings, check_watch_settings, check_MS_blocks_settings_pdf, check_column_params, check_indiv_blocks_settings_pdf
+from blockVerification import check_purge_block_settings, check_watch_settings, check_MS_blocks_settings_pdf, check_column_params, check_indiv_blocks_settings_pdf, check_end_of_run_pdf
 
 
 def writeColumns(default_qd_map, requiredBuffers, inputs_disabled, directOptions):
@@ -203,7 +203,6 @@ def create_inlet_qd_interface():
           
 
         for i in default_qd_map.keys():
-            print(i)
             if 'sani' in i.lower():
                 velocityAssignment = round(calc_LFlow(float(column_params['columnHeight']), float(column_params['columnDiameter']), float(column_params['contactTime']))["linearFlow"])
             else:
@@ -321,8 +320,9 @@ def main():
                 highlightsColumnParams = check_column_params(columnParams, result['column_params'])
                 highlightsIndiv = check_indiv_blocks_settings_pdf(individualBlockData, result['inlet_data'], result['column_params'])
                 highlightsWatchSettings = check_watch_settings(watchBlockData)
+                highlightsFinalBlock = check_end_of_run_pdf(finalBlock)
 
-                mergedHighlights = [item for sublist in [highlights, highlightsMS, highlightsColumnParams, highlightsIndiv, highlightsWatchSettings] for item in sublist]
+                mergedHighlights = [item for sublist in [highlights, highlightsMS, highlightsColumnParams, highlightsIndiv, highlightsFinalBlock, highlightsWatchSettings] for item in sublist]
 
 
 

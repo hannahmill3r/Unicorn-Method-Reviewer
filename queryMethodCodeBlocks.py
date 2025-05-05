@@ -18,6 +18,7 @@ def queryIndividualBlocks(block):
     manflow_match = re.search(r'ManFlow:\s*(\d+\.?\d*)\s*{\%}', block)
     QD_match = re.search(r'QD\s*(.*)', block)
     setmark_match = re.search(r'Set mark:\s*(.*)', block)
+    snapshot_volume_match = re.search(r'(\d+\.?\d*)\s*Snapshot:', block)
     multi_column_math = re.finditer(r'Column:\s*(.*)', block)
     columnMatches = []
     for match in multi_column_math:
@@ -74,6 +75,8 @@ def queryIndividualBlocks(block):
     setmark_match = setmark_match.group(1).strip() if setmark_match else ' '
     flow_value = float(manflow_match.group(1)) if manflow_match else ' '
     QD_match_value = QD_match.group().strip().replace(" ", "") if QD_match else ' '
+    snapshot_volume_match = snapshot_volume_match.group(1).strip() if snapshot_volume_match else ' '
+    
 
 
     inlet_number = None
@@ -107,7 +110,9 @@ def queryIndividualBlocks(block):
             'manflow': flow_value,
             'inlet_QD_setting': QD_match_value, 
             'snapshot_setting': snapshot_match, 
-            'setmark_setting': setmark_match
+            'setmark_setting': setmark_match, 
+            'snapshot_breakpoint_setting': snapshot_volume_match
+
 
         }
 
@@ -164,41 +169,15 @@ def query_watch(block):
 
 def queryFinalBlock(block):
     # Find matches and store their locations
-    finalBlock = {}
 
-    lines = block.split('\n')
+    base_match = re.search(r'Base:\s*(.*)', block)
+    end_block_match = re.search(r'(\d+\.?\d*)\s*End_Block', block)
 
-
-    for line in lines:
-        if "run" in line.lower():
-            newline = line.split()
-
-    outlet_match = re.search(r'Outlet:\s*(.*)', block)
+    end_block = end_block_match.group(1).strip() if end_block_match else ' '
+    base_setting = base_match.group(1).strip() if base_match else ' '
 
 
-    watch_values = [' '] * 3  # Initialize list with 3 empty spaces
-    watch_pattern = re.finditer(r'watch:\s*(.*)', block.lower())
-    count = 0
-    for watch_match in watch_pattern:
-        components = watch_match.group(1).strip().split(', ')
-        
-        # Find any numeric values associated with 'au'
-        for component in components:
-            if 'au' in component:
-                numbers = [float(token) for token in component.split() 
-                          if token.replace('.','').isdigit()]
-                if numbers:
-                    watch_values[count] = numbers[0]
-        count +=1
-
-    outlet_setting = outlet_match.group(1).strip() if outlet_match else ' '
-
-    #if theres more than one, return string listing all matches. This should only be applicable in the first purge
-
-    finalBlock = {
-        'frontside_setting': watch_values[0],
-        'peak_protect_setting': watch_values[1],
-        'backside_setting': watch_values[2], 
-        'outlet_setting': outlet_setting
+    return{
+        'base_setting': base_setting,
+        'end_block_setting': end_block
     }
-    return finalBlock

@@ -17,7 +17,7 @@ def find_highlight_loc(textDoc, pdf_path, pfcData):
     trackedInletQDs = []
     lastPurgeRead = False
     firstBaseRead = False
-    finalBlock = False
+    finalBlock = {}
     columnParams = {}
     watchBlockData = []
     connection = []
@@ -125,6 +125,7 @@ def find_highlight_loc(textDoc, pdf_path, pfcData):
                                     "settings": watchBlockSettings
                                 }
 
+                            #watch blokcs are indented and their blocks will absorb the snapshot and end settings from the last block, so make that fix here
                             individualBlockData[-1]['settings']['snapshot_setting'] = watchBlockData['settings']['snapshot_setting'][-1]
                             individualBlockData[-1]['settings']['end_block_setting'] = watchBlockData['settings']['end_block_setting'][-1]
 
@@ -147,7 +148,23 @@ def find_highlight_loc(textDoc, pdf_path, pfcData):
                                     })
                         #Grab data from last block to check end of run delay and 
                         if "Block: " in text and blockCounter == len(blocks)-1:
-                            fianalBlock = queryFinalBlock(blocks[blockCounter])
+
+                            if queryFinalBlock(blocks[blockCounter])!={}:
+                                finalBlock = ({
+                                            "blockName": text,
+                                            "blockPage": page_num+1, 
+                                            "location": (x0, y0, x1, y1),
+                                            "settings": queryFinalBlock(blocks[blockCounter])
+                                        })
+                            scoutingBlock = blocks[blockCounter].split("End_Block")[1]
+                            scoutingRuns = scoutingBlock.split("Run")
+
+                            for run in scoutingRuns:
+                                pass
+                            #print(run)
+              
+
+
                             
                         if "Block: " in text:
                             blockCounter+=1
@@ -157,12 +174,13 @@ def find_highlight_loc(textDoc, pdf_path, pfcData):
     for val in remainingInlets:
         unpurgedQD = (pfcData.get(val).get('qd')).strip()
         if unpurgedQD != '':
-            #we might not purge na inlet if it shares a QD with another purge, so check this first
+            #we might not purge an inlet if it shares a QD with another purge, so check this first
             if unpurgedQD not in trackedInletQDs:
                 inletsNotPurged.append(val)
     doc.close()
 
     update_inlet_qd_settings(connection, purgeBlockData, equillibrationBlockData)
+
 
     return purgeBlockData, inletsNotPurged, equillibrationBlockData, columnParams, individualBlockData, watchBlockData, finalBlock
 

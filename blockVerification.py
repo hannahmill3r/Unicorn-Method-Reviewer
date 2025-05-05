@@ -246,7 +246,6 @@ def check_indiv_blocks_settings_pdf(indiv_blocks, pfcData, columnParam):
         direct = pfcQD = residenceTime = flowRate= ''
         closestTitleMatch, ratio = closest_match_unit_op(block['blockName'], pfcData.keys())
         closesTagMatch, ratioTag = closest_match_unit_op(block['settings']['flow_tags'][-1].split('_Flowrate')[0], pfcData.keys())
-        newMatch = ''
 
 
         if (closesTagMatch!=closestTitleMatch):
@@ -255,8 +254,6 @@ def check_indiv_blocks_settings_pdf(indiv_blocks, pfcData, columnParam):
 
         for key in pfcData.keys():
             #presani does have specific rinse information described and extracted from the pfc
-
-            #TODO: RINSE 3 WILL BE WRONG HERE!
             if key == closestTitleMatch :
                 
                 pfcQD = pfcData[key]['qd']
@@ -357,10 +354,7 @@ def check_indiv_blocks_settings_pdf(indiv_blocks, pfcData, columnParam):
                     incorrectField = True
 
 
-        #check the column volumes
-
-    
-
+        #check the end block breakpoint column volumes
         try:
             if float(block['settings']['end_block_setting'])!= float(CV) and 'flush' not in block['blockName'].lower():
                 incorrectFieldText.append(f"Expected {CV} breakpoint volume")
@@ -373,6 +367,16 @@ def check_indiv_blocks_settings_pdf(indiv_blocks, pfcData, columnParam):
 
         except:
             incorrectFieldText.append(f"I was unable to process the formatting for the breakpoint volume, please double check it")
+            incorrectField = True
+
+        #check the snapshot breakpoint column volumes
+        try:
+            if float(block['settings']['snapshot_breakpoint_setting'])!= float(CV) and 'flush' not in block['blockName'].lower():
+                incorrectFieldText.append(f"Expected {CV} breakpoint volume for snapshot")
+                incorrectField = True
+
+        except:
+            incorrectFieldText.append(f"I was unable to process the formatting for the snapshot breakpoint volume, please double check it")
             incorrectField = True
 
             
@@ -389,8 +393,6 @@ def check_indiv_blocks_settings_pdf(indiv_blocks, pfcData, columnParam):
 def check_watch_settings(block):
 
     highlights = []
-    incorrectField = False
-
     incorrectFieldText = []
     incorrectField = False
 
@@ -411,6 +413,32 @@ def check_watch_settings(block):
 
     return highlights
 
+def check_end_of_run_pdf(finalBlock):
+    highlights = []
+    incorrectFieldText = []
+    incorrectField = False
+    
+    
+    if "time" not in finalBlock["settings"]["base_setting"].lower():
+        incorrectFieldText.append("Expected base to be in time")
+        incorrectField = True
+
+    if 'end_of_run_delay' not in finalBlock["blockName"].lower():
+        incorrectFieldText.append("Final Block should be the end of run delay")
+        incorrectField = True
+
+    if float(0) == float(finalBlock["settings"]["end_block_setting"]):
+        incorrectFieldText.append("End of run delay requires a non zero amount of time for data transfer to server")
+        incorrectField = True
+
+
+    if incorrectField:
+        highlights.append({
+            "blockData": finalBlock, 
+            "annotationText": incorrectFieldText
+        })
+    return highlights
+        
 
 #TODO: add scouting run checks
 
