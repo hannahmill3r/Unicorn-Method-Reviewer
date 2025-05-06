@@ -353,7 +353,6 @@ def check_indiv_blocks_settings_pdf(indiv_blocks, pfcData, columnParam):
                     incorrectFieldText.append("Totalizer should be reset through pump B")
                     incorrectField = True
 
-
         #check the end block breakpoint column volumes
         try:
             if float(block['settings']['end_block_setting'])!= float(CV) and 'flush' not in block['blockName'].lower():
@@ -369,11 +368,13 @@ def check_indiv_blocks_settings_pdf(indiv_blocks, pfcData, columnParam):
             incorrectFieldText.append(f"I was unable to process the formatting for the breakpoint volume, please double check it")
             incorrectField = True
 
+
         #check the snapshot breakpoint column volumes
         try:
-            if float(block['settings']['snapshot_breakpoint_setting'])!= float(CV) and 'flush' not in block['blockName'].lower():
-                incorrectFieldText.append(f"Expected {CV} breakpoint volume for snapshot")
-                incorrectField = True
+            if 'flush' not in block['blockName'].lower():
+                if float(block['settings']['snapshot_breakpoint_setting'])!= float(CV):
+                    incorrectFieldText.append(f"Expected {CV} breakpoint volume for snapshot")
+                    incorrectField = True
 
         except:
             incorrectFieldText.append(f"I was unable to process the formatting for the snapshot breakpoint volume, please double check it")

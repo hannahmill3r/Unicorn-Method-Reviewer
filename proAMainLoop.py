@@ -22,6 +22,9 @@ def find_highlight_loc(textDoc, pdf_path, pfcData):
     watchBlockData = []
     connection = []
 
+    blockHeaders = []
+
+
     # Loop through each page
     for page_num in range(len(doc)):
         page = doc[page_num]
@@ -31,11 +34,13 @@ def find_highlight_loc(textDoc, pdf_path, pfcData):
         
         # Loop through text blocks
         for block in text_instances:
+
             if "lines" in block:  # Check if block contains lines
                 for line in block["lines"]:
 
                     for span in line["spans"]:
                         text = span["text"]
+                        
                         #first base contains information on column height and width
                         if "base: " in text.lower() and firstBaseRead == False:
                             #get the location in the PDF of the first Block Line
@@ -127,7 +132,10 @@ def find_highlight_loc(textDoc, pdf_path, pfcData):
 
                             #watch blokcs are indented and their blocks will absorb the snapshot and end settings from the last block, so make that fix here
                             individualBlockData[-1]['settings']['snapshot_setting'] = watchBlockData['settings']['snapshot_setting'][-1]
+                            individualBlockData[-1]['settings']['snapshot_breakpoint_setting'] = watchBlockData['settings']['snapshot_breakpoint_setting']
                             individualBlockData[-1]['settings']['end_block_setting'] = watchBlockData['settings']['end_block_setting'][-1]
+
+
 
                         elif "block:" in text.lower() and "purge" not in text.lower():
                             #get the location in the PDF of the first Block Line
@@ -157,16 +165,15 @@ def find_highlight_loc(textDoc, pdf_path, pfcData):
                                             "settings": queryFinalBlock(blocks[blockCounter])
                                         })
                             scoutingBlock = blocks[blockCounter].split("End_Block")[1]
-                            scoutingRuns = scoutingBlock.split("Run")
 
-                            for run in scoutingRuns:
-                                pass
-                            #print(run)
+                            print(parse_scouting_table(scoutingBlock, blockHeaders))
+                            
               
 
 
                             
                         if "Block: " in text:
+                            blockHeaders.append(text)
                             blockCounter+=1
 
                         
@@ -292,3 +299,79 @@ def update_inlet_qd_settings(connection, purgeBlockData, equillibrationBlockData
                 if (block['settings']['inlet_setting'] == inlet and 
                     block['settings']['inlet_QD_setting'].strip() == ''):
                     block['settings']['inlet_QD_setting'] = qd_number
+
+
+def parse_scouting_table(text, blockHeaders):
+    """
+    Parse scouting table text with wrapped cell values
+    
+    Args:
+        text (str): The text content of the scouting table
+        blockHeaders (list): List of block headers to identify sections in the table
+        
+    Returns:
+        dict: Parsed scouting table data as a dictionary
+    """
+    try:
+        # Split the text into lines
+        lines = text.split('\n')
+        
+        # Initialize variables
+        previousHeader = []
+        runInfoList = []
+        currentHeaderList = []
+        nextRun = 1
+        recordRunInfo = False
+        finalDict = {}
+        endEarly = False
+
+        # Iterate through each line in the text
+        for line in lines:
+            if not endEarly:
+                # Check if the line indicates the start of a new run
+                if line == "1":
+                    recordRunInfo = True
+
+                    #record previous run information, since we are starting a new run
+                    if runInfoList != []:
+                        finalDict[", ".join(previousHeader)] = runInfoList
+                        nextRun = 1
+
+                    runInfoList = []
+                    runInfoList.append(line)
+                    nextRun += 1
+
+                # Check if the line matches the expected run number
+                elif line == str(nextRun):
+                    runInfoList.append(line)
+                    nextRun += 1
+                    recordRunInfo = True
+
+                # If starting a new run, we will need to record the new header information, since runs can go onto multiple, dont overwrite previous headers if its the same as the last one
+                elif "run" in line.lower():
+                    if previousHeader != currentHeaderList:
+                        previousHeader = currentHeaderList
+
+                    currentHeaderList = []
+                    recordRunInfo = False
+                    currentHeaderList.append(line)
+
+                # method information marks the end of scouting data and the start of operator questions
+                elif "method information" in line.lower():
+                    endEarly = True
+                    finalDict[", ".join(previousHeader)] = runInfoList
+
+                # Record run information if the flag is set
+                elif recordRunInfo:
+                    runInfoList.append(line)
+
+                # Append to the current header list if not recording run information
+                elif not recordRunInfo:
+                    currentHeaderList.append(line)
+
+        return finalDict
+
+    except Exception as e:
+        # Handle any exceptions that occur during parsing
+        print(f"An error occurred while parsing the scouting table: {e}")
+        return {}

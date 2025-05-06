@@ -125,7 +125,7 @@ def query_watch(block):
 
     outlet_match = re.search(r'Outlet:\s*(.*)', block)
 
-
+    snapshot_volume_match = re.search(r'(\d+\.?\d*)\s*Snapshot:', block)
 
     multi_snap_match = re.finditer(r'Snapshot:\s*(.*)', block)
     snapMatches = []
@@ -137,7 +137,7 @@ def query_watch(block):
     for match in multi_end_block_match:  
         endMatches.append(match.group(1).strip() if match else ' ')
 
-
+    snapshot_volume_match = snapshot_volume_match.group(1).strip() if snapshot_volume_match else ' '
     watch_values = [' '] * 3  # Initialize list with 3 empty spaces
     watch_pattern = re.finditer(r'watch:\s*(.*)', block.lower())
     count = 0
@@ -164,6 +164,7 @@ def query_watch(block):
         'outlet_setting': outlet_setting, 
         'end_block_setting': endMatches, 
         'snapshot_setting': snapMatches, 
+        'snapshot_breakpoint_setting':snapshot_volume_match
     }
     return watchBlock
 
