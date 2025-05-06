@@ -48,7 +48,6 @@ def queryIndividualBlocks(block):
         column_setting = ''
 
 
-
     numberOfMS = 0
     if fraction_match:
         fraction_spec = fraction_match.group(1).strip()

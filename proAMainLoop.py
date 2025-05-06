@@ -78,6 +78,7 @@ def find_highlight_loc(textDoc, pdf_path, pfcData):
                                     "First Purge?": firstPurge
                                 })
 
+
                                 trackedInletQDs.append(blockSettings["inlet_QD_setting"])
 
                                 #if we purge an inlet, make sure it is removed from the list of inlets to purge
@@ -166,7 +167,9 @@ def find_highlight_loc(textDoc, pdf_path, pfcData):
                                         })
                             scoutingBlock = blocks[blockCounter].split("End_Block")[1]
 
-                            print(parse_scouting_table(scoutingBlock, blockHeaders))
+                            allBlockTextExceptLast = '/n'.join(blocks[0:blockCounter-1])
+
+                            scoutingData = (parse_scouting_table(scoutingBlock, allBlockTextExceptLast))
                             
               
 
@@ -189,7 +192,7 @@ def find_highlight_loc(textDoc, pdf_path, pfcData):
     update_inlet_qd_settings(connection, purgeBlockData, equillibrationBlockData)
 
 
-    return purgeBlockData, inletsNotPurged, equillibrationBlockData, columnParams, individualBlockData, watchBlockData, finalBlock
+    return purgeBlockData, inletsNotPurged, equillibrationBlockData, columnParams, individualBlockData, watchBlockData, finalBlock, scoutingData
 
 
 def extractColumnData(text):
@@ -301,7 +304,7 @@ def update_inlet_qd_settings(connection, purgeBlockData, equillibrationBlockData
                     block['settings']['inlet_QD_setting'] = qd_number
 
 
-def parse_scouting_table(text, blockHeaders):
+def parse_scouting_table(text, allBlockTextExceptLast):
     """
     Parse scouting table text with wrapped cell values
     
@@ -334,6 +337,8 @@ def parse_scouting_table(text, blockHeaders):
 
                     #record previous run information, since we are starting a new run
                     if runInfoList != []:
+                        previousHeader = combine_values(previousHeader, allBlockTextExceptLast)
+                        runInfoList = combine_values(runInfoList, allBlockTextExceptLast)
                         finalDict[", ".join(previousHeader)] = runInfoList
                         nextRun = 1
 
@@ -343,6 +348,7 @@ def parse_scouting_table(text, blockHeaders):
 
                 # Check if the line matches the expected run number
                 elif line == str(nextRun):
+                    runInfoList = combine_values(runInfoList, allBlockTextExceptLast)
                     runInfoList.append(line)
                     nextRun += 1
                     recordRunInfo = True
@@ -375,3 +381,41 @@ def parse_scouting_table(text, blockHeaders):
         # Handle any exceptions that occur during parsing
         print(f"An error occurred while parsing the scouting table: {e}")
         return {}
+    
+
+def combine_values(row, allBlockTextExceptLast):
+    """
+    Combine values in a row excluding "yes", "blank", if it will make the entries 
+    
+    Args:
+        row (list): List of values in a row
+        
+    Returns:
+        str: Combined values as a single string
+    """
+    removedValues = []
+    combined_values = []
+    newList = row
+
+    for value in row:
+        if value != "Blank" and value.lower() != "yes" and not value.isdigit():
+            combined_values.append(value)
+
+
+    for i in range (len(combined_values)):
+        for j in range (len(combined_values), i+1, -1):
+
+            value = ''.join(combined_values[i:j])
+
+            if ''.join(combined_values[i:j]) in allBlockTextExceptLast:
+                if (combined_values[i]) not in removedValues:
+                    newList[newList.index(combined_values[i])] = value
+                    removedValues.append((combined_values[i]))
+
+                for item in combined_values[i+1:j]:
+                    if item not in removedValues:
+                        newList.remove(item)
+                        removedValues.append(item)
+
+
+    return newList

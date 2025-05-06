@@ -314,7 +314,7 @@ def main():
 
             # Save uploaded file to disk temporarily
             if result['uploaded_file'] is not None:
-                purgeBlockData, inletsNotPurged, equillibrationBlockData, columnParams, individualBlockData, watchBlockData, finalBlock = find_highlight_loc(text, result['uploaded_file'], result['inlet_data'])
+                purgeBlockData, inletsNotPurged, equillibrationBlockData, columnParams, individualBlockData, watchBlockData, finalBlock, scoutingData = find_highlight_loc(text, result['uploaded_file'], result['inlet_data'])
                 highlights = check_purge_block_settings(purgeBlockData, result['inlet_data'])
                 highlightsMS = check_MS_blocks_settings_pdf(equillibrationBlockData, result['inlet_data'], result["number_of_MS"])
                 highlightsColumnParams = check_column_params(columnParams, result['column_params'])

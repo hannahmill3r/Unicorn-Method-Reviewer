@@ -28,16 +28,6 @@ def closest_match_unit_op(search_string, string_array):
     return best_match, best_ratio
 
 
-def extract_text_from_pdf2(pdfPath, outputFilePath):
-# creating a pdf reader object
-    reader = PdfReader(pdfPath)
-    with open(outputFilePath+'.txt', 'w') as file:
-        for i in range(len(reader.pages)):
-            page = reader.pages[i]
-            file.write(page.extract_text())
-            file.write('\n')
-
-    return outputFilePath+'.txt'
 
 def extract_text_from_pdf(pdf_path, output_file_path):
     """
