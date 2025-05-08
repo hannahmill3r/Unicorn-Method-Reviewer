@@ -13,7 +13,7 @@ from pdfminer.high_level import extract_pages
 from pdfminer.layout import LTTextBoxHorizontal
 from annotatePDF import annotate_doc
 from proAMainLoop import find_highlight_loc, calc_LFlow
-from blockVerification import check_purge_block_settings, check_watch_settings, check_MS_blocks_settings_pdf, check_column_params, check_indiv_blocks_settings_pdf, check_end_of_run_pdf
+from blockVerification import check_purge_block_settings, check_watch_settings, check_MS_blocks_settings_pdf, check_column_params, check_indiv_blocks_settings_pdf, check_end_of_run_pdf, check_scouting
 
 
 def writeColumns(default_qd_map, requiredBuffers, inputs_disabled, directOptions):
@@ -321,8 +321,9 @@ def main():
                 highlightsIndiv = check_indiv_blocks_settings_pdf(individualBlockData, result['inlet_data'], result['column_params'])
                 highlightsWatchSettings = check_watch_settings(watchBlockData)
                 highlightsFinalBlock = check_end_of_run_pdf(finalBlock)
+                highlightsScouting = check_scouting(scoutingData)
 
-                mergedHighlights = [item for sublist in [highlights, highlightsMS, highlightsColumnParams, highlightsIndiv, highlightsFinalBlock, highlightsWatchSettings] for item in sublist]
+                mergedHighlights = [item for sublist in [highlights, highlightsScouting, highlightsMS, highlightsColumnParams, highlightsIndiv, highlightsFinalBlock, highlightsWatchSettings] for item in sublist]
 
 
 

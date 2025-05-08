@@ -442,6 +442,32 @@ def check_end_of_run_pdf(finalBlock):
         
 
 #TODO: add scouting run checks
+def check_scouting(scoutingData):
+
+    highlights = []
+    incorrectFieldText = []
+    incorrectField = False
+
+    numOfCycles = 24
+    for run in scoutingData:
+        keyList  = run['blockName'].split(", ")
+
+        for index, header in enumerate(keyList):
+
+            #make sure column storage is only activated for the final run, this will also catch any typos (yes, or misspelled blank)
+            if "column_storage" in header.lower():
+                for j, val in enumerate(run["settings"][index::len(keyList)]):
+                    if val!= "Blank" and j+1 != numOfCycles:
+                        incorrectFieldText.append("Column storage should only be turned on for final run")
+                        incorrectField = True
+
+        if incorrectField:
+            highlights.append({
+                "blockData": run, 
+                "annotationText": incorrectFieldText
+            })
+
+    return highlights
 
 
 def calc_LFlow_from_residence_time(columnHeight, residenceTime):

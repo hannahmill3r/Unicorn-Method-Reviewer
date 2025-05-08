@@ -21,8 +21,11 @@ def find_highlight_loc(textDoc, pdf_path, pfcData):
     columnParams = {}
     watchBlockData = []
     connection = []
+    allBlockTextExceptLast = ''
 
     blockHeaders = []
+    scoutingData = {}
+    scoutingRunLocations = []
 
 
     # Loop through each page
@@ -168,18 +171,24 @@ def find_highlight_loc(textDoc, pdf_path, pfcData):
                             scoutingBlock = blocks[blockCounter].split("End_Block")[1]
 
                             allBlockTextExceptLast = '/n'.join(blocks[0:blockCounter-1])
-
-                            scoutingData = (parse_scouting_table(scoutingBlock, allBlockTextExceptLast))
+                        
+                        if "run" in text.lower() and allBlockTextExceptLast!='': 
+                            x0 = span["origin"][0]  # Left x coordinate
+                            y0 = span["origin"][1]-8  # Top y coordinate
+                            x1 = 540  # Right x coordinate is hard coded becasue column headers are being processed seperately and this would otherwise only highlight "run"
+                            y1 = y0 + span["bbox"][3] - span["bbox"][1]  # Bottom y coordinate
                             
+                            
+                            scoutingRunLocations.append((page_num+1, (x0, y0, x1, y1)))
               
 
-
-                            
                         if "Block: " in text:
                             blockHeaders.append(text)
                             blockCounter+=1
 
-                        
+
+    scoutingData = (parse_scouting_table(scoutingBlock, allBlockTextExceptLast, scoutingRunLocations))
+
     inletsNotPurged = []
     for val in remainingInlets:
         unpurgedQD = (pfcData.get(val).get('qd')).strip()
@@ -304,7 +313,7 @@ def update_inlet_qd_settings(connection, purgeBlockData, equillibrationBlockData
                     block['settings']['inlet_QD_setting'] = qd_number
 
 
-def parse_scouting_table(text, allBlockTextExceptLast):
+def parse_scouting_table(text, allBlockTextExceptLast, scoutingRunLocations):
     """
     Parse scouting table text with wrapped cell values
     
@@ -325,8 +334,11 @@ def parse_scouting_table(text, allBlockTextExceptLast):
         currentHeaderList = []
         nextRun = 1
         recordRunInfo = False
-        finalDict = {}
+        finalDict = []
         endEarly = False
+
+        runCounter = 0
+        currentRunBlockCount = 0
 
         # Iterate through each line in the text
         for line in lines:
@@ -339,8 +351,17 @@ def parse_scouting_table(text, allBlockTextExceptLast):
                     if runInfoList != []:
                         previousHeader = combine_values(previousHeader, allBlockTextExceptLast)
                         runInfoList = combine_values(runInfoList, allBlockTextExceptLast)
-                        finalDict[", ".join(previousHeader)] = runInfoList
+
+                        finalDict.append({
+                                    "blockName": ", ".join(previousHeader),
+                                    "blockPage": scoutingRunLocations[currentRunBlockCount][0], 
+                                    "location": scoutingRunLocations[currentRunBlockCount][1],
+                                    "settings": runInfoList
+                                })
+
                         nextRun = 1
+
+                        currentRunBlockCount=runCounter
 
                     runInfoList = []
                     runInfoList.append(line)
@@ -353,19 +374,33 @@ def parse_scouting_table(text, allBlockTextExceptLast):
                     nextRun += 1
                     recordRunInfo = True
 
+                
+
                 # If starting a new run, we will need to record the new header information, since runs can go onto multiple, dont overwrite previous headers if its the same as the last one
                 elif "run" in line.lower():
+                    runCounter+=1
+
                     if previousHeader != currentHeaderList:
                         previousHeader = currentHeaderList
 
                     currentHeaderList = []
                     recordRunInfo = False
                     currentHeaderList.append(line)
+                
 
                 # method information marks the end of scouting data and the start of operator questions
                 elif "method information" in line.lower():
                     endEarly = True
-                    finalDict[", ".join(previousHeader)] = runInfoList
+                    previousHeader = combine_values(previousHeader, allBlockTextExceptLast)
+
+                    runInfoList = combine_values(runInfoList, allBlockTextExceptLast)
+                    finalDict.append({
+                                "blockName": ", ".join(previousHeader),
+                                "blockPage": scoutingRunLocations[currentRunBlockCount][0], 
+                                "location": scoutingRunLocations[currentRunBlockCount][1],
+                                "settings": runInfoList
+                            })
+
 
                 # Record run information if the flag is set
                 elif recordRunInfo:
@@ -380,7 +415,7 @@ def parse_scouting_table(text, allBlockTextExceptLast):
     except Exception as e:
         # Handle any exceptions that occur during parsing
         print(f"An error occurred while parsing the scouting table: {e}")
-        return {}
+        return []
     
 
 def combine_values(row, allBlockTextExceptLast):
@@ -417,5 +452,10 @@ def combine_values(row, allBlockTextExceptLast):
                         newList.remove(item)
                         removedValues.append(item)
 
+    indexes_to_remove = []
+    for i in range (len(newList)):
+        if "unicorn" in newList[i].lower() or ":" in newList[i].lower() or "(" in newList[i].lower() or ")" in newList[i].lower():
+            indexes_to_remove.append(i)
 
+    newList = [item for index, item in enumerate(newList) if index not in indexes_to_remove]
     return newList
