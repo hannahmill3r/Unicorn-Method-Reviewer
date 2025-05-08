@@ -442,24 +442,66 @@ def check_end_of_run_pdf(finalBlock):
         
 
 #TODO: add scouting run checks
-def check_scouting(scoutingData):
+def check_scouting(scoutingData, pfcData):
 
     highlights = []
-    incorrectFieldText = []
-    incorrectField = False
+
 
     numOfCycles = 24
     for run in scoutingData:
+        incorrectFieldText = []
+        incorrectField = False
+
         keyList  = run['blockName'].split(", ")
 
         for index, header in enumerate(keyList):
-
-            #make sure column storage is only activated for the final run, this will also catch any typos (yes, or misspelled blank)
-            if "column_storage" in header.lower():
-                for j, val in enumerate(run["settings"][index::len(keyList)]):
-                    if val!= "Blank" and j+1 != numOfCycles:
-                        incorrectFieldText.append("Column storage should only be turned on for final run")
+            #charge UV should always be 3.0
+            if "charge_wash_uv" in header.lower():
+                errorMsg = "Expected post charge wash UV to be set to 3.0" 
+                for val in run["settings"][index::len(keyList)]:
+                    if float(val)!= float(3.0) and errorMsg not in incorrectFieldText:        
+                        incorrectFieldText.append(errorMsg)
                         incorrectField = True
+
+            #post sani rinse should be run after every single step
+            if "post" in header.lower() and "sani" in header.lower() and "rinse" in header.lower():
+                errorMsg = f"Post Sani Rinse should be run after each step to clear the pump/bubble trap of caustic"
+                for val in run["settings"][index::len(keyList)]:
+                    if header.lower() not in val.lower() and errorMsg not in incorrectFieldText:      
+                        incorrectFieldText.append(errorMsg)
+                        incorrectField = True
+
+            #ensure that the flowrates in the scouting section alight with the input from the user
+            if "flowrate" in header.lower():
+                closestTitleMatch, ratio = closest_match_unit_op(header, pfcData.keys())
+
+                #Pre sani shares a flowrate with equil first cv
+                if "first_cv_equil_flowrate" in header.lower():
+                    closestTitleMatch = "Pre Sani Rinse"
+
+                for key in pfcData.keys():
+                    if key == closestTitleMatch :
+                        flowRate = pfcData[key]['flow_rate']
+                
+                for val in run["settings"][index::len(keyList)]:
+                    errorMsg = f"Expected flow rate to be set to {flowRate} for {header}"
+                    if float(val)!= float(flowRate) and errorMsg not in incorrectFieldText:        
+                        incorrectFieldText.append(errorMsg)
+                        incorrectField = True
+
+
+            #Conditions in which only one run is expected to have a certain value, and all other cycles should be blank
+            conditions = [
+                (["connect_charge_to_inlet_sample"], "Expected only first run to connect charge to inlet sample", 0),
+                (["flush", "pre_use", "pause"], "Expected only first run to be turned on for mainstream and filter flushes", 0),
+                (["purge"], "Expected only first run to be turned on purges", 0), 
+                (["column_storage"], "Column storage should only be turned on for final run", numOfCycles-1)
+            ]
+
+            # Iterate over the conditions and call the function for each
+            for keywords, errorMsg, cycleIndex in conditions:
+                incorrectField = check_settings(header, run, index, keyList, incorrectFieldText, incorrectField, keywords, errorMsg, cycleIndex)
+
 
         if incorrectField:
             highlights.append({
@@ -476,3 +518,21 @@ def calc_LFlow_from_residence_time(columnHeight, residenceTime):
         return chargeFlow
     except:
         return 0
+
+
+
+def check_settings(header, run, index, keyList, incorrectFieldText, incorrectField, keywords, errorMsg, cycleIndex):
+    # Check if any of the keywords are in the header
+    if any(keyword in header.lower() for keyword in keywords):
+        # Iterate over the settings for the current run
+        for j, val in enumerate(run["settings"][index::len(keyList)]):
+            # Check if the header is not in the value and it's the first run
+            if header.lower() not in val.lower() and errorMsg not in incorrectFieldText and j == cycleIndex:
+                print(j, cycleIndex)
+                incorrectFieldText.append(errorMsg)
+                incorrectField = True
+            # Check if it's not the first run and the value is not "Blank"
+            elif j != cycleIndex and "Blank" not in val and errorMsg not in incorrectFieldText:
+                incorrectFieldText.append(errorMsg)
+                incorrectField = True
+    return incorrectField
