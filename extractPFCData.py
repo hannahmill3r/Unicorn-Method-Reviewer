@@ -74,7 +74,7 @@ def list_unit_ops(pages):
 def extract_process_info(array):
     process_info = {
         'Regeneration': {'direction': '', 'velocity': '', 'composition': '','residenceTime': 'N/A', 'CV': ' '},
-        'Pre Sani Rinse': {'direction': '', 'velocity': '--', 'composition': '','residenceTime': 'N/A', 'CV': ' '},
+        'Pre Sanitization Rinse': {'direction': '', 'velocity': '--', 'composition': '','residenceTime': 'N/A', 'CV': ' '},
         'Equilibration': {'direction': '', 'velocity': '', 'composition': '','residenceTime': 'N/A', 'CV': ' '},
         'Charge': {'direction': '', 'velocity': '', 'composition': '','residenceTime': 'N/A', 'CV': ' '},
         'Pre Sanitization': {'direction': '', 'velocity': '--', 'composition': '','residenceTime': 'N/A', 'CV': ' '},
@@ -84,7 +84,7 @@ def extract_process_info(array):
         'Wash 3': {'direction': '', 'velocity': '', 'composition': '','residenceTime': 'N/A', 'CV': ' '},
         'Elution': {'direction': '', 'velocity': '', 'composition': '','residenceTime': 'N/A', 'CV': ' '},
         'Storage Rinse': {'direction': '', 'velocity': '', 'composition': '','residenceTime': 'N/A', 'CV': ' '},
-        'Post Sani Rinse': {'direction': '', 'velocity': '', 'composition': '','residenceTime': 'N/A', 'CV': ' '},
+        'Post Sanitization Rinse': {'direction': '', 'velocity': '', 'composition': '','residenceTime': 'N/A', 'CV': ' '},
         'Elution': {'direction': '', 'velocity': '', 'composition': '','residenceTime': 'N/A', 'CV': ' '},
         'Storage': {'direction': '', 'velocity': '--', 'composition': '','residenceTime': 'N/A', 'CV': ' '}
     }
@@ -126,7 +126,7 @@ def extract_process_info(array):
         elif 'equilibration' in lower_item:
             current_step = 'Equilibration'
         elif 'pre' in lower_item and ('use' in lower_item or 'sani' in lower_item) and 'rinse' in lower_item:
-            current_step = 'Pre Sani Rinse'
+            current_step = 'Pre Sanitization Rinse'
         elif 'pre' in lower_item and ('use' in lower_item or 'sani' in lower_item) and 'rinse' not in lower_item:
             current_step = 'Pre Sanitization'
 
@@ -165,10 +165,7 @@ def extract_process_info(array):
             elif any(term in lower_item for term in ['composition:', 'buffer composition']):
                 process_info[newStep]['composition'] = parts[1] if len(parts) > 1 else ''
 
-        # Set default flow direction if not specified
-        for step in process_info:
-            if process_info[step]['direction'] == '' and default_flow:
-                process_info[step]['direction'] = default_flow
+        
 
     #sometimes parameters are shared across charge and equilibration, if one is empty and the other has a value, replace the empty value
     for key in process_info['Charge'].keys():
@@ -178,9 +175,20 @@ def extract_process_info(array):
             elif process_info['Charge'][key].strip() != '' and process_info['Equilibration'][key].strip() == '':
                 process_info['Equilibration'][key] = process_info['Charge'][key]
 
+    #parameters are assumed to be shared across a rinse and a buffer step if it is not specified in the pfc
+    checks = ['direction', 'velocity', 'composition']
     for key in process_info.keys():
-        if key + " Rinse" in process_info.keys() and process_info[key]['velocity'].strip() !='' and process_info[key + ' Rinse']['velocity'].strip() == '':
-            process_info[key + ' Rinse']['velocity'] = process_info[key]['velocity'].strip()
+        for param in checks:
+            if key + " Rinse" in process_info.keys() and process_info[key][param].strip() !='' and process_info[key + ' Rinse'][param].strip() == '':
+                process_info[key + ' Rinse'][param] = process_info[key][param].strip()
+
+
+
+    # Set default flow direction if not specified
+    for step in process_info:
+        if process_info[step]['direction'] == '' and default_flow:
+            process_info[step]['direction'] = default_flow
+
 
     return process_info
 

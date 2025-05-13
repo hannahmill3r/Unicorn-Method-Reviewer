@@ -44,7 +44,7 @@ def writeColumns(default_qd_map, requiredBuffers, inputs_disabled, directOptions
             ('flow_rate', f"{inlet} Flow Rate (cm/h)", f"{buffer}_flow", "Flow Rate"),
             ('direction', f"{inlet} Flow Direction", f"{buffer}_direction", "Flow Direction"),
             ('residence time', f"{inlet} Residence Time (NLT)", f"{buffer}_residence_time", "Residence Time"),
-            ('CV', f"{inlet} Column Volume (CV)", f"{buffer}_CV", "Charge Volume (CV)")
+            ('CV', f"{inlet} Column Volume (CV)", f"{buffer}_CV", f"{buffer} Volume (CV)")
         ]
         
         # Create input fields in columns 1-4
@@ -71,13 +71,13 @@ def writeColumns(default_qd_map, requiredBuffers, inputs_disabled, directOptions
                     )
 
     # Process Pump A Inlets
-    pump_a_buffers = ['Equilibration', 'Elution', 'Wash 1', "Wash 3", 'Charge', 'Pre Sanitization', 'Pre Sani Rinse', 'Storage Rinse']
+    pump_a_buffers = ['Equilibration', 'Elution', 'Wash 1', "Wash 3", 'Charge', 'Pre Sanitization', 'Pre Sanitization Rinse', 'Storage Rinse']
     for buffer in pump_a_buffers:
         create_buffer_inputs(buffer, default_qd_map[buffer].get('inlet'))
 
     # Process Pump B Inlets
     st.subheader("Pump B Inlets")
-    pump_b_buffers = ['Post Sanitization', 'Post Sani Rinse', 'Storage', 'Regeneration', 'Wash 2']
+    pump_b_buffers = ['Post Sanitization', 'Post Sanitization Rinse', 'Storage', 'Regeneration', 'Wash 2']
     for buffer in pump_b_buffers:
         create_buffer_inputs(buffer, default_qd_map[buffer].get('inlet'))
 
@@ -144,10 +144,10 @@ def create_inlet_qd_interface():
         'Charge': {'inlet': 'Sample', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' '},
         'Storage': {'inlet': 'Inlet 5', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' '},
         'Regeneration': {'inlet': 'Inlet 6', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' '},
-        'Pre Sanitization': {'inlet': 'Inlet 1', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' '},
-        'Pre Sani Rinse': {'inlet': 'Inlet 1', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' '},
-        'Post Sanitization': {'inlet': 'Inlet 1', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' '},
-        'Post Sani Rinse': {'inlet': 'Inlet 1', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' '},
+        'Pre Sanitization': {'inlet': 'Inlet 4', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' '},
+        'Pre Sanitization Rinse': {'inlet': 'Inlet 1', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' '},
+        'Post Sanitization': {'inlet': 'Inlet 4', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' '},
+        'Post Sanitization Rinse': {'inlet': 'Inlet 1', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' '},
         'Storage Rinse': {'inlet': 'Inlet 1', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' '},
         'Wash 2': {'inlet': 'Inlet 7', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' '}
     }
@@ -182,12 +182,24 @@ def create_inlet_qd_interface():
             disabled=column_disabled
         )
     
-    st.header("Verify Number of Mainstreams")
-    numMS = st.text_input("Number of Mainstreams",
-            value=0,
-            key="numMS",
-            disabled=column_disabled
-        )
+    st.header("Verify Number of Mainstreams and Cycles")
+    col1, col2 = st.columns(2)
+    with col1:
+        numMS = st.text_input("Number of Mainstreams",
+                value=0,
+                key="numMS",
+                disabled=column_disabled
+            )
+    with col2:
+        numCycles = st.text_input("Number of Cycles",
+                value=0,
+                key="numCycles",
+                disabled=column_disabled
+            )
+        
+    if int(numCycles)!=0 and int(numMS)!=0 and int(numCycles)%int(numMS)!=0:
+        st.error("Expected the number of cycles to be divisible by number of mainstreams, please double check this")
+        
     
     columnParamsIncomplete = True
     for key in column_params.keys():

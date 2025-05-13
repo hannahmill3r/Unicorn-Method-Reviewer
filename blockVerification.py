@@ -2,6 +2,8 @@ from proAMainLoop import calc_LFlow
 from extractText import closest_match_unit_op
 import re
 
+
+
 def check_column_params(methodsColumnParams, pfcColumnParams):
     highlights = []
     incorrectField = False
@@ -47,6 +49,17 @@ def check_column_params(methodsColumnParams, pfcColumnParams):
 
 
 def check_purge_block_settings(purge_blocks, pfcData):
+    """
+    Check purge method block data against the user entered pfc data 
+    
+    Args:
+        purge_blocks (dict): Contains all relevant data to the code block, such as name, manflow, linear flow rate, etc.
+        pfcData (dict): Contains all pfc input data from the user for all inlets, (equil, charge, post sani, etc.)
+        
+    Returns:
+        highlights (dict): list of highlight block dictionary and the error messages associated with the block
+    """
+        
     highlights = []
     incorrectField = False
     firstBlock = True
@@ -108,21 +121,21 @@ def check_purge_block_settings(purge_blocks, pfcData):
 
 
             
-
-    for block in purge_blocks[:-1]:
+    #All blocks except for the final blocks are processed similarly, final block is seperate
+    for blockCounter, block in enumerate(purge_blocks):
 
         incorrectFieldText = []
         incorrectField = False
 
+        #grab the QD for the current inlet from the pfc data dict
         pfcQD = ' '
         for key in pfcData.keys():
             if block['settings']['inlet_setting'] == pfcData[key]['inlet']:
                 if pfcData[key]['qd'].strip() != '' and pfcData[key]['direction'].strip() != '' and pfcData[key]['flow_rate'] != '':
                     pfcQD = pfcData[key]['qd']
                 pass    
-            #methodQD = pfcData[block['settings']['inlet_setting']]['qd']
 
-
+        #first block column settings should be upflow and downflow, all other blocks should be bypass
         if firstBlock == True:
             firstBlock = False
             if "downflow" not in block["settings"]['column_setting'].lower() and "upflow" not in block["settings"]['column_setting'].lower():
@@ -133,18 +146,36 @@ def check_purge_block_settings(purge_blocks, pfcData):
                 incorrectFieldText.append("Expected column bypass")
                 incorrectField = True
 
+        #Check all other settings, all inlets should be set to bypass and waste. Manflow and QD setting should match pfc provided information
+        #TODO: the manflow is hard coded and needs to be extracted based on the sharepoint file linked
+
+        if blockCounter!= len(purge_blocks)-1:
+            if "Bypass" not in block["settings"]['bubbletrap_setting']:
+                incorrectFieldText.append("Expected bubbletrap bypass")
+                incorrectField = True
+            if "Waste" not in block["settings"]['outlet_setting']:
+                incorrectFieldText.append("All purges should go to waste")
+                incorrectField = True
+
+        else:
+            if "Inline" not in block["settings"]['bubbletrap_setting']:
+                incorrectFieldText.append("Expected bubbletrap bypass")
+                incorrectField = True
+            if float(20.0) != float(block["settings"]['end_block_setting']):
+                incorrectFieldText.append("Expected 20.0 volume purge")
+                incorrectField = True
+            if "Bypass" not in block["settings"]['column_setting']:
+                incorrectFieldText.append("Expected column bypass")
+                incorrectField = True
+
+        if  pfcQD != block["settings"]['inlet_QD_setting']:
+            incorrectFieldText.append(f"Expected {pfcQD}")
+            incorrectField = True
+        
         if block['settings']['manflow']!= 60.0:
             incorrectFieldText.append("Expected 60% ManFlow")
             incorrectField = True
-        if "Bypass" not in block["settings"]['bubbletrap_setting']:
-            incorrectFieldText.append("Expected bubbletrap bypass")
-            incorrectField = True
-        if "Waste" not in block["settings"]['outlet_setting']:
-            incorrectFieldText.append("All purges should go to waste")
-            incorrectField = True
-        if pfcQD != block["settings"]['inlet_QD_setting'] and pfcQD.strip()!='': 
-            incorrectFieldText.append(f"Expected {pfcQD}")
-            incorrectField = True
+
         #other settings check
 
         if incorrectField:
@@ -152,40 +183,6 @@ def check_purge_block_settings(purge_blocks, pfcData):
                 "blockData": block, 
                 "annotationText": incorrectFieldText
             })
-
-    for key in pfcData.keys():
-        if purge_blocks[-1]['settings']['inlet_setting'] == pfcData[key]['inlet']:
-            if pfcData[key]['qd'].strip() != '' and pfcData[key]['direction'].strip() != '' and pfcData[key]['flow_rate'] != '':
-                pfcQD = pfcData[key]['qd']
-
-
-
-    
-    if purge_blocks[-1]['settings']['manflow']!= 60.0:
-        incorrectFieldText.append("Expected 60% ManFlow")
-        incorrectField = True
-    if "Bypass" not in purge_blocks[-1]["settings"]['column_setting']:
-        incorrectFieldText.append("Expected column bypass")
-        incorrectField = True
-    if "Inline" not in purge_blocks[-1]["settings"]['bubbletrap_setting']:
-        incorrectFieldText.append("Expected bubbletrap bypass")
-        incorrectField = True
-    if float(20.0) != float(purge_blocks[-1]["settings"]['end_block_setting']):
-        incorrectFieldText.append("Expected 20.0 volume purge")
-        incorrectField = True
-    if  pfcQD != purge_blocks[-1]["settings"]['inlet_QD_setting']:
-        incorrectFieldText.append(f"Expected {pfcQD}")
-        incorrectField = True
-
-
-
-
-
-    if incorrectField:
-        highlights.append({
-            "blockData": purge_blocks[-1], 
-            "annotationText": incorrectFieldText
-        })
 
     return highlights
 
@@ -240,7 +237,7 @@ def check_indiv_blocks_settings_pdf(indiv_blocks, pfcData, columnParam):
     incorrectField = False
 
     equilLFlow = calc_LFlow(float(columnParam["columnHeight"]), float(columnParam["columnDiameter"]), float(columnParam["contactTime"]))["linearFlow"]
-    for block in indiv_blocks:
+    for index, block in enumerate(indiv_blocks):
         incorrectFieldText = []
         incorrectField = False
         direct = pfcQD = residenceTime = flowRate= ''
@@ -261,7 +258,6 @@ def check_indiv_blocks_settings_pdf(indiv_blocks, pfcData, columnParam):
                 flowRate = pfcData[key]['flow_rate']
                 residenceTime = pfcData[key]['residence time']
                 CV = pfcData[key]['CV']
-
 
         if "flush" in block['blockName'].lower():
             if "Bypass" not in block["settings"]['column_setting']:
@@ -341,17 +337,25 @@ def check_indiv_blocks_settings_pdf(indiv_blocks, pfcData, columnParam):
         if ((block['settings']['snapshot_setting'] != block['settings']['setmark_setting'] + " End") and (block['settings']['snapshot_setting'] != block['settings']['setmark_setting'] + "_End")) and block['settings']['snapshot_setting'] != " ":
             incorrectFieldText.append("Incorrect snapshot naming")
             incorrectField = True
+
+
         #pump A
         if "flush" not in block['blockName'].lower():
             if "rinse" in block['blockName'].lower() or "wash_1" in block['blockName'].lower() or "wash_3" in block['blockName'].lower() or "equil" in block['blockName'].lower() or "elution" in block['blockName'].lower() or "charge" in block['blockName'].lower():
                 if ("pa" not in block['settings']['reset_setting'].lower()):
-                    incorrectFieldText.append("Totalizer should be reset through pump A")
-                    incorrectField = True
+
+                    #Blocks will sometime's share previous buffer settings if they have the same QD
+                    if (indiv_blocks[index-1]['settings']['inlet_QD_setting'] != block['settings']['inlet_QD_setting']) and 'pa' not in indiv_blocks[index-1]['settings']['reset_setting'].lower():
+                        incorrectFieldText.append("Totalizer should be reset through pump A")
+                        incorrectField = True
             #pump B
             else:
                 if ("pb" not in block['settings']['reset_setting'].lower()):
-                    incorrectFieldText.append("Totalizer should be reset through pump B")
-                    incorrectField = True
+                    #Blocks will sometime's share previous buffer settings if they have the same QD
+                    if (indiv_blocks[index-1]['settings']['inlet_QD_setting'] != block['settings']['inlet_QD_setting']) and 'pb' not in indiv_blocks[index-1]['settings']['reset_setting'].lower():
+                        incorrectFieldText.append("Totalizer should be reset through pump B")
+                        incorrectField = True
+
 
         #check the end block breakpoint column volumes
         try:
@@ -443,9 +447,7 @@ def check_end_of_run_pdf(finalBlock):
 
 #TODO: add scouting run checks
 def check_scouting(scoutingData, pfcData):
-
     highlights = []
-
 
     numOfCycles = 24
     for run in scoutingData:
@@ -502,7 +504,6 @@ def check_scouting(scoutingData, pfcData):
             for keywords, errorMsg, cycleIndex in conditions:
                 incorrectField = check_settings(header, run, index, keyList, incorrectFieldText, incorrectField, keywords, errorMsg, cycleIndex)
 
-
         if incorrectField:
             highlights.append({
                 "blockData": run, 
@@ -520,7 +521,6 @@ def calc_LFlow_from_residence_time(columnHeight, residenceTime):
         return 0
 
 
-
 def check_settings(header, run, index, keyList, incorrectFieldText, incorrectField, keywords, errorMsg, cycleIndex):
     # Check if any of the keywords are in the header
     if any(keyword in header.lower() for keyword in keywords):
@@ -528,7 +528,6 @@ def check_settings(header, run, index, keyList, incorrectFieldText, incorrectFie
         for j, val in enumerate(run["settings"][index::len(keyList)]):
             # Check if the header is not in the value and it's the first run
             if header.lower() not in val.lower() and errorMsg not in incorrectFieldText and j == cycleIndex:
-                print(j, cycleIndex)
                 incorrectFieldText.append(errorMsg)
                 incorrectField = True
             # Check if it's not the first run and the value is not "Blank"
