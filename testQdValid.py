@@ -15,6 +15,20 @@ from annotatePDF import annotate_doc
 from proAMainLoop import find_highlight_loc, calc_LFlow
 from blockVerification import check_purge_block_settings, check_watch_settings, check_MS_blocks_settings_pdf, check_column_params, check_indiv_blocks_settings_pdf, check_end_of_run_pdf, check_scouting, calc_LFlow_from_residence_time
 
+def filter_incomplete_steps(qd_map):
+        all_steps = list(qd_map.keys())
+        incomplete_steps = []
+        
+        for step, values in qd_map.items():
+            # Check if all three values are empty (just spaces)
+            if (values['qd'].strip() == '' and 
+                values['flow_rate'].strip() == '' and 
+                values['CV'].strip() == ''):
+                incomplete_steps.append(step)
+        
+        # Remove incomplete steps from all_steps
+        final_steps = [step for step in all_steps if step not in incomplete_steps]
+        return final_steps
 
 def writeColumns(default_qd_map, requiredBuffers, inputs_disabled, directOptions):
     """
@@ -151,12 +165,28 @@ def create_inlet_qd_interface():
         'Storage Rinse': {'inlet': 'Inlet 1', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' '},
         'Wash 2': {'inlet': 'Inlet 7', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' '}
     }
-    
+    column_disabled = uploaded_PFC_file is None
 
+    with st.expander(f"Default Settings"):
+        col1, col2 = st.columns(2)
+        with col1:
+            uvSetting = st.text_input(
+                "Post Charge Wash UV",
+                value=3.0,
+                key="washUV",
+                disabled=column_disabled
+            )
+        with col2:
+            wavelengthSetting = st.text_input(
+                "UV Detector Wavelength (nm)",
+                value=280,
+                key="uvWavelength",
+                disabled=column_disabled
+            )
 
 
     st.header("Verify Column Parameters")
-    column_disabled = uploaded_PFC_file is None
+    
     column_params = {'columnHeight': '', "columnDiameter":'', "contactTime": ''}
 
     col1, col2, col3 = st.columns(3)
@@ -294,6 +324,10 @@ def create_inlet_qd_interface():
             col1 = st.columns(1)
             st.error('\n\n'.join(invalidError))
 
+    
+    
+    final_steps = filter_incomplete_steps(default_qd_map)
+
 
     submit_pressed = st.button(
         "Submit for Comparison", 
@@ -307,7 +341,11 @@ def create_inlet_qd_interface():
         'output_file': outputFile,
         'validation_state': validation_state,
         'submit_pressed': submit_pressed,
-        'number_of_MS': numMS
+        'number_of_MS': numMS, 
+        'number_of_cycles': numCycles, 
+        'UV_detection_wavelength': wavelengthSetting, 
+        'post_wash_UV': uvSetting, 
+        'scouting_blocks_included': final_steps
     }
 
 
@@ -337,7 +375,7 @@ def main():
                 highlightsIndiv = check_indiv_blocks_settings_pdf(individualBlockData, result['inlet_data'], result['column_params'])
                 highlightsWatchSettings = check_watch_settings(watchBlockData)
                 highlightsFinalBlock = check_end_of_run_pdf(finalBlock)
-                highlightsScouting = check_scouting(scoutingData, result['inlet_data'])
+                highlightsScouting = check_scouting(scoutingData, result['inlet_data'], result['post_wash_UV'], result['number_of_cycles'], result["number_of_MS"], result["scouting_blocks_included"])
 
                 mergedHighlights = [item for sublist in [highlights, highlightsScouting, highlightsMS, highlightsColumnParams, highlightsIndiv, highlightsFinalBlock, highlightsWatchSettings] for item in sublist]
 

@@ -1,6 +1,7 @@
 from proAMainLoop import calc_LFlow
 from extractText import closest_match_unit_op
 import re
+import math
 
 
 
@@ -446,22 +447,43 @@ def check_end_of_run_pdf(finalBlock):
         
 
 #TODO: add scouting run checks
-def check_scouting(scoutingData, pfcData):
+def check_scouting(scoutingData, pfcData, uvPreset, numOfCycles, numOfMS, blocksToInclude):
     highlights = []
 
-    numOfCycles = 24
+
     for run in scoutingData:
         incorrectFieldText = []
         incorrectField = False
 
         keyList  = run['blockName'].split(", ")
+        
 
         for index, header in enumerate(keyList):
+            
+            if numOfCycles!=run['settings'][-len(keyList)]:
+                incorrectFieldText.append(f"Expected the number of cycles to be {numOfCycles}")
+                incorrectField = True
+            
+            #outlets should be evenly split based on the number of cycles and number of mainstreams
+            if "ms_outlet" in header.lower():
+                numberToEachOutlet = int(numOfCycles)/int(numOfMS)
+                
+                outletSettings = run["settings"][index::len(keyList)]
+                runNumber = run["settings"][index-len(keyList)+1::len(keyList)]
+
+                for runIndex, val in enumerate(outletSettings):
+                    outletVal = "Outlet" + str(math.ceil(int(runNumber[runIndex])/int(numberToEachOutlet)))
+                    errorMsg = f"Expected run {runNumber[runIndex]} to go to {outletVal}" 
+                    
+                    if val!= outletVal and errorMsg not in incorrectFieldText:        
+                        incorrectFieldText.append(errorMsg)
+                        incorrectField = True
+
             #charge UV should always be 3.0
             if "charge_wash_uv" in header.lower():
-                errorMsg = "Expected post charge wash UV to be set to 3.0" 
+                errorMsg = f"Expected post charge wash UV to be set to {uvPreset}" 
                 for val in run["settings"][index::len(keyList)]:
-                    if float(val)!= float(3.0) and errorMsg not in incorrectFieldText:        
+                    if float(val)!= float(uvPreset) and errorMsg not in incorrectFieldText:        
                         incorrectFieldText.append(errorMsg)
                         incorrectField = True
 
@@ -479,7 +501,9 @@ def check_scouting(scoutingData, pfcData):
 
                 #Pre sani shares a flowrate with equil first cv
                 if "first_cv_equil_flowrate" in header.lower():
-                    closestTitleMatch = "Pre Sani Rinse"
+                    closestTitleMatch = "Pre Sanitization Rinse"
+                
+                blocksToInclude.remove(closestTitleMatch)
 
                 for key in pfcData.keys():
                     if key == closestTitleMatch :
@@ -497,7 +521,7 @@ def check_scouting(scoutingData, pfcData):
                 (["connect_charge_to_inlet_sample"], "Expected only first run to connect charge to inlet sample", 0),
                 (["flush", "pre_use", "pause"], "Expected only first run to be turned on for mainstream and filter flushes", 0),
                 (["purge"], "Expected only first run to be turned on purges", 0), 
-                (["column_storage"], "Column storage should only be turned on for final run", numOfCycles-1)
+                (["column_storage"], "Column storage should only be turned on for final run", int(numOfCycles)-1)
             ]
 
             # Iterate over the conditions and call the function for each
@@ -508,6 +532,13 @@ def check_scouting(scoutingData, pfcData):
             highlights.append({
                 "blockData": run, 
                 "annotationText": incorrectFieldText
+            })
+
+    for buffer in blocksToInclude:
+        if buffer.lower() != "storage" and buffer.lower() != "post sanitization rinse":
+            highlights.append({
+                "blockData": scoutingData[0], 
+                "annotationText": f"Expected a flowrate block for {buffer}"
             })
 
     return highlights
