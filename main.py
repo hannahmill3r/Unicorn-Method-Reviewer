@@ -1,0 +1,55 @@
+from annotatePDF import annotate_doc
+from proAMainLoop import find_highlight_loc
+from blockVerification import check_purge_block_settings, check_watch_settings, check_MS_blocks_settings_pdf, check_column_params, check_indiv_blocks_settings_pdf, check_end_of_run_pdf, check_scouting, calc_LFlow_from_residence_time
+from streamlitUI import create_inlet_qd_interface, display_pdf
+from extractText import extract_text_from_pdf
+import streamlit as st
+
+
+def main():
+    result = create_inlet_qd_interface()
+
+    if result['submit_pressed']:
+        st.info("Processing document and comparing QD numbers...")
+        
+        # Process the PDF and analyze purge blocks
+        outputFile = extract_text_from_pdf(result['uploaded_file'], 'output2')
+       
+        with open(outputFile, 'r') as file:
+            text = file.read()
+            
+            # Display results
+            st.header("Unicorn Methods Analysis Results")
+
+            # Save uploaded file to disk temporarily
+            if result['uploaded_file'] is not None:
+
+                blockData = find_highlight_loc(text, result['uploaded_file'], result['inlet_data'])
+
+                highlightsPurge = check_purge_block_settings(blockData["purge_data"], result['inlet_data'])
+                highlightsMS = check_MS_blocks_settings_pdf(blockData["equilibration_data"], result['inlet_data'], result["number_of_MS"])
+                highlightsColumnParams = check_column_params(blockData["column_params"], result['column_params'])
+                highlightsIndiv = check_indiv_blocks_settings_pdf(blockData["indiv_block_data"], result['inlet_data'], result['column_params'])
+                highlightsWatchSettings = check_watch_settings(blockData["watch_block_data"])
+                highlightsFinalBlock = check_end_of_run_pdf(blockData["final_block_data"])
+                highlightsScouting = check_scouting(blockData["scouting_data"], result['inlet_data'], result['post_wash_UV'], result['number_of_cycles'], result["number_of_MS"], result["scouting_blocks_included"])
+
+                mergedHighlights = [item for sublist in [highlightsPurge, highlightsScouting, highlightsMS, highlightsColumnParams, highlightsIndiv, highlightsFinalBlock, highlightsWatchSettings] for item in sublist]
+                print("merge", mergedHighlights)
+                #if the merged highlights list is empty, than there were no incorrect methods settings, otherwise, error
+                if not mergedHighlights:
+                    st.success("✅ Method settings are correct")
+                else:
+                    st.error("❌ There were some unexpected settings in the document, please double check them")
+                
+                annotate_doc(result['uploaded_file'], "annotated_example2.pdf", mergedHighlights)
+
+                with st.expander(f"❌ Failed to Purge"):
+                    for i in blockData["inlets_not_purged"]:
+                        st.write(i + " was not purged with " + result['inlet_data'].get(i).get('qd'))
+                display_pdf("annotated_example2.pdf")
+
+     
+
+if __name__ == "__main__":
+    main()
