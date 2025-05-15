@@ -2,9 +2,7 @@
 import re
 import numpy as np
 
-
-
-def queryIndividualBlocks(block):
+def query_block_data(block):
     # Find matches and store their locations
     currentBlock = {}
     filter_match = re.search(r'Filter:\s*(.*)', block)
@@ -35,9 +33,6 @@ def queryIndividualBlocks(block):
             if float(val)!=float(0.00) or end_block_setting == '':
                 end_block_setting = val
                 
-    
-
-
 
     #if theres more than one, return string listing all matches. This should only be applicable in the first purge
     if len(columnMatches)>1:
@@ -111,8 +106,6 @@ def queryIndividualBlocks(block):
             'snapshot_setting': snapshot_match, 
             'setmark_setting': setmark_match, 
             'snapshot_breakpoint_setting': snapshot_volume_match
-
-
         }
 
     return currentBlock
@@ -167,6 +160,7 @@ def query_watch(block):
     }
     return watchBlock
 
+#TODO: might be able to get away with deleting this
 def queryFinalBlock(block):
     # Find matches and store their locations
 

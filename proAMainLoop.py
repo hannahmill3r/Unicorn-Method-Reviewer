@@ -1,7 +1,8 @@
 import fitz
 import re
 import numpy as np
-from queryMethodCodeBlocks import queryIndividualBlocks, query_watch, queryFinalBlock
+from queryMethodCodeBlocks import query_block_data, query_watch, queryFinalBlock
+from parseScoutingMethods import parse_scouting_table
 
 def find_highlight_loc(textDoc, pdf_path, pfcData):
 
@@ -11,22 +12,19 @@ def find_highlight_loc(textDoc, pdf_path, pfcData):
     blocks = textDoc.split("Block: ")
     blockCounter = 1
     firstPurge = True
-    purgeBlockData = []
-    equillibrationBlockData = []
-    individualBlockData = []
-    trackedInletQDs = []
-    lastPurgeRead = False
     firstBaseRead = False
     finalBlock = {}
-    columnParams = {}
-    watchBlockData = []
+    columnParams =  {}
+    scoutingData ={}
     connection = []
-    allBlockTextExceptLast = ''
-
+    trackedInletQDs = []
     blockHeaders = []
-    scoutingData = {}
     scoutingRunLocations = []
-
+    equillibrationBlockData = []
+    purgeBlockData = []
+    watchBlockData = []
+    individualBlockData = []
+    allBlockTextExceptLast = ''
 
     # Loop through each page
     for page_num in range(len(doc)):
@@ -38,45 +36,29 @@ def find_highlight_loc(textDoc, pdf_path, pfcData):
         # Loop through text blocks
         for block in text_instances:
 
-            if "lines" in block:  # Check if block contains lines
+            if "lines" in block:  
                 for line in block["lines"]:
-
                     for span in line["spans"]:
                         text = span["text"]
                         
                         #first base contains information on column height and width
-                        if "base: " in text.lower() and firstBaseRead == False:
-                            #get the location in the PDF of the first Block Line
-                            x0 = span["origin"][0]  # Left x coordinate
-                            y0 = span["origin"][1]-8  # Top y coordinate
-                            x1 = x0 + span["bbox"][2] - span["bbox"][0]  # Right x coordinate
-                            y1 = y0 + span["bbox"][3] - span["bbox"][1]  # Bottom y coordinate
-
-                            
+                        if "base: " in text.lower() and firstBaseRead == False:                           
                             firstBaseRead = True
                             columnParams = {
                                 "blockName": text,
                                 "blockPage": page_num+1,
                                 "columnData": extractColumnData(text), 
-                                "location": (x0, y0, x1, y1)
+                                "location": get_page_location(span)
                             }
 
                         if "block:" in text.lower() and "purge" in text.lower():
 
-
-                            #get the location in the PDF of the first Block Line
-                            x0 = span["origin"][0]  # Left x coordinate
-                            y0 = span["origin"][1]-8  # Top y coordinate
-                            x1 = x0 + span["bbox"][2] - span["bbox"][0]  # Right x coordinate
-                            y1 = y0 + span["bbox"][3] - span["bbox"][1]  # Bottom y coordinate
-
-                                    
-                            blockSettings = queryIndividualBlocks(blocks[blockCounter])
+                            blockSettings = query_block_data(blocks[blockCounter])
                             if blockSettings !={}:
                                 purgeBlockData.append({
                                     "blockName": text,
                                     "blockPage": page_num+1, 
-                                    "location": (x0, y0, x1, y1),
+                                    "location": get_page_location(span),
                                     "settings": blockSettings,
                                     "First Purge?": firstPurge
                                 })
@@ -101,85 +83,63 @@ def find_highlight_loc(textDoc, pdf_path, pfcData):
                             elif re.search('connect', text.lower()) and re.search('inlet', text.lower()):
                                 connection.append(extract_connect_info(blocks[blockCounter]))
 
-                        if "block:" in text.lower() and "mainstream" in text.lower():
-                            #get the location in the PDF of the first Block Line
-                            x0 = span["origin"][0]  # Left x coordinate
-                            y0 = span["origin"][1]-8  # Top y coordinate
-                            x1 = x0 + span["bbox"][2] - span["bbox"][0]  # Right x coordinate
-                            y1 = y0 + span["bbox"][3] - span["bbox"][1]  # Bottom y coordinate
-
-                                    
-                            MSBlockSettings = queryIndividualBlocks(blocks[blockCounter])
+                        if "block:" in text.lower() and "mainstream" in text.lower():                                    
+                            MSBlockSettings = query_block_data(blocks[blockCounter])
                             if MSBlockSettings !={}:
                                 equillibrationBlockData.append({
                                     "blockName": text,
                                     "blockPage": page_num+1, 
-                                    "location": (x0, y0, x1, y1),
+                                    "location": get_page_location(span),
                                     "settings": MSBlockSettings
                                 })
 
-                        elif "block:" in text.lower() and "watch" in text.lower():
-                            x0 = span["origin"][0]  # Left x coordinate
-                            y0 = span["origin"][1]-8  # Top y coordinate
-                            x1 = x0 + span["bbox"][2] - span["bbox"][0]  # Right x coordinate
-                            y1 = y0 + span["bbox"][3] - span["bbox"][1]  # Bottom y coordinate
-
-                                    
+                        elif "block:" in text.lower() and "watch" in text.lower():        
                             watchBlockSettings = query_watch(blocks[blockCounter])
                             if watchBlockSettings !={}:
                                 watchBlockData = {
                                     "blockName": text,
                                     "blockPage": page_num+1, 
-                                    "location": (x0, y0, x1, y1),
+                                    "location": get_page_location(span),
                                     "settings": watchBlockSettings
                                 }
 
                             #watch blokcs are indented and their blocks will absorb the snapshot and end settings from the last block, so make that fix here
+                            #print(individualBlockData)
+                            print(individualBlockData[-1])
                             individualBlockData[-1]['settings']['snapshot_setting'] = watchBlockData['settings']['snapshot_setting'][-1]
                             individualBlockData[-1]['settings']['snapshot_breakpoint_setting'] = watchBlockData['settings']['snapshot_breakpoint_setting']
                             individualBlockData[-1]['settings']['end_block_setting'] = watchBlockData['settings']['end_block_setting'][-1]
 
 
 
-                        elif "block:" in text.lower() and "purge" not in text.lower():
-                            #get the location in the PDF of the first Block Line
-                            x0 = span["origin"][0]  # Left x coordinate
-                            y0 = span["origin"][1]-8  # Top y coordinate
-                            x1 = x0 + span["bbox"][2] - span["bbox"][0]  # Right x coordinate
-                            y1 = y0 + span["bbox"][3] - span["bbox"][1]  # Bottom y coordinate
-
-                                    
-                            indivBlockSettings = queryIndividualBlocks(blocks[blockCounter])
+                        elif "block:" in text.lower() and "purge" not in text.lower():                                   
+                            indivBlockSettings = query_block_data(blocks[blockCounter])
                             if indivBlockSettings !={}:
                                 if "sameasmain" in indivBlockSettings['base_setting'].lower() or "volume" in indivBlockSettings['base_setting'].lower():
                                     individualBlockData.append({
                                         "blockName": text,
                                         "blockPage": page_num+1, 
-                                        "location": (x0, y0, x1, y1),
+                                        "location": get_page_location(span),
                                         "settings": indivBlockSettings
                                     })
                         #Grab data from last block to check end of run delay and 
                         if "Block: " in text and blockCounter == len(blocks)-1:
 
-                            if queryFinalBlock(blocks[blockCounter])!={}:
+                            finalBlockData = queryFinalBlock(blocks[blockCounter])
+
+                            if finalBlockData!={}:
                                 finalBlock = ({
                                             "blockName": text,
                                             "blockPage": page_num+1, 
-                                            "location": (x0, y0, x1, y1),
-                                            "settings": queryFinalBlock(blocks[blockCounter])
+                                            "location": get_page_location(span),
+                                            "settings": finalBlockData
                                         })
                             scoutingBlock = blocks[blockCounter].split("End_Block")[1]
 
                             allBlockTextExceptLast = '/n'.join(blocks[0:blockCounter-1])
                         
-                        if "run" in text.lower() and allBlockTextExceptLast!='': 
-                            x0 = span["origin"][0]  # Left x coordinate
-                            y0 = span["origin"][1]-8  # Top y coordinate
-                            x1 = 540  # Right x coordinate is hard coded becasue column headers are being processed seperately and this would otherwise only highlight "run"
-                            y1 = y0 + span["bbox"][3] - span["bbox"][1]  # Bottom y coordinate
-                            
-                            
-                            scoutingRunLocations.append((page_num+1, (x0, y0, x1, y1)))
+                        if "run" in text.lower() and allBlockTextExceptLast!='':                          
+                            scoutingRunLocations.append((page_num+1, get_page_location(span)))
               
 
                         if "Block: " in text:
@@ -198,10 +158,20 @@ def find_highlight_loc(textDoc, pdf_path, pfcData):
                 inletsNotPurged.append(val)
     doc.close()
 
+    #purge and equil blocks might have empty inlet settings if they chare an inlet, so fill in any missing data with shared inlet connections
     update_inlet_qd_settings(connection, purgeBlockData, equillibrationBlockData)
 
 
-    return purgeBlockData, inletsNotPurged, equillibrationBlockData, columnParams, individualBlockData, watchBlockData, finalBlock, scoutingData
+    return {
+        "purge_data": purgeBlockData, 
+        "inlets_not_purged": inletsNotPurged, 
+        "equilibration_data": equillibrationBlockData, 
+        "column_params": columnParams, 
+        "indiv_block_data": individualBlockData, 
+        "watch_block_data": watchBlockData, 
+        "final_block_data": finalBlock, 
+        "scouting_data": scoutingData
+    }
 
 
 def extractColumnData(text):
@@ -225,28 +195,16 @@ def extractColumnData(text):
             elif words[ind-1] =="d":
                 columnDiameter = re.sub(r'[A-Za-z]', '', words[ind-2])
                 columnHeight = re.sub(r'[A-Za-z]', '', words[ind+1])
-    if columnDiameter == 0:
+    if columnDiameter == 0 or columnHeight == 0:
         return None
     else:
-        
-
         return {
             "columnDiameter": columnDiameter, 
             "columnHeight": columnHeight, 
             "columnVolume": vc
         }
     
-def calc_LFlow(columnHeight, columnDiameter, contactTime):
-    CSA = (float(columnDiameter)**2*np.pi)/4
-    CV =  (columnHeight*CSA)/1000
-    volumeOfBuffer = float(CV)*2
-    VFlow = (volumeOfBuffer/contactTime)*60
-    LFlow = (VFlow/CSA)*1000
 
-    return{
-        "columnVolume": CV,
-        "linearFlow": LFlow
-    }
 
 
 def extract_connect_info(method_block):
@@ -295,167 +253,35 @@ def update_inlet_qd_settings(connection, purgeBlockData, equillibrationBlockData
         # Skip empty connection mappings
         if not connect:
             continue
-            
+        
+        #TODO: this looks redundant
+
         # For each inlet in the connection mapping
         for inlet, qd_number in connect.items():
             # Update all matching purge blocks that have empty QD settings
             for block in purgeBlockData:
                 # Check if inlet matches and QD setting is empty
-                if (block['settings']['inlet_setting'] == inlet and 
-                    block['settings']['inlet_QD_setting'].strip() == ''):
+                if (block['settings']['inlet_setting'] == inlet and block['settings']['inlet_QD_setting'].strip() == ''):
                     block['settings']['inlet_QD_setting'] = qd_number
                     
             # Update all matching equilibration blocks that have empty QD settings
             for block in equillibrationBlockData:
                 # Check if inlet matches and QD setting is empty
-                if (block['settings']['inlet_setting'] == inlet and 
-                    block['settings']['inlet_QD_setting'].strip() == ''):
+                if (block['settings']['inlet_setting'] == inlet and block['settings']['inlet_QD_setting'].strip() == ''):
                     block['settings']['inlet_QD_setting'] = qd_number
 
 
-def parse_scouting_table(text, allBlockTextExceptLast, scoutingRunLocations):
+def get_page_location(span):
     """
-    Parse scouting table text with wrapped cell values
+    Extracts the page location from the span object
     
     Args:
-        text (str): The text content of the scouting table
-        blockHeaders (list): List of block headers to identify sections in the table
-        
-    Returns:
-        dict: Parsed scouting table data as a dictionary
+        span fitz object: contains text and location data within a pdf
     """
-    try:
-        # Split the text into lines
-        lines = text.split('\n')
-        
-        # Initialize variables
-        previousHeader = []
-        runInfoList = []
-        currentHeaderList = []
-        nextRun = 1
-        recordRunInfo = False
-        finalDict = []
-        endEarly = False
 
-        runCounter = 0
-        currentRunBlockCount = 0
+    x0 = span["origin"][0]  # Left x coordinate
+    y0 = span["origin"][1]-8  # Top y coordinate
+    x1 = x0 + span["bbox"][2] - span["bbox"][0]  # Right x coordinate
+    y1 = y0 + span["bbox"][3] - span["bbox"][1]  # Bottom y coordinate
 
-        # Iterate through each line in the text
-        for line in lines:
-            if not endEarly:
-                # Check if the line indicates the start of a new run
-                if line == "1":
-                    recordRunInfo = True
-
-                    #record previous run information, since we are starting a new run
-                    if runInfoList != []:
-                        previousHeader = combine_values(previousHeader, allBlockTextExceptLast)
-                        runInfoList = combine_values(runInfoList, allBlockTextExceptLast)
-
-                        finalDict.append({
-                                    "blockName": ", ".join(previousHeader),
-                                    "blockPage": scoutingRunLocations[currentRunBlockCount][0], 
-                                    "location": scoutingRunLocations[currentRunBlockCount][1],
-                                    "settings": runInfoList
-                                })
-
-                        nextRun = 1
-
-                        currentRunBlockCount=runCounter
-
-                    runInfoList = []
-                    runInfoList.append(line)
-                    nextRun += 1
-
-                # Check if the line matches the expected run number
-                elif line == str(nextRun):
-                    runInfoList = combine_values(runInfoList, allBlockTextExceptLast)
-                    runInfoList.append(line)
-                    nextRun += 1
-                    recordRunInfo = True
-
-                
-
-                # If starting a new run, we will need to record the new header information, since runs can go onto multiple, dont overwrite previous headers if its the same as the last one
-                elif "run" in line.lower():
-                    runCounter+=1
-
-                    if previousHeader != currentHeaderList:
-                        previousHeader = currentHeaderList
-
-                    currentHeaderList = []
-                    recordRunInfo = False
-                    currentHeaderList.append(line)
-                
-
-                # method information marks the end of scouting data and the start of operator questions
-                elif "method information" in line.lower():
-                    endEarly = True
-                    previousHeader = combine_values(previousHeader, allBlockTextExceptLast)
-
-                    runInfoList = combine_values(runInfoList, allBlockTextExceptLast)
-                    finalDict.append({
-                                "blockName": ", ".join(previousHeader),
-                                "blockPage": scoutingRunLocations[currentRunBlockCount][0], 
-                                "location": scoutingRunLocations[currentRunBlockCount][1],
-                                "settings": runInfoList
-                            })
-
-
-                # Record run information if the flag is set
-                elif recordRunInfo:
-                    runInfoList.append(line)
-
-                # Append to the current header list if not recording run information
-                elif not recordRunInfo:
-                    currentHeaderList.append(line)
-
-        return finalDict
-
-    except Exception as e:
-        # Handle any exceptions that occur during parsing
-        print(f"An error occurred while parsing the scouting table: {e}")
-        return []
-    
-
-def combine_values(row, allBlockTextExceptLast):
-    """
-    Combine values in a row excluding "yes", "blank", if it will make the entries 
-    
-    Args:
-        row (list): List of values in a row
-        
-    Returns:
-        str: Combined values as a single string
-    """
-    removedValues = []
-    combined_values = []
-    newList = row
-
-    for value in row:
-        if value != "Blank" and value.lower() != "yes" and not value.isdigit():
-            combined_values.append(value)
-
-
-    for i in range (len(combined_values)):
-        for j in range (len(combined_values), i+1, -1):
-
-            value = ''.join(combined_values[i:j])
-
-            if ''.join(combined_values[i:j]) in allBlockTextExceptLast:
-                if (combined_values[i]) not in removedValues:
-                    newList[newList.index(combined_values[i])] = value
-                    removedValues.append((combined_values[i]))
-
-                for item in combined_values[i+1:j]:
-                    if item not in removedValues:
-                        newList.remove(item)
-                        removedValues.append(item)
-
-    indexes_to_remove = []
-    for i in range (len(newList)):
-        if "unicorn" in newList[i].lower() or ":" in newList[i].lower() or "(" in newList[i].lower() or ")" in newList[i].lower():
-            indexes_to_remove.append(i)
-
-    newList = [item for index, item in enumerate(newList) if index not in indexes_to_remove]
-    return newList
+    return (x0, y0, x1, y1)
