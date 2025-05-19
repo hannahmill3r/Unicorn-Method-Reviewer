@@ -1,6 +1,4 @@
 import docx
-import re
-from pathlib import Path
 from extractText import closest_match_unit_op
 
 

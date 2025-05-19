@@ -1,5 +1,5 @@
 from annotatePDF import annotate_doc
-from proAMainLoop import find_highlight_loc
+from proAMethodParser import protein_A_method_parser
 from blockVerification import check_purge_block_settings, check_watch_settings, check_MS_blocks_settings_pdf, check_column_params, check_indiv_blocks_settings_pdf, check_end_of_run_pdf, check_scouting, calc_LFlow_from_residence_time
 from streamlitUI import create_inlet_qd_interface, display_pdf
 from extractText import extract_text_from_pdf
@@ -24,7 +24,7 @@ def main():
             # Save uploaded file to disk temporarily
             if result['uploaded_file'] is not None:
 
-                blockData = find_highlight_loc(text, result['uploaded_file'], result['inlet_data'])
+                blockData = protein_A_method_parser(text, result['uploaded_file'], result['inlet_data'])
 
                 highlightsPurge = check_purge_block_settings(blockData["purge_data"], result['inlet_data'])
                 highlightsMS = check_MS_blocks_settings_pdf(blockData["equilibration_data"], result['inlet_data'], result["number_of_MS"])
@@ -35,7 +35,7 @@ def main():
                 highlightsScouting = check_scouting(blockData["scouting_data"], result['inlet_data'], result['post_wash_UV'], result['number_of_cycles'], result["number_of_MS"], result["scouting_blocks_included"])
 
                 mergedHighlights = [item for sublist in [highlightsPurge, highlightsScouting, highlightsMS, highlightsColumnParams, highlightsIndiv, highlightsFinalBlock, highlightsWatchSettings] for item in sublist]
-                print("merge", mergedHighlights)
+
                 #if the merged highlights list is empty, than there were no incorrect methods settings, otherwise, error
                 if not mergedHighlights:
                     st.success("✅ Method settings are correct")

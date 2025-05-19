@@ -3,7 +3,19 @@ import re
 import math
 from flowCalculations import calc_LFlow, calc_LFlow_from_residence_time
 
+"""
+Block Verification
 
+This script validates chromatography method blocks against defined requirements by:
+- Checking column parameters (height, diameter, volume)
+- Validating purge, mainstream, and individual block settings
+- Verifying correct flow rates, residence times, and outlet configurations
+- Ensuring proper watch settings for UV monitoring and peak collection
+- Confirming scouting run parameters match PFC specifications
+
+The functions defined in the script all return highlight annotations, including pdf location and text
+for any validation failures.
+"""
 
 def check_column_params(methodsColumnParams, pfcColumnParams):
     highlights = []
@@ -59,67 +71,47 @@ def check_purge_block_settings(purge_blocks, pfcData):
     """
         
     highlights = []
-    firstBlock = True
+    #TODO: the manflow is hard coded and needs to be extracted based on the sharepoint file linked
+    expected_manflow = 60.0
 
     #analyse pump a and b seperately, time based blocks dont have anything we validate so remove them from other purge blocks as well
     for block in purge_blocks[::-1]:
+        incorrectFieldText = []
         if 'purge_a_pump' in block['blockName'].lower():
             purge_blocks.remove(block)
 
-            if block['settings']['manflow']!= 60.0:
-                incorrectFieldText.append("Expected 60% ManFlow")
-                  
-            if"Inline" not in block["settings"]['bubbletrap_setting']:
-                incorrectFieldText.append("Expected bubbletrap bypass")
-                  
-            if "Waste" not in block["settings"]['outlet_setting']:
-                incorrectFieldText.append("All purges should go to waste")
-                  
+            for error in validate_common_settings(block['settings'], "time", "Bypass", "Inline", expected_manflow):
+                incorrectFieldText.append(error)
+
             if "Inlet 1" != block["settings"]['inlet_setting']: 
                 incorrectFieldText.append(f"Expected Inlet 1")
-                  
-            if "Bypass" not in block["settings"]['column_setting']:
-                incorrectFieldText.append("Expected column bypass")
-                  
+
             if block['settings']['filter_setting']!= "Inline":
                 incorrectFieldText.append("Expected inline filter")
-                  
-            if "time" not in block['settings']['base_setting'].lower():
-                incorrectFieldText.append("Expected Pump A purge to be in time")
-                  
 
         elif 'purge_b_pump' in block['blockName'].lower():
             purge_blocks.remove(block)
             
-            if block['settings']['manflow']!= 60.0:
-                incorrectFieldText.append("Expected 60% ManFlow")
-                  
-            if"Bypass" not in block["settings"]['bubbletrap_setting']:
-                incorrectFieldText.append("Expected bubbletrap bypass")
-                  
-            if "Waste" not in block["settings"]['outlet_setting']:
-                incorrectFieldText.append("All purges should go to waste")
+            for error in validate_common_settings(block['settings'], "time", "Bypass", "Bypass", expected_manflow):
+                incorrectFieldText.append(error)
                   
             if "Inlet 7" != block["settings"]['inlet_setting']: 
                 incorrectFieldText.append(f"Expected Inlet 7")
                   
-            if "Bypass" not in block["settings"]['column_setting']:
-                incorrectFieldText.append("Expected column bypass")
-                  
             if block['settings']['filter_setting']!= "Bypass":
                 incorrectFieldText.append("Expected bypass filter")
-                  
-            if "time" not in block['settings']['base_setting'].lower():
-                incorrectFieldText.append("Expected Pump B purge to be in time")
-                  
+                          
         elif re.search('time', block['settings']['base_setting'].lower()):
             purge_blocks.remove(block)
 
-
-            
+        if incorrectFieldText:
+            highlights.append({
+                "blockData": block, 
+                "annotationText": incorrectFieldText
+            })
+     
     #All blocks except for the final blocks are processed similarly, final block is seperate
     for blockCounter, block in enumerate(purge_blocks):
-
         incorrectFieldText = []
 
         #grab the QD for the current inlet from the pfc data dict
@@ -131,43 +123,25 @@ def check_purge_block_settings(purge_blocks, pfcData):
                 pass    
 
         #first block column settings should be upflow and downflow, all other blocks should be bypass
-        if firstBlock == True:
-            firstBlock = False
-            if "downflow" not in block["settings"]['column_setting'].lower() and "upflow" not in block["settings"]['column_setting'].lower():
-                incorrectFieldText.append("Expected column bypass")
-
-        else:
-            if "Bypass" not in block["settings"]['column_setting']:
-                incorrectFieldText.append("Expected column bypass")
+        if blockCounter ==0:
+            for error in validate_common_settings(block['settings'], "volume", "downflow, upflow", "Bypass", expected_manflow):
+                incorrectFieldText.append(error)
 
         #Check all other settings, all inlets should be set to bypass and waste. Manflow and QD setting should match pfc provided information
-        #TODO: the manflow is hard coded and needs to be extracted based on the sharepoint file linked
-
-        if blockCounter!= len(purge_blocks)-1:
-            if "Bypass" not in block["settings"]['bubbletrap_setting']:
-                incorrectFieldText.append("Expected bubbletrap bypass")
-                
-            if "Waste" not in block["settings"]['outlet_setting']:
-                incorrectFieldText.append("All purges should go to waste")
-                  
+        elif blockCounter!= len(purge_blocks)-1:
+            for error in validate_common_settings(block['settings'], "volume", "Bypass", "Bypass", expected_manflow):
+                incorrectFieldText.append(error)
 
         else:
-            if "Inline" not in block["settings"]['bubbletrap_setting']:
-                incorrectFieldText.append("Expected bubbletrap bypass")
+            for error in validate_common_settings(block['settings'], "volume", "Bypass", "Inline", expected_manflow):
+                incorrectFieldText.append(error)
                   
             if float(20.0) != float(block["settings"]['end_block_setting']):
                 incorrectFieldText.append("Expected 20.0 volume purge")
-                  
-            if "Bypass" not in block["settings"]['column_setting']:
-                incorrectFieldText.append("Expected column bypass")
-                  
 
         if  pfcQD != block["settings"]['inlet_QD_setting']:
             incorrectFieldText.append(f"Expected {pfcQD}")
-              
-        if block['settings']['manflow']!= 60.0:
-            incorrectFieldText.append("Expected 60% ManFlow")
-              
+        
         if incorrectFieldText:
             highlights.append({
                 "blockData": block, 
@@ -177,18 +151,18 @@ def check_purge_block_settings(purge_blocks, pfcData):
     return highlights
 
 
-
 def check_MS_blocks_settings_pdf(MS_blocks, pfcData, numberofMS):
     highlights = []
+    expected_manflow = 60.0
 
     for block in MS_blocks:
 
         incorrectFieldText = []
         methodQD = pfcData['Equilibration']['qd']
 
-        if "Bypass" not in block["settings"]['column_setting']:
-            incorrectFieldText.append("Expected column bypass")
-            
+        for error in validate_common_settings(block['settings'], "volume", "Bypass", "Inline", expected_manflow):
+                incorrectFieldText.append(error)
+   
         if "Inline" not in block["settings"]['filter_setting']:
             incorrectFieldText.append("Expected Inline filter")
             
@@ -198,12 +172,6 @@ def check_MS_blocks_settings_pdf(MS_blocks, pfcData, numberofMS):
         if int(block["settings"]['fraction_setting']) != int(numberofMS):
             incorrectFieldText.append(f"Expected number of mainstreams to be: {numberofMS}")
             
-        if block['settings']['manflow']!= 60.0:
-            incorrectFieldText.append("Expected 60% ManFlow")
-            
-        if "Inline" not in block["settings"]['bubbletrap_setting']:
-            incorrectFieldText.append("Expected bubbletrap bypass")
-
         if methodQD != block["settings"]['inlet_QD_setting']: 
             incorrectFieldText.append(f"Expected {methodQD}")
              
@@ -212,7 +180,7 @@ def check_MS_blocks_settings_pdf(MS_blocks, pfcData, numberofMS):
                 "blockData": block, 
                 "annotationText": incorrectFieldText
             })
-    print("MS", highlights)
+
     return highlights
 
 def check_indiv_blocks_settings_pdf(indiv_blocks, pfcData, columnParam):
@@ -238,8 +206,6 @@ def check_indiv_blocks_settings_pdf(indiv_blocks, pfcData, columnParam):
                 residenceTime = pfcData[key]['residence time']
                 CV = pfcData[key]['CV']
 
-        
-        #TODO: are there common enough checks like this that we can add a helper function that will check bubbletrap, filter and manflow automatically?     
         if "Inline" not in block["settings"]['filter_setting']:
             incorrectFieldText.append("Expected Inline filter")
               
@@ -248,50 +214,11 @@ def check_indiv_blocks_settings_pdf(indiv_blocks, pfcData, columnParam):
               
 
         #all outlets go to wast EXCEPT for elution
-        if "Waste" not in block["settings"]['outlet_setting'] and "watch_uv" not in block['blockName'].lower():
+        if "waste" not in block["settings"]['outlet_setting'].lower() and "watch_uv" not in block['blockName'].lower():
             incorrectFieldText.append("Expected waste outlet")
-
-        #TODO: check that this can be removed     
-        #elif "MS_Outlet" not in block["settings"]['outlet_setting'] and "watch_uv" in block['blockName'].lower():
-            #incorrectFieldText.append("Elution should go to MS outlet")
-              
-        #TODO: this is definetly redundant, have ai clean
-        if "," in block['settings']['flow_setting']:
-            listOfFlows = block['settings']['flow_setting'].strip().split(",")
-
-            for i in range(len(listOfFlows)):
-                flow = float(listOfFlows[i])
-                tag = block['settings']['flow_tags'][i]
-
-                if ("sani" in tag.lower() or "first_cv_equil" in tag.lower()):
-                    if flow != round(equilLFlow) and flow != round(equilLFlow, 1) and flow != round(equilLFlow, 2):
-                        incorrectFieldText.append(f"Expected {round(equilLFlow, 2)} for pre sani flow rate")
-                          
-                elif flowRate.strip()!='':
-                    if ("wash" in block["blockName"].lower() and "1" in block["blockName"].lower()) or "charge" in block["blockName"].lower():
-                        resTimeLFlow = calc_LFlow_from_residence_time(float(columnParam["columnHeight"]), float(residenceTime))
-                        if flow != round(resTimeLFlow) and flow != round(resTimeLFlow, 1) and flow != round(resTimeLFlow, 2):
-                            incorrectFieldText.append(f"Expected {round(resTimeLFlow, 2)} for flow rate")
-                              
-                    elif round(flow) != round(float(flowRate)):
-                        incorrectFieldText.append("Unexpected Flow Value")
-                          
-
-        elif ("sani" in block['settings']['flow_tags'][0].lower() or "first_cv_equil" in block['settings']['flow_tags'][0].lower()):
-            if round(equilLFlow) != float(block['settings']['flow_setting']) and round(equilLFlow, 1) != float(block['settings']['flow_setting']) and round(equilLFlow, 2) != float(block['settings']['flow_setting']):
-                incorrectFieldText.append(f"Expected {round(equilLFlow, 2)} flow")
-                  
-        elif flowRate.strip()!='':
-            if ("wash" in block["blockName"].lower() and "1" in block["blockName"].lower()) or "charge" in block["blockName"].lower():
-                    flow = float(block['settings']['flow_setting'])
-                    resTimeLFlow = calc_LFlow_from_residence_time(float(columnParam["columnHeight"]), float(residenceTime))
-
-                    if flow != round(resTimeLFlow) and flow != round(resTimeLFlow, 1) and flow != round(resTimeLFlow, 2):
-                        incorrectFieldText.append(f"Expected {round(resTimeLFlow, 2)} for flow rate")
-                          
-            elif float(block['settings']['flow_setting']) != float(flowRate):
-                incorrectFieldText.append(f"Expected {(pfcData[block['settings']['inlet_setting']]['flow_rate'])} flow")
-                  
+        
+        for error in (validate_flow_settings(block, equilLFlow, flowRate, columnParam, residenceTime, pfcData)):
+            incorrectFieldText.append(error)
 
         if "flush" in block["blockName"].lower():
             match, ratio = closest_match_unit_op(block['settings']['setmark_setting'], [block["blockName"]])
@@ -384,7 +311,6 @@ def check_watch_settings(block):
 def check_end_of_run_pdf(finalBlock):
     highlights = []
     incorrectFieldText = []
-    print(finalBlock)
     
     if "time" not in finalBlock["settings"]["base_setting"].lower():
         incorrectFieldText.append("Expected base to be in time")
@@ -411,9 +337,11 @@ def check_scouting(scoutingData, pfcData, uvPreset, numOfCycles, numOfMS, blocks
         
         #loop throught the column headers for each of the tables
         for index, header in enumerate(tableHeaderList):
+
+            numCyclesError = f"Expected the number of cycles to be {numOfCycles}"
             
             #make sure that for all tables, the last run number should be equal to the number of cycles the user provided
-            if numOfCycles!=run['settings'][-len(tableHeaderList)]:
+            if numOfCycles!=run['settings'][-len(tableHeaderList)] and numCyclesError not in incorrectFieldText:
                 incorrectFieldText.append(f"Expected the number of cycles to be {numOfCycles}")
                   
             
@@ -431,7 +359,6 @@ def check_scouting(scoutingData, pfcData, uvPreset, numOfCycles, numOfMS, blocks
                     if val!= outletVal and errorMsg not in incorrectFieldText:        
                         incorrectFieldText.append(errorMsg)
                           
-
             #charge UV should be equal to user input, default is 3.0
             if "charge_wash_uv" in header.lower():
                 errorMsg = f"Expected post charge wash UV to be set to {uvPreset}" 
@@ -439,7 +366,6 @@ def check_scouting(scoutingData, pfcData, uvPreset, numOfCycles, numOfMS, blocks
                     if float(val)!= float(uvPreset) and errorMsg not in incorrectFieldText:        
                         incorrectFieldText.append(errorMsg)
                           
-
             #post sani rinse should be run after every single step
             if "post" in header.lower() and "sani" in header.lower() and "rinse" in header.lower():
                 errorMsg = f"Post Sani Rinse should be run after each step to clear the pump/bubble trap of caustic"
@@ -447,7 +373,6 @@ def check_scouting(scoutingData, pfcData, uvPreset, numOfCycles, numOfMS, blocks
                     if header.lower() not in val.lower() and errorMsg not in incorrectFieldText:      
                         incorrectFieldText.append(errorMsg)
                           
-
             #ensure that the flowrates in the scouting section alight with the input from the user
             if "flowrate" in header.lower():
                 closestTitleMatch, ratio = closest_match_unit_op(header, pfcData.keys())
@@ -467,8 +392,6 @@ def check_scouting(scoutingData, pfcData, uvPreset, numOfCycles, numOfMS, blocks
                     if float(val)!= float(flowRate) and errorMsg not in incorrectFieldText:        
                         incorrectFieldText.append(errorMsg)
                           
-
-
             #Conditions in which only one run is expected to have a certain value, and all other cycles should be blank
             conditions = [
                 (["connect_charge_to_inlet_sample"], "Expected only first run to connect charge to inlet sample", 0),
@@ -514,3 +437,88 @@ def check_settings(header, run, index, keyList, keywords, errorMsg, cycleIndex):
             elif j != cycleIndex and "Blank" not in val and errorMsg not in incorrectFieldText:
                 incorrectFieldText.append(errorMsg)
     return incorrectFieldText
+
+
+def validate_flow_settings(block, equilLFlow, flowRate, columnParam, residenceTime, pfcData):
+            """
+            Validates flow rate settings against expected values for different block types
+            Args:
+                block: Current method block being validated
+                equilLFlow: Expected equilibration/sanitization flow rate
+                flowRate: Standard flow rate from PFC
+                columnParam: Column parameters (height, etc)
+                residenceTime: Expected residence time
+                pfcData: Process data containing expected values
+            """
+            incorrectFieldText = []
+            
+            # Helper function to check if flow matches expected value within rounding tolerances
+            def flow_matches_expected(actual, expected):
+                return any(actual == round(expected, n) for n in range(3))
+            
+            # Get flow settings and tags
+            flows = [block['settings']['flow_setting']] 
+            tags = [block['settings']['flow_tags'][0]]
+            
+            # Split into lists if multiple flows specified
+            if "," in block['settings']['flow_setting']:
+                flows = block['settings']['flow_setting'].strip().split(",")
+                tags = block['settings']['flow_tags']
+
+            # Validate each flow value
+            for flow, tag in zip(flows, tags):
+                flow = float(flow)
+                
+                # Check sanitization and equilibration flows
+                if ("sani" in tag.lower() or "first_cv_equil" in tag.lower()):
+                    if not flow_matches_expected(flow, equilLFlow):
+                        incorrectFieldText.append(f"Expected {round(equilLFlow, 2)} for pre sani flow rate")
+                
+                # Check other flows if PFC flow rate specified
+                elif flowRate.strip():
+                    # Special handling for wash1 and charge blocks - use residence time
+                    if ("wash" in block["blockName"].lower() and "1" in block["blockName"].lower()) or "charge" in block["blockName"].lower():
+                        resTimeLFlow = calc_LFlow_from_residence_time(float(columnParam["columnHeight"]), float(residenceTime))
+                        if not flow_matches_expected(flow, resTimeLFlow):
+                            incorrectFieldText.append(f"Expected {round(resTimeLFlow, 2)} for flow rate")
+                    
+                    # Standard flow validation
+                    elif round(flow) != round(float(flowRate)):
+                        incorrectFieldText.append(f"Expected {pfcData[block['settings']['inlet_setting']]['flow_rate']} flow")
+
+            return incorrectFieldText
+
+
+def validate_common_settings(block_settings, base, column, bubbletrap, manflow):
+    """
+    Validates block settings against common check dictionary
+    
+    Args:
+        block_settings (dict): Dictionary containing block settings to validate
+        common_checks (dict): Dictionary of expected values and error messages
+        
+    Returns:
+        list: List of error messages for failed validations
+    """
+
+
+    common_checks = {
+        'manflow': (manflow, f"Expected {manflow}% ManFlow"),
+        'outlet_setting': ('Waste', "All purges should go to waste"),
+        'base_setting': (base, "Expected pump purge to be in time"), 
+        'bubbletrap_setting': (bubbletrap, f"Expected bubbletrap: {bubbletrap}"),
+        'column_setting': (column, f"Expected column: {column}"), 
+
+    }
+    errors = []
+    
+    for setting, (expected_value, error_msg) in common_checks.items():
+        if ', ' in str(expected_value):
+            for i in expected_value.split(", "):
+                if str(i).strip().lower() not in str(block_settings[setting]).lower():
+                    errors.append(error_msg)
+
+        elif str(expected_value).lower() not in str(block_settings[setting]).lower() and str(block_settings[setting]).strip()!='':
+            errors.append(error_msg)
+
+    return errors

@@ -1,10 +1,23 @@
 import fitz
 import re
 import numpy as np
-from queryMethodCodeBlocks import query_block_data, query_watch, queryFinalBlock
+from queryMethodCodeBlocks import query_block_data, query_watch, query_final_block, query_column_data
 from parseScoutingMethods import parse_scouting_table
 
-def find_highlight_loc(textDoc, pdf_path, pfcData):
+"""
+Protein A UNICORN Method Parser
+
+Extracts structured data from UNICORN chromatography method PDF files by:
+- Parsing block configurations and parameters from method text
+- Identifying block locations within the PDF for annotation
+- Processing special blocks (purge, equilibration, watch, etc.)
+- Extracting column specifications and scouting run data
+- Tracking inlet/QD connections and validating purge requirements
+
+Returns a dictionary containing parsed block data, locations, and validation info.
+"""
+
+def protein_A_method_parser(textDoc, pdf_path, pfcData):
 
     remainingInlets = list(pfcData.keys())
     # Open PDF document
@@ -47,7 +60,7 @@ def find_highlight_loc(textDoc, pdf_path, pfcData):
                             columnParams = {
                                 "blockName": text,
                                 "blockPage": page_num+1,
-                                "columnData": extractColumnData(text), 
+                                "columnData": query_column_data(text), 
                                 "location": get_page_location(span)
                             }
 
@@ -104,8 +117,6 @@ def find_highlight_loc(textDoc, pdf_path, pfcData):
                                 }
 
                             #watch blokcs are indented and their blocks will absorb the snapshot and end settings from the last block, so make that fix here
-                            #print(individualBlockData)
-                            print(individualBlockData[-1])
                             individualBlockData[-1]['settings']['snapshot_setting'] = watchBlockData['settings']['snapshot_setting'][-1]
                             individualBlockData[-1]['settings']['snapshot_breakpoint_setting'] = watchBlockData['settings']['snapshot_breakpoint_setting']
                             individualBlockData[-1]['settings']['end_block_setting'] = watchBlockData['settings']['end_block_setting'][-1]
@@ -122,10 +133,13 @@ def find_highlight_loc(textDoc, pdf_path, pfcData):
                                         "location": get_page_location(span),
                                         "settings": indivBlockSettings
                                     })
+                        if "run" in text.lower() and allBlockTextExceptLast!='':                          
+                            scoutingRunLocations.append((page_num+1, get_page_location(span)))
+
                         #Grab data from last block to check end of run delay and 
                         if "Block: " in text and blockCounter == len(blocks)-1:
 
-                            finalBlockData = queryFinalBlock(blocks[blockCounter])
+                            finalBlockData = query_final_block(blocks[blockCounter])
 
                             if finalBlockData!={}:
                                 finalBlock = ({
@@ -137,10 +151,6 @@ def find_highlight_loc(textDoc, pdf_path, pfcData):
                             scoutingBlock = blocks[blockCounter].split("End_Block")[1]
 
                             allBlockTextExceptLast = '/n'.join(blocks[0:blockCounter-1])
-                        
-                        if "run" in text.lower() and allBlockTextExceptLast!='':                          
-                            scoutingRunLocations.append((page_num+1, get_page_location(span)))
-              
 
                         if "Block: " in text:
                             blockHeaders.append(text)
@@ -174,36 +184,6 @@ def find_highlight_loc(textDoc, pdf_path, pfcData):
     }
 
 
-def extractColumnData(text):
-    base = re.search(r'base:\s*(.*)', text.lower())
-
-    columnDiameter = 0
-    columnHeight = 0
-
-    base_stripped = base.group(1).strip().split(', ')
-    vc = re.sub(r'[A-Za-z]', '', base_stripped[1].split()[0])
-    vc = re.sub(r'=', '', vc)
-
-
-    for param in base_stripped:
-        if "_" in param:
-            words = param.split("_")
-            ind = words.index("x")
-            if words[ind-1] =="h":
-                columnDiameter = re.sub(r'[A-Za-z]', '', words[ind+1])
-                columnHeight = re.sub(r'[A-Za-z]', '', words[ind-2])
-            elif words[ind-1] =="d":
-                columnDiameter = re.sub(r'[A-Za-z]', '', words[ind-2])
-                columnHeight = re.sub(r'[A-Za-z]', '', words[ind+1])
-    if columnDiameter == 0 or columnHeight == 0:
-        return None
-    else:
-        return {
-            "columnDiameter": columnDiameter, 
-            "columnHeight": columnHeight, 
-            "columnVolume": vc
-        }
-    
 
 
 

@@ -160,8 +160,8 @@ def query_watch(block):
     }
     return watchBlock
 
-#TODO: might be able to get away with deleting this
-def queryFinalBlock(block):
+
+def query_final_block(block):
     # Find matches and store their locations
 
     base_match = re.search(r'Base:\s*(.*)', block)
@@ -175,3 +175,34 @@ def queryFinalBlock(block):
         'base_setting': base_setting,
         'end_block_setting': end_block
     }
+
+def query_column_data(text):
+    base = re.search(r'base:\s*(.*)', text.lower())
+
+    columnDiameter = 0
+    columnHeight = 0
+
+    base_stripped = base.group(1).strip().split(', ')
+    vc = re.sub(r'[A-Za-z]', '', base_stripped[1].split()[0])
+    vc = re.sub(r'=', '', vc)
+
+
+    for param in base_stripped:
+        if "_" in param:
+            words = param.split("_")
+            ind = words.index("x")
+            if words[ind-1] =="h":
+                columnDiameter = re.sub(r'[A-Za-z]', '', words[ind+1])
+                columnHeight = re.sub(r'[A-Za-z]', '', words[ind-2])
+            elif words[ind-1] =="d":
+                columnDiameter = re.sub(r'[A-Za-z]', '', words[ind-2])
+                columnHeight = re.sub(r'[A-Za-z]', '', words[ind+1])
+    if columnDiameter == 0 or columnHeight == 0:
+        return None
+    else:
+        return {
+            "columnDiameter": columnDiameter, 
+            "columnHeight": columnHeight, 
+            "columnVolume": vc
+        }
+    

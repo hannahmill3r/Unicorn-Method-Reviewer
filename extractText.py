@@ -1,6 +1,5 @@
 
 # importing required classes
-from pypdf import PdfReader
 from difflib import SequenceMatcher
 import fitz
 
