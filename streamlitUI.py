@@ -107,7 +107,8 @@ def create_inlet_qd_interface():
     layout="wide",
     initial_sidebar_state="expanded",
     menu_items={
-        'About': "# This is a header. This is an *extremely* cool app!"
+        'About': "The Unicorn Method reviewer takes a dPFC document and parses a specified unit operation. The output is compared against the values described in the provided scouting method's document, highlighting possible transcription errors.",
+        'Get help': "mailto:Hannah.miller@lilly.com"
     }
 )
     st.title("UNICORN Method Validator")
@@ -201,6 +202,54 @@ def create_inlet_qd_interface():
             key="time",
             disabled=column_disabled
         )
+
+    compensation_factors = {
+        "LHM 4250": {"2 mm CF": 4.45, "5 mm CF": 1.94},
+        "LHM 4260": {"2 mm CF": 4.71, "5 mm CF": 1.98},
+        "LHM 4270": {"2 mm CF": 4.71, "5 mm CF": 1.97},
+        "LHM 4280": {"2 mm CF": 4.95, "5 mm CF": 2.02},
+        "LHM 4290": {"2 mm CF": 4.89, "5 mm CF": 2.01},
+        "LHM 4300": {"2 mm CF": 4.83, "5 mm CF": 2.00},
+        "LHM 4310": {"2 mm CF": 4.83, "5 mm CF": 2.00},
+        "LHM 4320": {"2 mm CF": 4.50, "5 mm CF": 1.96},
+        "LHM 4330": {"2 mm CF": 4.71, "5 mm CF": 1.91},
+        "LHM 4340": {"2 mm CF": 4.60, "5 mm CF": 1.99},
+        "LHM 4350": {"2 mm CF": 4.92, "5 mm CF": 2.08}
+    }
+
+    st.header("Verify Skid Details")
+
+    gradCartOptions = ["LHM 4250", "LHM 4260", "LHM 4270", "LHM 4280", "LHM 4290", "LHM 4300", "LHM 4310", "LHM 4320", "LHM 4330", "LHM 4340", "LHM 4350"]
+    cfOptions = ["2 mm CF", "5 mm CF"]
+    gradSkidSizeOptions = ["3/8", "1/2", "3/4"]
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        gradientCartSetting = st.selectbox("Gradient Cart",
+                        gradCartOptions,
+                        key="gradCart",
+                        index = gradCartOptions.index("LHM 4250"),
+                        disabled=column_disabled
+                    )
+    with col2:
+        compFactorSetting = st.selectbox("Compensation Factor Setting",
+                        cfOptions,
+                        key="compFactor",
+                        index=cfOptions.index("2 mm CF"),
+                        disabled=column_disabled
+                    )
+    with col3:
+        skidSizeSetting = st.selectbox("Gradient Skid Size",
+                        gradSkidSizeOptions,
+                        key="skidSize",
+                        index=gradSkidSizeOptions.index("3/4"),
+                        disabled=column_disabled
+                    )
+
+    try:
+        compFactor = compensation_factors[gradientCartSetting][compFactorSetting]
+    except:
+        compFactor = ''
+
     
     st.header("Verify Number of Mainstreams and Cycles")
     col1, col2 = st.columns(2)
@@ -335,7 +384,9 @@ def create_inlet_qd_interface():
         'number_of_cycles': numCycles, 
         'UV_detection_wavelength': wavelengthSetting, 
         'post_wash_UV': uvSetting, 
-        'scouting_blocks_included': final_steps
+        'scouting_blocks_included': final_steps,
+        'compensation_factor': compFactor,
+        'skid_size': skidSizeSetting
     }
 
 

@@ -16,10 +16,24 @@ def query_block_data(block):
     manflow_match = re.search(r'ManFlow:\s*(\d+\.?\d*)\s*{\%}', block)
     QD_match = re.search(r'QD\s*(.*)', block)
     setmark_match = re.search(r'Set mark:\s*(.*)', block)
-    snapshot_volume_match = re.search(r'(\d+\.?\d*)\s*Snapshot:', block)
-    multi_column_math = re.finditer(r'Column:\s*(.*)', block)
+    #snapshot_volume_match = re.search(r'(\d+\.?\d*)\s*Snapshot:', block)
+    snapshot_volume = re.search(r'(\d+\.?\d*)\s+Snapshot:', block)
+
+
+    snapshot_line = re.search(r'.*Snapshot:', block)
+    snapshot_volume = ''
+    snapshot_volume_match = ''
+    if snapshot_line:
+        # Extract numbers from the line (will get all numbers including decimals)
+        numbers = re.findall(r'\d+\.?\d*', snapshot_line.group(0))
+        snapshot_volume_match = numbers[0] if numbers else ' '
+    
+    
+    multi_column_match = re.finditer(r'Column:\s*(.*)', block)
+    methodCompFactor = re.search(r'Compensation Factor = \s*(.*)', block)
+                            
     columnMatches = []
-    for match in multi_column_math:
+    for match in multi_column_match:
         columnMatches.append(match.group(1).strip())
 
     multi_end_block_match = re.finditer(r'(\d+\.?\d*)\s*End_Block', block)
@@ -69,10 +83,8 @@ def query_block_data(block):
     setmark_match = setmark_match.group(1).strip() if setmark_match else ' '
     flow_value = float(manflow_match.group(1)) if manflow_match else ' '
     QD_match_value = QD_match.group().strip().replace(" ", "") if QD_match else ' '
-    snapshot_volume_match = snapshot_volume_match.group(1).strip() if snapshot_volume_match else ' '
+    comp_factor = methodCompFactor.group(1).strip() if methodCompFactor else ' '
     
-
-
     inlet_number = None
     if inlet_match:
         inlet_spec = inlet_match.group(1).strip()
@@ -105,7 +117,8 @@ def query_block_data(block):
             'inlet_QD_setting': QD_match_value, 
             'snapshot_setting': snapshot_match, 
             'setmark_setting': setmark_match, 
-            'snapshot_breakpoint_setting': snapshot_volume_match
+            'snapshot_breakpoint_setting': snapshot_volume_match, 
+            'compensation_setting': comp_factor
         }
 
     return currentBlock

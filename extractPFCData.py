@@ -131,7 +131,6 @@ def extract_process_info(array):
 
         # If we're in a process step, capture its parameters
         if current_step:
-            #TODO: if the current step is sanitization or storage, look for a rinse?
             newStep = current_step
             if 'rinse' in lower_item:
                 if current_step + " Rinse" in process_info.keys():

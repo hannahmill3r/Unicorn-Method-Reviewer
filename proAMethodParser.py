@@ -17,7 +17,12 @@ Extracts structured data from UNICORN chromatography method PDF files by:
 Returns a dictionary containing parsed block data, locations, and validation info.
 """
 
-def protein_A_method_parser(textDoc, pdf_path, pfcData):
+def protein_A_method_parser(textDoc, userInput):
+
+    pdf_path = userInput['uploaded_file']
+    pfcData = userInput['inlet_data']
+    #skidSize = userInput['skid_size']
+    #skidCompensationFactor = userInput['compensation_factor']
 
     remainingInlets = list(pfcData.keys())
     # Open PDF document
@@ -38,6 +43,8 @@ def protein_A_method_parser(textDoc, pdf_path, pfcData):
     watchBlockData = []
     individualBlockData = []
     allBlockTextExceptLast = ''
+    comp_factor_setting = {}
+    uvAutoZero = False
 
     # Loop through each page
     for page_num in range(len(doc)):
@@ -109,17 +116,17 @@ def protein_A_method_parser(textDoc, pdf_path, pfcData):
                         elif "block:" in text.lower() and "watch" in text.lower():        
                             watchBlockSettings = query_watch(blocks[blockCounter])
                             if watchBlockSettings !={}:
-                                watchBlockData = {
+                                watchBlockData.append({
                                     "blockName": text,
                                     "blockPage": page_num+1, 
                                     "location": get_page_location(span),
                                     "settings": watchBlockSettings
-                                }
+                                })
 
                             #watch blokcs are indented and their blocks will absorb the snapshot and end settings from the last block, so make that fix here
-                            individualBlockData[-1]['settings']['snapshot_setting'] = watchBlockData['settings']['snapshot_setting'][-1]
-                            individualBlockData[-1]['settings']['snapshot_breakpoint_setting'] = watchBlockData['settings']['snapshot_breakpoint_setting']
-                            individualBlockData[-1]['settings']['end_block_setting'] = watchBlockData['settings']['end_block_setting'][-1]
+                            individualBlockData[-1]['settings']['snapshot_setting'] = watchBlockSettings['snapshot_setting'][-1]
+                            individualBlockData[-1]['settings']['snapshot_breakpoint_setting'] =watchBlockSettings['snapshot_breakpoint_setting']
+                            individualBlockData[-1]['settings']['end_block_setting'] = watchBlockSettings['end_block_setting'][-1]
 
 
 
@@ -152,6 +159,10 @@ def protein_A_method_parser(textDoc, pdf_path, pfcData):
 
                             allBlockTextExceptLast = '/n'.join(blocks[0:blockCounter-1])
 
+                        #uv auto zero needs to be present in every run
+                        if "uv" in text.lower() and "auto" in text.lower() and "zero" in text.lower():
+                            uvAutoZero = True
+                        
                         if "Block: " in text:
                             blockHeaders.append(text)
                             blockCounter+=1
@@ -180,7 +191,9 @@ def protein_A_method_parser(textDoc, pdf_path, pfcData):
         "indiv_block_data": individualBlockData, 
         "watch_block_data": watchBlockData, 
         "final_block_data": finalBlock, 
-        "scouting_data": scoutingData
+        "scouting_data": scoutingData, 
+        "compensation_factor": comp_factor_setting, 
+        "UV_Auto_Zero": uvAutoZero
     }
 
 
@@ -233,8 +246,6 @@ def update_inlet_qd_settings(connection, purgeBlockData, equillibrationBlockData
         # Skip empty connection mappings
         if not connect:
             continue
-        
-        #TODO: this looks redundant
 
         # For each inlet in the connection mapping
         for inlet, qd_number in connect.items():

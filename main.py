@@ -24,12 +24,12 @@ def main():
             # Save uploaded file to disk temporarily
             if result['uploaded_file'] is not None:
 
-                blockData = protein_A_method_parser(text, result['uploaded_file'], result['inlet_data'])
+                blockData = protein_A_method_parser(text, result)
 
-                highlightsPurge = check_purge_block_settings(blockData["purge_data"], result['inlet_data'])
+                highlightsPurge = check_purge_block_settings(blockData["purge_data"], result['inlet_data'], result['skid_size'], result["number_of_MS"])
                 highlightsMS = check_MS_blocks_settings_pdf(blockData["equilibration_data"], result['inlet_data'], result["number_of_MS"])
                 highlightsColumnParams = check_column_params(blockData["column_params"], result['column_params'])
-                highlightsIndiv = check_indiv_blocks_settings_pdf(blockData["indiv_block_data"], result['inlet_data'], result['column_params'])
+                highlightsIndiv = check_indiv_blocks_settings_pdf(blockData["indiv_block_data"], result['inlet_data'], result['column_params'], result['compensation_factor'])
                 highlightsWatchSettings = check_watch_settings(blockData["watch_block_data"])
                 highlightsFinalBlock = check_end_of_run_pdf(blockData["final_block_data"])
                 highlightsScouting = check_scouting(blockData["scouting_data"], result['inlet_data'], result['post_wash_UV'], result['number_of_cycles'], result["number_of_MS"], result["scouting_blocks_included"])
@@ -47,6 +47,9 @@ def main():
                 with st.expander(f"❌ Failed to Purge"):
                     for i in blockData["inlets_not_purged"]:
                         st.write(i + " was not purged with " + result['inlet_data'].get(i).get('qd'))
+                if blockData['UV_Auto_Zero'] == False:
+                    with st.expander(f"❌ Missing UV Auto Zero Block"):
+                        st.write("UZ Auto Zero should be turned on for every run.")
                 display_pdf("annotated_example2.pdf")
 
      
