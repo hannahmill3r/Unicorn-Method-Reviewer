@@ -21,13 +21,13 @@
         "checksum": "103d641f1aafdfac00686769df95305b"
       },
       "annotatePDF.py": {
-        "checksum": "7d36e5b8d8d9aae565fa98d89592a2c0"
+        "checksum": "7f8174387a762e18c8cc23eb4e696039"
       },
       "annotated_example2.pdf": {
         "checksum": "b74323c13476cdd420485b43ae78aacc"
       },
       "blockVerification.py": {
-        "checksum": "05c864d5d719f4359c904cfdcec75f25"
+        "checksum": "fb1593df5de25064caed3b38a7a1f7a4"
       },
       "dPFC.docx": {
         "checksum": "1d60b7f4ce6eca532ea99649a29d9b62"
@@ -36,7 +36,7 @@
         "checksum": "1581db285bfb0f2504c05d675eb40ce1"
       },
       "extractPFCData.py": {
-        "checksum": "e1ae667a9fbd1da56f6774ac818f04fb"
+        "checksum": "6b94aa6937a17f5ae406661398e97d18"
       },
       "extractText.py": {
         "checksum": "272601d452540b41a07837e8fa6480cf"
@@ -48,13 +48,22 @@
         "checksum": "726baa69c8128c700e8d57db0a5772fd"
       },
       "queryMethodCodeBlocks.py": {
-        "checksum": "f5fd81946a97ff7abf36a235b5597ebe"
+        "checksum": "d6a88188a5a5e043dfcf9542348f4664"
       },
-      "testQdValid.py": {
-        "checksum": "6a53eb4221117ef259e0809c2dcac079"
+      "stremalitUI.py": {
+        "checksum": "c5bec85f067de3cc9fb51384f188c15f"
       },
       "v001 scouting method LB2273 ProA.pdf": {
         "checksum": "cb5c688978be79d33a46dfd32c5fa921"
+      }, 
+      "flowCalculations.py": {
+        "checksum": "0fe73a5e4574cb2ef6d985116e9ea5b8"
+      },
+      "main.py": {
+        "checksum": "e57801c58055a03367fa6c66eb98e720"
+      },
+      "parseScoutingMethods.py": {
+        "checksum": "662695d30e48df843816d68af94e4da3"
       }
     }
   }
