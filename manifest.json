@@ -3,7 +3,7 @@
     "locale": "en_US.UTF-8",
     "metadata": {
       "appmode": "python-streamlit",
-      "entrypoint": "testQdValid.py"
+      "entrypoint": "main.py"
     },
     "python": {
       "version": "3.11.9",
