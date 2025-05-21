@@ -121,8 +121,35 @@ def create_inlet_qd_interface():
                'Low pH Viral Inactivation and Clarification', 'Cation Exchange Chromatography', 
                'Viral Filtration', 'Tangential Flow Filtration', 
                'Intermediate Drug Substance Dispensing and Storage']
-   
+    
+    import tempfile
+    import fitz
+
+    
     if uploaded_file is not None:
+        
+        file_bytes = uploaded_file.read()
+
+        # Save to temp file first
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+            tmp.write(file_bytes)
+            tmp_path = tmp.name
+
+        try:
+            # Open with fitz
+            doc = fitz.open(tmp_path)
+
+            # Clone pages into a new document for safe saving
+            new_doc = fitz.open()
+            for page in doc:
+                new_doc.insert_pdf(doc, from_page=page.number, to_page=page.number)
+
+            # Save the cloned document
+            new_doc.save(uploaded_file.name, garbage=4, deflate=True)
+
+        except Exception as e:
+            st.error(f"Error processing or saving PDF: {e}")
+
         options = ['Detergent Viral Inactivation', 'Protein A Capture Chromatography',
                   'Low pH Viral Inactivation and Clarification', 'Cation Exchange Chromatography',
                   'Viral Filtration', 'Tangential Flow Filtration',
@@ -291,9 +318,15 @@ def create_inlet_qd_interface():
             cvAssignment =  qdMap.get(i).get('CV')
 
             if 'sani' in i.lower():
-                velocityAssignment = round(calc_LFlow(float(column_params['columnHeight']), float(column_params['columnDiameter']), float(column_params['contactTime']))["linearFlow"])
+                try:
+                    velocityAssignment = round(calc_LFlow(float(column_params['columnHeight']), float(column_params['columnDiameter']), float(column_params['contactTime']))["linearFlow"])
+                except: 
+                    velocityAssignment = ''
             elif 'charge' in i.lower() or 'wash 1' in i.lower() and residenceAssignment.isdigit():
-                velocityAssignment = round(calc_LFlow_from_residence_time(float(column_params['columnHeight']), float(residenceAssignment)))
+                try:
+                    velocityAssignment = round(calc_LFlow_from_residence_time(float(column_params['columnHeight']), float(residenceAssignment)))
+                except: 
+                    velocityAssignment = ''
             else:
                 velocityAssignment =  qdMap.get(i).get('velocity')
 

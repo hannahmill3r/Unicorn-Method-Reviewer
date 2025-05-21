@@ -1,4 +1,7 @@
 import fitz  # PyMuPDF
+import os
+import pdfplumber
+import io
 
 
 def annotate_doc(unannotatedDoc, outfileName, highlights):
@@ -14,8 +17,9 @@ def annotate_doc(unannotatedDoc, outfileName, highlights):
         outfileName: Path for saving annotated PDF 
         highlights: List of highlight objects containing location and annotation text
     """
-    # Open the PDF
-    pdf_document = fitz.open(unannotatedDoc)
+
+    pdf_document = fitz.open(unannotatedDoc.name, filetype="pdf")
+    #pdf_document = pdfplumber.open((unannotatedDoc.name))
 
     # Add a text annotation
     for pageNum in range(len(pdf_document)):
@@ -36,8 +40,7 @@ def annotate_doc(unannotatedDoc, outfileName, highlights):
                 annot.update()
 
 
-    # Save the modified PDF
-    pdf_document.save(outfileName)
+    pdf_document.save(outfileName, encryption=0, deflate=True, garbage=3, pretty=True)
     pdf_document.close()
 
     return outfileName

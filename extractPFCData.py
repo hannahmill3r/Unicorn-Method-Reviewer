@@ -111,16 +111,20 @@ def extract_process_info(array):
                 current_step = 'Storage'
             elif 'charge' in lower_item:
                 current_step = 'Charge'
+            elif 'wash' in lower_item:
+                current_step = 'Wash 1, Wash 2, Wash 3'
             
             
 
         # Handle wash steps specifically
+
         if 'wash 1' in lower_item:
             current_step = 'Wash 1'
         elif 'wash 2' in lower_item:
             current_step = 'Wash 2'
         elif 'wash 3' in lower_item:
             current_step = 'Wash 3'
+
         elif 'equilibration' in lower_item:
             current_step = 'Equilibration'
         elif 'pre' in lower_item and ('use' in lower_item or 'sani' in lower_item) and 'rinse' in lower_item:
@@ -129,49 +133,62 @@ def extract_process_info(array):
             current_step = 'Pre Sanitization'
 
 
+
         # If we're in a process step, capture its parameters
         if current_step:
-            newStep = current_step
+            newStep = current_step.split(', ')
+            print(newStep)
             if 'rinse' in lower_item:
                 if current_step + " Rinse" in process_info.keys():
-                    newStep = current_step + " Rinse"
+                    newStep = [current_step + " Rinse"]
                 
 
             # Flow direction
             if 'flow direction' in lower_item:
-                process_info[newStep]['direction'] = parts[1] if len(parts) > 1 else ''
+                for buffer in newStep:
+                    process_info[buffer]['direction'] = parts[1] if len(parts) > 1 else ''
             # Flow velocity - only capturing NMT value
             elif 'cv' in parts[0].lower() and 'volume' in  parts[0].lower():
-                process_info[newStep]['CV'] = parts[1] if len(parts) > 1 else ''
-            elif any(term in lower_item for term in ['flow velocity', 'velocity', 'flow:', 'residence']):
+                for buffer in newStep:
+                    process_info[buffer]['CV'] = parts[1] if len(parts) > 1 else ''
+            elif any(term in lower_item for term in ['flow velocity', 'velocity', 'flow:', 'residence', 'exposure']):
 
                 # Extract the NMT value
                 try:
                     value = item[item.lower().find('nmt'):].split()[1]
-                    process_info[newStep]['velocity'] = value
+
+                    for buffer in newStep:
+                        process_info[buffer]['velocity'] = value
+
                 except:
                     pass
 
                 try:
+                    
                     value = item[item.lower().find('nlt'):].split()[1]
-                    process_info[newStep]['residenceTime'] = value
+                    for buffer in newStep:
+                        process_info[buffer]['residenceTime'] = value
 
                 except:
                     pass
             # Composition
             elif any(term in lower_item for term in ['composition:', 'buffer composition']):
-                process_info[newStep]['composition'] = parts[1] if len(parts) > 1 else ''
+                for buffer in newStep:
+                    process_info[buffer]['composition'] = parts[1] if len(parts) > 1 else ''
 
         
-
+    print(process_info['Charge'])
     #sometimes parameters are shared across charge and equilibration, if one is empty and the other has a value, replace the empty value
     for key in process_info['Charge'].keys():
         if key!= 'CV':
             if process_info['Charge'][key].strip() == '' and process_info['Equilibration'][key].strip() != '':
+                print(process_info['Charge'][key])
                 process_info['Charge'][key] = process_info['Equilibration'][key]
+                print(process_info['Charge'][key])
+
             elif process_info['Charge'][key].strip() != '' and process_info['Equilibration'][key].strip() == '':
                 process_info['Equilibration'][key] = process_info['Charge'][key]
-
+    print(process_info['Charge'])
     #parameters are assumed to be shared across a rinse and a buffer step if it is not specified in the pfc
     checks = ['direction', 'velocity', 'composition']
     for key in process_info.keys():
@@ -186,7 +203,7 @@ def extract_process_info(array):
         if process_info[step]['direction'] == '' and default_flow:
             process_info[step]['direction'] = default_flow
 
-
+    
     return process_info
 
 

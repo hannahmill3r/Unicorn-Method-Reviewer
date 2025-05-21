@@ -1,4 +1,4 @@
-def parse_scouting_table(text, allBlockTextExceptLast, scoutingRunLocations):
+def parse_scouting_table2(text, allBlockTextExceptLast, scoutingRunLocations):
     """
     Parse scouting table text with wrapped cell values
     
@@ -101,7 +101,106 @@ def parse_scouting_table(text, allBlockTextExceptLast, scoutingRunLocations):
         # Handle any exceptions that occur during parsing
         print(f"An error occurred while parsing the scouting table: {e}")
         return []
+
+
+def parse_scouting_table(text, allBlockTextExceptLast, scoutingRunLocations):
+    """
+    Parse scouting table text with wrapped cell values
     
+    Args:
+        text (str): The text content of the scouting table
+        blockHeaders (list): List of block headers to identify sections in the table
+        
+    Returns:
+        dict: Parsed scouting table data as a dictionary
+    """
+
+    # Split the text into lines
+    lines = text.split('\n')
+    
+    # Initialize variables
+    previousHeader = []
+    runInfoList = []
+    currentHeaderList = []
+    nextRun = 1
+    recordRunInfo = False
+    finalDict = []
+    endEarly = False
+
+    runCounter = 0
+    currentRunBlockCount = 0
+
+    # Iterate through each line in the text
+    for line in lines:
+        if not endEarly:
+            # Check if the line indicates the start of a new run
+            if line == "1":
+                recordRunInfo = True
+
+                #record previous run information, since we are starting a new run
+                if runInfoList != []:
+                    previousHeader = combine_values(previousHeader, allBlockTextExceptLast)
+                    runInfoList = combine_values(runInfoList, allBlockTextExceptLast)
+
+                    finalDict.append({
+                                "blockName": ", ".join(previousHeader),
+                                "blockPage": scoutingRunLocations[currentRunBlockCount][0], 
+                                "location": scoutingRunLocations[currentRunBlockCount][1],
+                                "settings": runInfoList
+                            })
+
+                    nextRun = 1
+
+                    currentRunBlockCount=runCounter
+
+                runInfoList = []
+                runInfoList.append(line)
+                nextRun += 1
+
+            # Check if the line matches the expected run number
+            elif line == str(nextRun):
+                runInfoList = combine_values(runInfoList, allBlockTextExceptLast)
+                runInfoList.append(line)
+                nextRun += 1
+                recordRunInfo = True
+
+            
+
+            # If starting a new run, we will need to record the new header information, since runs can go onto multiple, dont overwrite previous headers if its the same as the last one
+            elif "run" in line.lower():
+                runCounter+=1
+
+                if previousHeader != currentHeaderList:
+                    previousHeader = currentHeaderList
+
+                currentHeaderList = []
+                recordRunInfo = False
+                currentHeaderList.append(line)
+            
+
+            # method information marks the end of scouting data and the start of operator questions
+            elif "method information" in line.lower():
+                endEarly = True
+                previousHeader = combine_values(previousHeader, allBlockTextExceptLast)
+
+                runInfoList = combine_values(runInfoList, allBlockTextExceptLast)
+                finalDict.append({
+                            "blockName": ", ".join(previousHeader),
+                            "blockPage": scoutingRunLocations[currentRunBlockCount][0], 
+                            "location": scoutingRunLocations[currentRunBlockCount][1],
+                            "settings": runInfoList
+                        })
+
+
+            # Record run information if the flag is set
+            elif recordRunInfo:
+                runInfoList.append(line)
+
+            # Append to the current header list if not recording run information
+            elif not recordRunInfo:
+                currentHeaderList.append(line)
+
+    return finalDict
 
 def combine_values(row, allBlockTextExceptLast):
     """

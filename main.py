@@ -4,6 +4,7 @@ from blockVerification import check_purge_block_settings, check_watch_settings, 
 from streamlitUI import create_inlet_qd_interface, display_pdf
 from extractText import extract_text_from_pdf
 import streamlit as st
+import os
 
 
 def main():
@@ -51,6 +52,14 @@ def main():
                     with st.expander(f"❌ Missing UV Auto Zero Block"):
                         st.write("UZ Auto Zero should be turned on for every run.")
                 display_pdf("annotated_example2.pdf")
+
+                if os.path.exists(result['uploaded_file'].name):
+                    os.remove(result['uploaded_file'].name)
+                    print(f"{result['uploaded_file'].name} has been deleted.")
+                else:
+                    print(f"{result['uploaded_file'].name} does not exist.")
+
+
 
      
 

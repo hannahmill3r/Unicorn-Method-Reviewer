@@ -360,7 +360,10 @@ def check_scouting(scoutingData, pfcData, uvPreset, numOfCycles, numOfMS, blocks
             
             #outlets should be evenly split based on the number of cycles and number of mainstreams
             if "ms_outlet" in header.lower():
-                numberToEachOutlet = int(numOfCycles)/int(numOfMS)
+                try:
+                    numberToEachOutlet = int(numOfCycles)/int(numOfMS)
+                except:
+                    numberToEachOutlet = 1
                 
                 outletSettings = run["settings"][index::len(tableHeaderList)]
                 runNumber = run["settings"][index-len(tableHeaderList)+1::len(tableHeaderList)]
@@ -491,13 +494,17 @@ def validate_flow_settings(block, equilLFlow, flowRate, columnParam, residenceTi
                 elif flowRate.strip():
                     # Special handling for wash1 and charge blocks - use residence time
                     if ("wash" in block["blockName"].lower() and "1" in block["blockName"].lower()) or "charge" in block["blockName"].lower():
-                        resTimeLFlow = calc_LFlow_from_residence_time(float(columnParam["columnHeight"]), float(residenceTime))
-                        if not flow_matches_expected(flow, resTimeLFlow):
-                            incorrectFieldText.append(f"Expected {round(resTimeLFlow, 2)} for flow rate")
+                        try:
+
+                            resTimeLFlow = calc_LFlow_from_residence_time(float(columnParam["columnHeight"]), float(residenceTime))
+                            if not flow_matches_expected(flow, resTimeLFlow):
+                                incorrectFieldText.append(f"Expected {round(resTimeLFlow, 2)} for flow rate")
+                        except:
+                            incorrectFieldText.append(f"Expected specified contact time, cannot calculate flow rate")
                     
                     # Standard flow validation
                     elif round(flow) != round(float(flowRate)):
-                        incorrectFieldText.append(f"Expected {pfcData[block['settings']['inlet_setting']]['flow_rate']} flow")
+                        incorrectFieldText.append(f"Expected {flowRate} flow")
 
             return incorrectFieldText
 

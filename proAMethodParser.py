@@ -124,9 +124,26 @@ def protein_A_method_parser(textDoc, userInput):
                                 })
 
                             #watch blokcs are indented and their blocks will absorb the snapshot and end settings from the last block, so make that fix here
-                            individualBlockData[-1]['settings']['snapshot_setting'] = watchBlockSettings['snapshot_setting'][-1]
-                            individualBlockData[-1]['settings']['snapshot_breakpoint_setting'] =watchBlockSettings['snapshot_breakpoint_setting']
-                            individualBlockData[-1]['settings']['end_block_setting'] = watchBlockSettings['end_block_setting'][-1]
+                            if individualBlockData!=[] and watchBlockSettings!=[]:
+                                #individualBlockData[-1]['settings']['snapshot_setting'] = watchBlockSettings['snapshot_setting'][-1]
+                                #individualBlockData[-1]['settings']['snapshot_breakpoint_setting'] =watchBlockSettings['snapshot_breakpoint_setting']
+                                #individualBlockData[-1]['settings']['end_block_setting'] = watchBlockSettings['end_block_setting'][-1]
+
+                                try:
+                                    individualBlockData[-1]['settings']['snapshot_setting'] = watchBlockSettings['snapshot_setting'][-1]
+                                except (IndexError, KeyError):
+                                    individualBlockData[-1]['settings']['snapshot_setting'] = ''
+                                
+                                try:
+                                    individualBlockData[-1]['settings']['snapshot_breakpoint_setting'] = watchBlockSettings['snapshot_breakpoint_setting']
+                                except (IndexError, KeyError):
+                                    individualBlockData[-1]['settings']['snapshot_breakpoint_setting'] = ''
+                                
+                                try:
+                                    individualBlockData[-1]['settings']['end_block_setting'] = watchBlockSettings['end_block_setting'][-1]
+                                except (IndexError, KeyError):
+                                    individualBlockData[-1]['settings']['end_block_setting'] = ''
+
 
 
 
@@ -145,7 +162,6 @@ def protein_A_method_parser(textDoc, userInput):
 
                         #Grab data from last block to check end of run delay and 
                         if "Block: " in text and blockCounter == len(blocks)-1:
-
                             finalBlockData = query_final_block(blocks[blockCounter])
 
                             if finalBlockData!={}:
@@ -169,6 +185,7 @@ def protein_A_method_parser(textDoc, userInput):
 
 
     scoutingData = (parse_scouting_table(scoutingBlock, allBlockTextExceptLast, scoutingRunLocations))
+    print(scoutingData)
 
     inletsNotPurged = []
     for val in remainingInlets:
