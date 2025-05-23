@@ -4,7 +4,7 @@ import pdfplumber
 import io
 
 
-def annotate_doc(unannotatedDoc, outfileName, highlights):
+def annotate_doc(methodFileName, outfileName, highlights):
     """
     A utility function that adds annotation markers and highlights to a PDF document.
     Takes an unannotated PDF and adds:
@@ -18,7 +18,7 @@ def annotate_doc(unannotatedDoc, outfileName, highlights):
         highlights: List of highlight objects containing location and annotation text
     """
 
-    pdf_document = fitz.open(unannotatedDoc.name, filetype="pdf")
+    pdf_document = fitz.open(methodFileName, filetype="pdf")
     #pdf_document = pdfplumber.open((unannotatedDoc.name))
 
     # Add a text annotation

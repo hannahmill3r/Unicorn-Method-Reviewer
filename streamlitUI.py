@@ -145,7 +145,7 @@ def create_inlet_qd_interface():
                 new_doc.insert_pdf(doc, from_page=page.number, to_page=page.number)
 
             # Save the cloned document
-            new_doc.save(uploaded_file.name, garbage=4, deflate=True)
+            new_doc.save("tempfile.pdf", garbage=4, deflate=True)
 
         except Exception as e:
             st.error(f"Error processing or saving PDF: {e}")
@@ -154,7 +154,8 @@ def create_inlet_qd_interface():
                   'Low pH Viral Inactivation and Clarification', 'Cation Exchange Chromatography',
                   'Viral Filtration', 'Tangential Flow Filtration',
                   'Intermediate Drug Substance Dispensing and Storage']
-        outputFile = extract_text_from_pdf(uploaded_file, 'output2')
+        
+        outputFile = extract_text_from_pdf('tempfile.pdf', 'output2')
         unitOperationFromMethod = extract_unit_opertaion_from_method(outputFile, options)
         selected_option = st.selectbox('Verify Unit Operation:', options, 
                                      index=options.index(unitOperationFromMethod), disabled=False)
@@ -167,6 +168,12 @@ def create_inlet_qd_interface():
         selected_option = st.selectbox('Verify Unit Operation:', options, 
                                      index=options.index('None'), disabled=True)
         st.info("Please upload UNICORN Method PDF first before uploading PFC document")
+    
+    column_disabled = uploaded_PFC_file is None
+    if not column_disabled:
+            pfcQDMap = output_PFC_params(uploaded_PFC_file, selected_option)
+            if not pfcQDMap:
+                st.write(f"❌ Could not find specified unit operation, please make sure this is a word document dPFC.")
 
     default_qd_map = {
         'Equilibration': {'inlet': 'Inlet 1', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' '},
@@ -183,7 +190,7 @@ def create_inlet_qd_interface():
         'Storage Rinse': {'inlet': 'Inlet 1', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' '},
         'Wash 2': {'inlet': 'Inlet 7', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' '}
     }
-    column_disabled = uploaded_PFC_file is None
+   
 
     with st.expander(f"Default Settings"):
         col1, col2 = st.columns(2)
@@ -305,41 +312,39 @@ def create_inlet_qd_interface():
             columnParamsIncomplete = False
 
     inputs_disabled = uploaded_PFC_file is None or columnParamsIncomplete
-    def fill_default_sample_map(default_qd_map, column_params):
-        
-        qdMap = output_PFC_params(uploaded_PFC_file, selected_option)
-          
+    def fill_default_sample_map(default_qd_map, column_params, pfcQDMap):
 
-        for i in default_qd_map.keys():
-            
-            qdAssignment = qdMap.get(i).get('composition')
-            directionAssignment = qdMap.get(i).get('direction')
-            residenceAssignment =  qdMap.get(i).get('residenceTime')
-            cvAssignment =  qdMap.get(i).get('CV')
+        if pfcQDMap:
+            for i in default_qd_map.keys():
+                
+                qdAssignment = pfcQDMap.get(i).get('composition')
+                directionAssignment = pfcQDMap.get(i).get('direction')
+                residenceAssignment =  pfcQDMap.get(i).get('residenceTime')
+                cvAssignment =  pfcQDMap.get(i).get('CV')
+                if pfcQDMap.get(i).get('velocity').strip() == '':
+                    if 'sani' in i.lower():
+                        try:
+                            velocityAssignment = round(calc_LFlow(float(column_params['columnHeight']), float(column_params['columnDiameter']), float(column_params['contactTime']))["linearFlow"])
+                        except: 
+                            velocityAssignment =  pfcQDMap.get(i).get('velocity')
+                    elif 'charge' in i.lower() or 'wash 1' in i.lower() and residenceAssignment.isdigit():
+                        try:
+                            velocityAssignment = round(calc_LFlow_from_residence_time(float(column_params['columnHeight']), float(residenceAssignment)))
+                        except: 
+                            velocityAssignment =  pfcQDMap.get(i).get('velocity')
+                else:
+                    velocityAssignment =  pfcQDMap.get(i).get('velocity')
 
-            if 'sani' in i.lower():
-                try:
-                    velocityAssignment = round(calc_LFlow(float(column_params['columnHeight']), float(column_params['columnDiameter']), float(column_params['contactTime']))["linearFlow"])
-                except: 
-                    velocityAssignment = ''
-            elif 'charge' in i.lower() or 'wash 1' in i.lower() and residenceAssignment.isdigit():
-                try:
-                    velocityAssignment = round(calc_LFlow_from_residence_time(float(column_params['columnHeight']), float(residenceAssignment)))
-                except: 
-                    velocityAssignment = ''
-            else:
-                velocityAssignment =  qdMap.get(i).get('velocity')
-
-            default_qd_map[i]['qd'] = qdAssignment
-            default_qd_map[i]['flow_rate'] = velocityAssignment
-            default_qd_map[i]['direction'] = directionAssignment
-            default_qd_map[i]['residence time'] = residenceAssignment
-            default_qd_map[i]['CV'] = cvAssignment
+                default_qd_map[i]['qd'] = qdAssignment
+                default_qd_map[i]['flow_rate'] = velocityAssignment
+                default_qd_map[i]['direction'] = directionAssignment
+                default_qd_map[i]['residence time'] = residenceAssignment
+                default_qd_map[i]['CV'] = cvAssignment
+    
         return default_qd_map
     
     if not inputs_disabled:
-        default_qd_map = fill_default_sample_map(default_qd_map, column_params)
-
+        default_qd_map =fill_default_sample_map(default_qd_map, column_params, pfcQDMap)
 
     st.header("Verify Inlet Parameters")
 

@@ -10,9 +10,9 @@ def calc_LFlow_from_residence_time(columnHeight, residenceTime):
 
 def calc_LFlow(columnHeight, columnDiameter, contactTime):
     CSA = (float(columnDiameter)**2*np.pi)/4
-    CV =  (columnHeight*CSA)/1000
+    CV =  (float(columnHeight)*CSA)/1000
     volumeOfBuffer = float(CV)*2
-    VFlow = (volumeOfBuffer/contactTime)*60
+    VFlow = (volumeOfBuffer/float(contactTime))*60
     LFlow = (VFlow/CSA)*1000
 
     return{

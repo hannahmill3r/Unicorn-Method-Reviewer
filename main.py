@@ -14,7 +14,7 @@ def main():
         st.info("Processing document and comparing QD numbers...")
         
         # Process the PDF and analyze purge blocks
-        outputFile = extract_text_from_pdf(result['uploaded_file'], 'output2')
+        outputFile = extract_text_from_pdf('tempfile.pdf', 'output2')
        
         with open(outputFile, 'r') as file:
             text = file.read()
@@ -27,13 +27,13 @@ def main():
 
                 blockData = protein_A_method_parser(text, result)
 
-                highlightsPurge = check_purge_block_settings(blockData["purge_data"], result['inlet_data'], result['skid_size'], result["number_of_MS"])
-                highlightsMS = check_MS_blocks_settings_pdf(blockData["equilibration_data"], result['inlet_data'], result["number_of_MS"])
+                highlightsPurge = check_purge_block_settings(blockData["purge_data"], result['inlet_data'], result['skid_size'])
+                highlightsMS = check_MS_blocks_settings_pdf(blockData["equilibration_data"], result['inlet_data'], result["number_of_MS"], result['skid_size'])
                 highlightsColumnParams = check_column_params(blockData["column_params"], result['column_params'])
-                highlightsIndiv = check_indiv_blocks_settings_pdf(blockData["indiv_block_data"], result['inlet_data'], result['column_params'], result['compensation_factor'])
+                highlightsIndiv = check_indiv_blocks_settings_pdf(blockData["indiv_block_data"], result['inlet_data'], result['column_params'], result['compensation_factor'], result['skid_size'])
                 highlightsWatchSettings = check_watch_settings(blockData["watch_block_data"])
                 highlightsFinalBlock = check_end_of_run_pdf(blockData["final_block_data"])
-                highlightsScouting = check_scouting(blockData["scouting_data"], result['inlet_data'], result['post_wash_UV'], result['number_of_cycles'], result["number_of_MS"], result["scouting_blocks_included"])
+                highlightsScouting = check_scouting(blockData["scouting_data"], result['inlet_data'], result['post_wash_UV'], result['number_of_cycles'], result["number_of_MS"], result["scouting_blocks_included"], result['column_params'])
 
                 mergedHighlights = [item for sublist in [highlightsPurge, highlightsScouting, highlightsMS, highlightsColumnParams, highlightsIndiv, highlightsFinalBlock, highlightsWatchSettings] for item in sublist]
 
@@ -43,7 +43,7 @@ def main():
                 else:
                     st.error("❌ There were some unexpected settings in the document, please double check them")
                 
-                annotate_doc(result['uploaded_file'], "annotated_example2.pdf", mergedHighlights)
+                annotate_doc('tempfile.pdf', "annotated_example2.pdf", mergedHighlights)
 
                 with st.expander(f"❌ Failed to Purge"):
                     for i in blockData["inlets_not_purged"]:
@@ -53,11 +53,11 @@ def main():
                         st.write("UZ Auto Zero should be turned on for every run.")
                 display_pdf("annotated_example2.pdf")
 
-                if os.path.exists(result['uploaded_file'].name):
-                    os.remove(result['uploaded_file'].name)
-                    print(f"{result['uploaded_file'].name} has been deleted.")
+                if os.path.exists('tempfile.pdf'):
+                    os.remove('tempfile.pdf')
+                    print(f"{'tempfile.pdf'} has been deleted.")
                 else:
-                    print(f"{result['uploaded_file'].name} does not exist.")
+                    print(f"{'tempfile.pdf'} does not exist.")
 
 
 

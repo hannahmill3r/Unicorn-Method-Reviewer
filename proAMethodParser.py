@@ -19,7 +19,7 @@ Returns a dictionary containing parsed block data, locations, and validation inf
 
 def protein_A_method_parser(textDoc, userInput):
 
-    pdf_path = userInput['uploaded_file']
+    pdf_path = 'tempfile.pdf'
     pfcData = userInput['inlet_data']
     #skidSize = userInput['skid_size']
     #skidCompensationFactor = userInput['compensation_factor']
@@ -125,17 +125,13 @@ def protein_A_method_parser(textDoc, userInput):
 
                             #watch blokcs are indented and their blocks will absorb the snapshot and end settings from the last block, so make that fix here
                             if individualBlockData!=[] and watchBlockSettings!=[]:
-                                #individualBlockData[-1]['settings']['snapshot_setting'] = watchBlockSettings['snapshot_setting'][-1]
-                                #individualBlockData[-1]['settings']['snapshot_breakpoint_setting'] =watchBlockSettings['snapshot_breakpoint_setting']
-                                #individualBlockData[-1]['settings']['end_block_setting'] = watchBlockSettings['end_block_setting'][-1]
-
                                 try:
                                     individualBlockData[-1]['settings']['snapshot_setting'] = watchBlockSettings['snapshot_setting'][-1]
                                 except (IndexError, KeyError):
                                     individualBlockData[-1]['settings']['snapshot_setting'] = ''
                                 
                                 try:
-                                    individualBlockData[-1]['settings']['snapshot_breakpoint_setting'] = watchBlockSettings['snapshot_breakpoint_setting']
+                                    individualBlockData[-1]['settings']['snapshot_breakpoint_setting'] = watchBlockSettings['snapshot_breakpoint_setting'][-1]
                                 except (IndexError, KeyError):
                                     individualBlockData[-1]['settings']['snapshot_breakpoint_setting'] = ''
                                 
@@ -143,9 +139,6 @@ def protein_A_method_parser(textDoc, userInput):
                                     individualBlockData[-1]['settings']['end_block_setting'] = watchBlockSettings['end_block_setting'][-1]
                                 except (IndexError, KeyError):
                                     individualBlockData[-1]['settings']['end_block_setting'] = ''
-
-
-
 
                         elif "block:" in text.lower() and "purge" not in text.lower():                                   
                             indivBlockSettings = query_block_data(blocks[blockCounter])
@@ -185,7 +178,6 @@ def protein_A_method_parser(textDoc, userInput):
 
 
     scoutingData = (parse_scouting_table(scoutingBlock, allBlockTextExceptLast, scoutingRunLocations))
-    print(scoutingData)
 
     inletsNotPurged = []
     for val in remainingInlets:

@@ -16,16 +16,14 @@ def query_block_data(block):
     manflow_match = re.search(r'ManFlow:\s*(\d+\.?\d*)\s*{\%}', block)
     QD_match = re.search(r'QD\s*(.*)', block)
     setmark_match = re.search(r'Set mark:\s*(.*)', block)
-    #snapshot_volume_match = re.search(r'(\d+\.?\d*)\s*Snapshot:', block)
-    snapshot_volume = re.search(r'(\d+\.?\d*)\s+Snapshot:', block)
 
 
-    snapshot_line = re.search(r'.*Snapshot:', block)
-    snapshot_volume = ''
+    #there can be multiple snapshot volumes, we only care about the last one
+    snapshot_line =  re.finditer(r'.*Snapshot:', block)
     snapshot_volume_match = ''
-    if snapshot_line:
+    for line in snapshot_line:
         # Extract numbers from the line (will get all numbers including decimals)
-        numbers = re.findall(r'\d+\.?\d*', snapshot_line.group(0))
+        numbers = re.findall(r'\d+\.?\d*', line.group(0))
         snapshot_volume_match = numbers[0] if numbers else ' '
     
     
@@ -101,6 +99,7 @@ def query_block_data(block):
             return{}
 
 
+
         currentBlock = {
             'column_setting': column_setting,
             'outlet_setting': outlet_setting,
@@ -130,7 +129,10 @@ def query_watch(block):
 
     outlet_match = re.search(r'Outlet:\s*(.*)', block)
 
-    snapshot_volume_match = re.search(r'(\d+\.?\d*)\s*Snapshot:', block)
+    snapshot_volume_match = re.finditer(r'(\d+\.?\d*)\s*Snapshot:', block)
+    snapVolumeMatches = []
+    for match in snapshot_volume_match:  
+        snapVolumeMatches.append(match.group(1).strip() if match else ' ')
 
     multi_snap_match = re.finditer(r'Snapshot:\s*(.*)', block)
     snapMatches = []
@@ -142,7 +144,10 @@ def query_watch(block):
     for match in multi_end_block_match:  
         endMatches.append(match.group(1).strip() if match else ' ')
 
-    snapshot_volume_match = snapshot_volume_match.group(1).strip() if snapshot_volume_match else ' '
+    #snapshot_volume_match = snapshot_volume_match.group(1).strip() if snapshot_volume_match else ' '
+
+
+
     watch_values = [' '] * 3  # Initialize list with 3 empty spaces
     watch_pattern = re.finditer(r'watch:\s*(.*)', block.lower())
     count = 0
@@ -169,7 +174,7 @@ def query_watch(block):
         'outlet_setting': outlet_setting, 
         'end_block_setting': endMatches, 
         'snapshot_setting': snapMatches, 
-        'snapshot_breakpoint_setting':snapshot_volume_match
+        'snapshot_breakpoint_setting':snapVolumeMatches
     }
     return watchBlock
 
@@ -199,17 +204,36 @@ def query_column_data(text):
     vc = re.sub(r'[A-Za-z]', '', base_stripped[1].split()[0])
     vc = re.sub(r'=', '', vc)
 
-
     for param in base_stripped:
         if "_" in param:
             words = param.split("_")
             ind = words.index("x")
+            str1 = re.sub(r'pt', '.', words[ind+1])
+            str2 = re.sub(r'pt', '.', words[ind-2])
+
+            str1 = re.findall(r'\d+\.\d+|\d+',  str1)
+            if len(str1)>1:
+                str1 = '.'.join(str1)
+            else:
+                str1 = ''.join(str1)
+
+            str2 = re.findall(r'\d+\.\d+|\d+',  str2)
+            if len(str2)>1:
+                str2 = '.'.join(str2)
+            else:
+                str2 = ''.join(str2)
+
             if words[ind-1] =="h":
-                columnDiameter = re.sub(r'[A-Za-z]', '', words[ind+1])
-                columnHeight = re.sub(r'[A-Za-z]', '', words[ind-2])
+                columnDiameter = str1
+                columnHeight = str2
+                
             elif words[ind-1] =="d":
-                columnDiameter = re.sub(r'[A-Za-z]', '', words[ind-2])
-                columnHeight = re.sub(r'[A-Za-z]', '', words[ind+1])
+                columnDiameter = str2
+                columnHeight = str1
+
+                columnDiameter = re.sub(r'[^0-9.]', '', words[ind-2])
+                columnHeight = re.sub(r'[^0-9.]', '', words[ind+1])
+
     if columnDiameter == 0 or columnHeight == 0:
         return None
     else:

@@ -58,7 +58,7 @@ def check_column_params(methodsColumnParams, pfcColumnParams):
     return highlights
 
 
-def check_purge_block_settings(purge_blocks, pfcData, skid_size, numberofMS):
+def check_purge_block_settings(purge_blocks, pfcData, skid_size):
     """
     Check purge method block data against the user entered pfc data 
     
@@ -73,21 +73,27 @@ def check_purge_block_settings(purge_blocks, pfcData, skid_size, numberofMS):
     highlights = []
 
     skidSizeDict = {
-        '3/8': 100,
-        '1/2': 100,
-        '3/4': 60
+        '3/8': {"Manflow": 100, "Purge Volume": 7},
+        '1/2': {"Manflow": 100, "Purge Volume": 10},
+        '3/4': {"Manflow": 60, "Purge Volume": 15}
     }
 
     
-    expected_manflow = 60.0
+    expected_manflow = skidSizeDict[skid_size]["Manflow"]
+
 
     #analyse pump a and b seperately, time based blocks dont have anything we validate so remove them from other purge blocks as well
     for block in purge_blocks[::-1]:
         incorrectFieldText = []
+        if "time" in block['settings']['base_setting'].lower():
+            expected_purge_breakpoint = 2.0
+        else:
+            expected_purge_breakpoint = skidSizeDict[skid_size]["Purge Volume"]
+            
         if 'purge_a_pump' in block['blockName'].lower():
             purge_blocks.remove(block)
             #TODO: the breakpoint volume is hard coded and needs to be extracted based on the sharepoint file linked
-            for error in validate_common_settings(block['settings'], "time", "Bypass", "Inline", expected_manflow, 2.0):
+            for error in validate_common_settings(block['settings'], "Bypass", "Inline", expected_manflow, expected_purge_breakpoint):
                 incorrectFieldText.append(error)
 
             if "Inlet 1" != block["settings"]['inlet_setting']: 
@@ -99,7 +105,7 @@ def check_purge_block_settings(purge_blocks, pfcData, skid_size, numberofMS):
         elif 'purge_b_pump' in block['blockName'].lower():
             purge_blocks.remove(block)
             
-            for error in validate_common_settings(block['settings'], "time", "Bypass", "Bypass", expected_manflow, 2.0):
+            for error in validate_common_settings(block['settings'], "Bypass", "Bypass", expected_manflow, expected_purge_breakpoint):
                 incorrectFieldText.append(error)
                   
             if "Inlet 7" != block["settings"]['inlet_setting']: 
@@ -131,16 +137,16 @@ def check_purge_block_settings(purge_blocks, pfcData, skid_size, numberofMS):
 
         #first block column settings should be upflow and downflow, all other blocks should be bypass
         if blockCounter ==0:
-            for error in validate_common_settings(block['settings'], "volume", "downflow, upflow", "Bypass", expected_manflow, int(numberofMS)*5*2):
+            for error in validate_common_settings(block['settings'], "downflow, upflow", "Bypass", expected_manflow, int(expected_purge_breakpoint)*2):
                 incorrectFieldText.append(error)
 
         #Check all other settings, all inlets should be set to bypass and waste. Manflow and QD setting should match pfc provided information
         elif blockCounter!= len(purge_blocks)-1:
-            for error in validate_common_settings(block['settings'], "volume", "Bypass", "Bypass", skidSizeDict[skid_size], int(numberofMS)*5):
+            for error in validate_common_settings(block['settings'], "Bypass", "Bypass", expected_manflow, int(expected_purge_breakpoint)):
                 incorrectFieldText.append(error)
 
         else:
-            for error in validate_common_settings(block['settings'], "volume", "Bypass", "Inline", expected_manflow, float(20.0)):
+            for error in validate_common_settings(block['settings'], "Bypass", "Inline", expected_manflow, float(20.0)):
                 incorrectFieldText.append(error)
     
             if pfcData['Equilibration']['qd']!= pfcQD != block["settings"]['inlet_QD_setting']:
@@ -158,16 +164,25 @@ def check_purge_block_settings(purge_blocks, pfcData, skid_size, numberofMS):
     return highlights
 
 
-def check_MS_blocks_settings_pdf(MS_blocks, pfcData, numberofMS):
+def check_MS_blocks_settings_pdf(MS_blocks, pfcData, numberofMS, skid_size):
     highlights = []
-    expected_manflow = 60.0
+
+
+    skidSizeDict = {
+        '3/8': {"Manflow": 100, "Purge Volume": 7},
+        '1/2': {"Manflow": 100, "Purge Volume": 10},
+        '3/4': {"Manflow": 60, "Purge Volume": 15}
+    }
+
+    expected_manflow = skidSizeDict[skid_size]["Manflow"]
+
 
     for block in MS_blocks:
 
         incorrectFieldText = []
         methodQD = pfcData['Equilibration']['qd']
 
-        for error in validate_common_settings(block['settings'], "volume", "Bypass", "Inline", expected_manflow, float(numberofMS)*5):
+        for error in validate_common_settings(block['settings'],  "Bypass", "Inline", expected_manflow, float(numberofMS)*5):
                 incorrectFieldText.append(error)
    
         if "Inline" not in block["settings"]['filter_setting']:
@@ -187,8 +202,17 @@ def check_MS_blocks_settings_pdf(MS_blocks, pfcData, numberofMS):
 
     return highlights
 
-def check_indiv_blocks_settings_pdf(indiv_blocks, pfcData, columnParam, userInputCompensationData):
+def check_indiv_blocks_settings_pdf(indiv_blocks, pfcData, columnParam, userInputCompensationData, skid_size):
     highlights = []
+
+    skidSizeDict = {
+        '3/8': {"Manflow": 100, "Purge Volume": 7},
+        '1/2': {"Manflow": 100, "Purge Volume": 10},
+        '3/4': {"Manflow": 60, "Purge Volume": 15}
+    }
+
+    expected_flush_breakpoint = skidSizeDict[skid_size]["Purge Volume"]
+    expected_manflow = skidSizeDict[skid_size]["Manflow"]
 
     equilLFlow = calc_LFlow(float(columnParam["columnHeight"]), float(columnParam["columnDiameter"]), float(columnParam["contactTime"]))["linearFlow"]
     for index, block in enumerate(indiv_blocks):
@@ -230,8 +254,8 @@ def check_indiv_blocks_settings_pdf(indiv_blocks, pfcData, columnParam, userInpu
                 incorrectFieldText.append("Please double check setmark naming, similarity score was low")
             if "Bypass" not in block["settings"]['column_setting']:
                 incorrectFieldText.append(f"Expected Bypass")
-            if block["settings"]['manflow'] != ' ' and block["settings"]['manflow'] != 60.0:
-                incorrectFieldText.append("Expected 60% manflow")
+            if block["settings"]['manflow'] != ' ' and block["settings"]['manflow'] != expected_manflow:
+                incorrectFieldText.append(f"Expected {expected_manflow}% manflow, got ", block["settings"]['manflow'])
         
         #Flushes do not have a totalizer reset
         else:
@@ -250,8 +274,8 @@ def check_indiv_blocks_settings_pdf(indiv_blocks, pfcData, columnParam, userInpu
                     #Blocks will sometime's share previous buffer settings if they have the same QD
                     if (indiv_blocks[index-1]['settings']['inlet_QD_setting'] != block['settings']['inlet_QD_setting']) and 'pb' not in indiv_blocks[index-1]['settings']['reset_setting'].lower():
                         incorrectFieldText.append("Totalizer should be reset through pump B")
-                  
-            if block['settings']['setmark_setting'] not in block["blockName"]:
+
+            if not any(term in block["blockName"] for term in block['settings']['setmark_setting'].split()) and not any(term in block["blockName"] for term in block['settings']['setmark_setting'].split('_')) and block['settings']['setmark_setting'].strip() !='':
                 incorrectFieldText.append("Incorrect setmark naming")
             if direct.strip() != '' and direct.lower() not in block["settings"]['column_setting'].lower():
                 incorrectFieldText.append(f"Expected {direct}")
@@ -261,19 +285,21 @@ def check_indiv_blocks_settings_pdf(indiv_blocks, pfcData, columnParam, userInpu
                 incorrectFieldText.append(f"Expected compensation factor to be {userInputCompensationData}")
         except:
             pass
-
-        if ((block['settings']['snapshot_setting'] != block['settings']['setmark_setting'] + " End") and (block['settings']['snapshot_setting'] != block['settings']['setmark_setting'] + "_End")) and block['settings']['snapshot_setting'] != " ":
+        
+        
+        if not any(term in block["blockName"] for term in block['settings']['snapshot_setting'].split()) and not any(term in block["blockName"] for term in block['settings']['snapshot_setting'].split('_'))and block['settings']['snapshot_setting'].strip() !='':
             incorrectFieldText.append("Incorrect snapshot naming")      
 
+
+        
+                  
         #check the end block breakpoint column volumes
         try:
-            if float(block['settings']['end_block_setting'])!= float(CV) and 'flush' not in block['blockName'].lower():
-                incorrectFieldText.append(f"Expected {CV} breakpoint volume")
-                  
-            if 'flush' in block['blockName'].lower() and float(block['settings']['end_block_setting'])!= float(20.0):
-                block['settings']['end_block_setting']
-                incorrectFieldText.append(f"Expected flush to have 20.0 breakpoint volume")
-                  
+            if 'flush' in block['blockName'].lower() and float(block['settings']['end_block_setting'])!= float(expected_flush_breakpoint):
+                incorrectFieldText.append(f"Expected flush to have {float(expected_flush_breakpoint)} breakpoint volume, got {str(block['settings']['end_block_setting'])}")
+            elif float(block['settings']['end_block_setting'])!= float(CV) and 'flush' not in block['blockName'].lower():
+                incorrectFieldText.append(f"Expected {CV} breakpoint volume, got {float(block['settings']['end_block_setting'])}")
+          
         except:
             incorrectFieldText.append(f"I was unable to process the formatting for the breakpoint volume, please double check it")
               
@@ -282,6 +308,7 @@ def check_indiv_blocks_settings_pdf(indiv_blocks, pfcData, columnParam, userInpu
             if 'flush' not in block['blockName'].lower():
                 if float(block['settings']['snapshot_breakpoint_setting'])!= float(CV):
                     incorrectFieldText.append(f"Expected {CV} breakpoint volume for snapshot")
+                    #print(CV, block['settings']['snapshot_breakpoint_setting'], block['blockName'].lower(), closesTagMatch)
                       
         except:
             incorrectFieldText.append(f"I was unable to process the formatting for the snapshot breakpoint volume, please double check it")
@@ -341,7 +368,7 @@ def check_end_of_run_pdf(finalBlock):
         })
     return highlights
         
-def check_scouting(scoutingData, pfcData, uvPreset, numOfCycles, numOfMS, blocksToInclude):
+def check_scouting(scoutingData, pfcData, uvPreset, numOfCycles, numOfMS, blocksToInclude, columnParam):
     highlights = []
 
     for run in scoutingData:
@@ -366,21 +393,30 @@ def check_scouting(scoutingData, pfcData, uvPreset, numOfCycles, numOfMS, blocks
                     numberToEachOutlet = 1
                 
                 outletSettings = run["settings"][index::len(tableHeaderList)]
-                runNumber = run["settings"][index-len(tableHeaderList)+1::len(tableHeaderList)]
+                #runNumber = run["settings"][index-len(tableHeaderList)+1::len(tableHeaderList)]
+                runNumber = run["settings"][0::len(tableHeaderList)]
+                #print("INDEX", tableHeaderList, index, index-len(tableHeaderList)+1, runNumber, outletSettings, run["settings"])
 
                 for runIndex, val in enumerate(outletSettings):
-                    outletVal = "Outlet" + str(math.ceil(int(runNumber[runIndex])/int(numberToEachOutlet)))
-                    errorMsg = f"Expected run {runNumber[runIndex]} to go to {outletVal}" 
+                    try:
+                        outletVal = "Outlet" + str(math.ceil(int(runNumber[runIndex])/int(numberToEachOutlet)))
+                        errorMsg = f"Expected run {runNumber[runIndex]} to go to {outletVal}" 
                     
-                    if val!= outletVal and errorMsg not in incorrectFieldText:        
-                        incorrectFieldText.append(errorMsg)
+                    
+                        if val!= outletVal and errorMsg not in incorrectFieldText:        
+                            incorrectFieldText.append(errorMsg)
+                    except:
+                        print("error processing run index: ", runNumber, runIndex)
                           
             #charge UV should be equal to user input, default is 3.0
             if "charge_wash_uv" in header.lower():
                 errorMsg = f"Expected post charge wash UV to be set to {uvPreset}" 
                 for val in run["settings"][index::len(tableHeaderList)]:
-                    if float(val)!= float(uvPreset) and errorMsg not in incorrectFieldText:        
-                        incorrectFieldText.append(errorMsg)
+                    try:
+                        if float(val)!= float(uvPreset) and errorMsg not in incorrectFieldText:        
+                            incorrectFieldText.append(errorMsg)
+                    except:
+                        print("Int value Expected:", val)
                           
             #post sani rinse should be run after every single step
             if "post" in header.lower() and "sani" in header.lower() and "rinse" in header.lower():
@@ -397,17 +433,33 @@ def check_scouting(scoutingData, pfcData, uvPreset, numOfCycles, numOfMS, blocks
                 if "first_cv_equil_flowrate" in header.lower():
                     closestTitleMatch = "Pre Sanitization Rinse"
                 
-                blocksToInclude.remove(closestTitleMatch)
+                try:
+                    blocksToInclude.remove(closestTitleMatch)
+                except:
+                    print(closestTitleMatch, " has already been removed")
 
                 for key in pfcData.keys():
                     if key == closestTitleMatch :
                         flowRate = pfcData[key]['flow_rate']
+                        residenceTime = pfcData[key]['residence time']
                 
                 for val in run["settings"][index::len(tableHeaderList)]:
                     errorMsg = f"Expected flow rate to be set to {flowRate} for {header}"
-                    if float(val)!= float(flowRate) and errorMsg not in incorrectFieldText:        
-                        incorrectFieldText.append(errorMsg)
-                          
+                    linearFlow = str(calc_LFlow(columnParam["columnHeight"], columnParam["columnDiameter"], columnParam['contactTime'])["linearFlow"])
+                    residenceFlow = str(calc_LFlow_from_residence_time(columnParam["columnHeight"], residenceTime))
+                    try:
+                        linearFlow = (calc_LFlow(columnParam["columnHeight"], columnParam["columnDiameter"], columnParam['contactTime'])["linearFlow"])
+                        residenceFlow = (calc_LFlow_from_residence_time(columnParam["columnHeight"], residenceTime))
+                    except:
+                        linearFlow = 0
+                        residenceFlow = 0
+                    try:
+
+                        if float(val)!= float(flowRate) and float(val)!= linearFlow and float(val) != residenceFlow and errorMsg not in incorrectFieldText:        
+                            incorrectFieldText.append(errorMsg)
+                    except:
+                        print("Int value Expected:", val, tableHeaderList)
+
             #Conditions in which only one run is expected to have a certain value, and all other cycles should be blank
             conditions = [
                 (["connect_charge_to_inlet_sample"], "Expected only first run to connect charge to inlet sample", 0),
@@ -468,48 +520,27 @@ def validate_flow_settings(block, equilLFlow, flowRate, columnParam, residenceTi
             """
             incorrectFieldText = []
             
-            # Helper function to check if flow matches expected value within rounding tolerances
-            def flow_matches_expected(actual, expected):
-                return any(actual == round(expected, n) for n in range(3))
-            
             # Get flow settings and tags
             flows = [block['settings']['flow_setting']] 
-            tags = [block['settings']['flow_tags'][0]]
             
             # Split into lists if multiple flows specified
             if "," in block['settings']['flow_setting']:
                 flows = block['settings']['flow_setting'].strip().split(",")
-                tags = block['settings']['flow_tags']
+            try:
+                linearFlow = str(calc_LFlow(columnParam["columnHeight"], columnParam["columnDiameter"], columnParam['contactTime'])["linearFlow"])
+                residenceFlow = str(calc_LFlow_from_residence_time(columnParam["columnHeight"], residenceTime))
+            except:
+                linearFlow = ''
+                residenceFlow = ''
 
             # Validate each flow value
-            for flow, tag in zip(flows, tags):
-                flow = float(flow)
-                
-                # Check sanitization and equilibration flows
-                if ("sani" in tag.lower() or "first_cv_equil" in tag.lower()):
-                    if not flow_matches_expected(flow, equilLFlow):
-                        incorrectFieldText.append(f"Expected {round(equilLFlow, 2)} for pre sani flow rate")
-                
-                # Check other flows if PFC flow rate specified
-                elif flowRate.strip():
-                    # Special handling for wash1 and charge blocks - use residence time
-                    if ("wash" in block["blockName"].lower() and "1" in block["blockName"].lower()) or "charge" in block["blockName"].lower():
-                        try:
-
-                            resTimeLFlow = calc_LFlow_from_residence_time(float(columnParam["columnHeight"]), float(residenceTime))
-                            if not flow_matches_expected(flow, resTimeLFlow):
-                                incorrectFieldText.append(f"Expected {round(resTimeLFlow, 2)} for flow rate")
-                        except:
-                            incorrectFieldText.append(f"Expected specified contact time, cannot calculate flow rate")
-                    
-                    # Standard flow validation
-                    elif round(flow) != round(float(flowRate)):
-                        incorrectFieldText.append(f"Expected {flowRate} flow")
+            if not any(flow in flowRate for flow in flows) and not any(flow in linearFlow for flow in flows) and not any(flow in residenceFlow for flow in flows):
+                incorrectFieldText.append(f"Expected {flowRate} flow")
 
             return incorrectFieldText
 
 
-def validate_common_settings(block_settings, base, column, bubbletrap, manflow, breckpoint_volume):
+def validate_common_settings(block_settings, column, bubbletrap, manflow, breckpoint_volume):
     """
     Validates block settings against common check dictionary
     
@@ -525,7 +556,7 @@ def validate_common_settings(block_settings, base, column, bubbletrap, manflow, 
     common_checks = {
         'manflow': (manflow, f"Expected {manflow}% ManFlow"),
         'outlet_setting': ('Waste', "All purges should go to waste"),
-        'base_setting': (base, "Expected pump purge to be in time"), 
+        #'base_setting': (base, "Expected pump purge to be in time"), 
         'bubbletrap_setting': (bubbletrap, f"Expected bubbletrap: {bubbletrap}"),
         'column_setting': (column, f"Expected column: {column}"), 
         'end_block_setting': (breckpoint_volume, f"Expected breakpoint volume: {breckpoint_volume}")

@@ -72,11 +72,11 @@ def list_unit_ops(pages):
 def extract_process_info(array):
     process_info = {
         'Regeneration': {'direction': '', 'velocity': '', 'composition': '','residenceTime': 'N/A', 'CV': ' '},
-        'Pre Sanitization Rinse': {'direction': '', 'velocity': '--', 'composition': '','residenceTime': 'N/A', 'CV': ' '},
+        'Pre Sanitization Rinse': {'direction': '', 'velocity': '', 'composition': '','residenceTime': 'N/A', 'CV': ' '},
         'Equilibration': {'direction': '', 'velocity': '', 'composition': '','residenceTime': 'N/A', 'CV': ' '},
         'Charge': {'direction': '', 'velocity': '', 'composition': '','residenceTime': 'N/A', 'CV': ' '},
-        'Pre Sanitization': {'direction': '', 'velocity': '--', 'composition': '','residenceTime': 'N/A', 'CV': ' '},
-        'Post Sanitization': {'direction': '', 'velocity': '--', 'composition': '','residenceTime': 'N/A', 'CV': ' '},
+        'Pre Sanitization': {'direction': '', 'velocity': '', 'composition': '','residenceTime': 'N/A', 'CV': ' '},
+        'Post Sanitization': {'direction': '', 'velocity': '', 'composition': '','residenceTime': 'N/A', 'CV': ' '},
         'Wash 1': {'direction': '', 'velocity': '', 'composition': '','residenceTime': 'N/A', 'CV': ' '},
         'Wash 2': {'direction': '', 'velocity': '', 'composition': '','residenceTime': 'N/A', 'CV': ' '},
         'Wash 3': {'direction': '', 'velocity': '', 'composition': '','residenceTime': 'N/A', 'CV': ' '},
@@ -84,7 +84,7 @@ def extract_process_info(array):
         'Storage Rinse': {'direction': '', 'velocity': '', 'composition': '','residenceTime': 'N/A', 'CV': ' '},
         'Post Sanitization Rinse': {'direction': '', 'velocity': '', 'composition': '','residenceTime': 'N/A', 'CV': ' '},
         'Elution': {'direction': '', 'velocity': '', 'composition': '','residenceTime': 'N/A', 'CV': ' '},
-        'Storage': {'direction': '', 'velocity': '--', 'composition': '','residenceTime': 'N/A', 'CV': ' '}
+        'Storage': {'direction': '', 'velocity': '', 'composition': '','residenceTime': 'N/A', 'CV': ' '}
     }
     
     default_flow = ''
@@ -137,7 +137,7 @@ def extract_process_info(array):
         # If we're in a process step, capture its parameters
         if current_step:
             newStep = current_step.split(', ')
-            print(newStep)
+
             if 'rinse' in lower_item:
                 if current_step + " Rinse" in process_info.keys():
                     newStep = [current_step + " Rinse"]
@@ -172,23 +172,19 @@ def extract_process_info(array):
                 except:
                     pass
             # Composition
-            elif any(term in lower_item for term in ['composition:', 'buffer composition']):
+            elif any(term in lower_item for term in ['composition', 'buffer composition']):
                 for buffer in newStep:
                     process_info[buffer]['composition'] = parts[1] if len(parts) > 1 else ''
 
-        
-    print(process_info['Charge'])
     #sometimes parameters are shared across charge and equilibration, if one is empty and the other has a value, replace the empty value
     for key in process_info['Charge'].keys():
         if key!= 'CV':
             if process_info['Charge'][key].strip() == '' and process_info['Equilibration'][key].strip() != '':
-                print(process_info['Charge'][key])
                 process_info['Charge'][key] = process_info['Equilibration'][key]
-                print(process_info['Charge'][key])
 
             elif process_info['Charge'][key].strip() != '' and process_info['Equilibration'][key].strip() == '':
                 process_info['Equilibration'][key] = process_info['Charge'][key]
-    print(process_info['Charge'])
+
     #parameters are assumed to be shared across a rinse and a buffer step if it is not specified in the pfc
     checks = ['direction', 'velocity', 'composition']
     for key in process_info.keys():
@@ -203,7 +199,6 @@ def extract_process_info(array):
         if process_info[step]['direction'] == '' and default_flow:
             process_info[step]['direction'] = default_flow
 
-    
     return process_info
 
 
@@ -215,13 +210,13 @@ def output_PFC_params(PFCInput, unitOperationInMethod):
     unit_operations = list_unit_ops(textPages)
 
     bestMatchUnitOp, ratio = closest_match_unit_op(unitOperationInMethod, unit_operations)
-
-
+        
     for unitOp in unit_operations:
         if bestMatchUnitOp.lower() in unitOp.lower():
             details = textPages.get(unitOp)
             process_info = extract_process_info(details)
 
             return process_info
+    return None
 
 
