@@ -308,7 +308,6 @@ def check_indiv_blocks_settings_pdf(indiv_blocks, pfcData, columnParam, userInpu
             if 'flush' not in block['blockName'].lower():
                 if float(block['settings']['snapshot_breakpoint_setting'])!= float(CV):
                     incorrectFieldText.append(f"Expected {CV} breakpoint volume for snapshot")
-                    #print(CV, block['settings']['snapshot_breakpoint_setting'], block['blockName'].lower(), closesTagMatch)
                       
         except:
             incorrectFieldText.append(f"I was unable to process the formatting for the snapshot breakpoint volume, please double check it")
@@ -393,9 +392,7 @@ def check_scouting(scoutingData, pfcData, uvPreset, numOfCycles, numOfMS, blocks
                     numberToEachOutlet = 1
                 
                 outletSettings = run["settings"][index::len(tableHeaderList)]
-                #runNumber = run["settings"][index-len(tableHeaderList)+1::len(tableHeaderList)]
                 runNumber = run["settings"][0::len(tableHeaderList)]
-                #print("INDEX", tableHeaderList, index, index-len(tableHeaderList)+1, runNumber, outletSettings, run["settings"])
 
                 for runIndex, val in enumerate(outletSettings):
                     try:
@@ -424,6 +421,7 @@ def check_scouting(scoutingData, pfcData, uvPreset, numOfCycles, numOfMS, blocks
                 for val in run["settings"][index::len(tableHeaderList)]:
                     if header.lower() not in val.lower() and errorMsg not in incorrectFieldText:      
                         incorrectFieldText.append(errorMsg)
+                        
                           
             #ensure that the flowrates in the scouting section alight with the input from the user
             if "flowrate" in header.lower():
@@ -457,13 +455,14 @@ def check_scouting(scoutingData, pfcData, uvPreset, numOfCycles, numOfMS, blocks
 
                         if float(val)!= float(flowRate) and float(val)!= linearFlow and float(val) != residenceFlow and errorMsg not in incorrectFieldText:        
                             incorrectFieldText.append(errorMsg)
+                            
                     except:
                         print("Int value Expected:", val, tableHeaderList)
 
             #Conditions in which only one run is expected to have a certain value, and all other cycles should be blank
             conditions = [
                 (["connect_charge_to_inlet_sample"], "Expected only first run to connect charge to inlet sample", 0),
-                (["flush", "pre_use", "pause"], "Expected only first run to be turned on for mainstream and filter flushes", 0),
+                (["flush", "pre_use_rinse", "pause"], "Expected only first run to be turned on for mainstream and filter flushes", 0),
                 (["purge"], "Expected only first run to be turned on purges", 0), 
                 (["column_storage"], "Column storage should only be turned on for final run", int(numOfCycles)-1)
             ]
@@ -485,7 +484,7 @@ def check_scouting(scoutingData, pfcData, uvPreset, numOfCycles, numOfMS, blocks
         if buffer.lower() != "storage" and buffer.lower() != "post sanitization rinse":
             highlights.append({
                 "blockData": scoutingData[0], 
-                "annotationText": f"Expected a flowrate block for {buffer}"
+                "annotationText": [f"Expected a flowrate block for {buffer}"]
             })
 
     return highlights
@@ -497,10 +496,13 @@ def check_settings(header, run, index, keyList, keywords, errorMsg, cycleIndex):
     if any(keyword in header.lower() for keyword in keywords):
         # Iterate over the settings for the current run
         for j, val in enumerate(run["settings"][index::len(keyList)]):
+            strippedHeader = header.replace('(','').replace(')','').replace('_',' ').replace('#',' ').lower().strip()
+            strippedVal = val.replace('(','').replace(')','').replace('_',' ').replace('#',' ').lower().strip()
+
             # Check if the header is not in the value and it's the first run
-            if header.lower() not in val.lower() and errorMsg not in incorrectFieldText and j == cycleIndex:
+            if (strippedHeader not in strippedVal and strippedVal not in strippedHeader)  and errorMsg not in incorrectFieldText and j == cycleIndex:
                 incorrectFieldText.append(errorMsg)
-                  
+
             # Check if it's not the first run and the value is not "Blank"
             elif j != cycleIndex and "Blank" not in val and errorMsg not in incorrectFieldText:
                 incorrectFieldText.append(errorMsg)

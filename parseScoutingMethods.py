@@ -1,3 +1,5 @@
+import re
+
 def parse_scouting_table(text, allBlockTextExceptLast, scoutingRunLocations):
     """
     Parse scouting table text with wrapped cell values
@@ -80,12 +82,12 @@ def parse_scouting_table(text, allBlockTextExceptLast, scoutingRunLocations):
             # method information marks the end of scouting data and the start of operator questions
             elif "method information" in line.lower():
                 endEarly = True
-                previousHeader = combine_values(previousHeader, allBlockTextExceptLast)
+                header = combine_values(currentHeaderList, allBlockTextExceptLast)
 
                 runInfoList = combine_values(runInfoList, allBlockTextExceptLast)
 
                 finalDict.append({
-                            "blockName": ", ".join(previousHeader),
+                            "blockName": ", ".join(header),
                             "blockPage": scoutingRunLocations[currentRunBlockCount-1][0], 
                             "location": scoutingRunLocations[currentRunBlockCount-1][1],
                             "settings": runInfoList
@@ -141,7 +143,7 @@ def combine_values(row, allBlockTextExceptLast):
                         pass
 
     indexes_to_remove = []
-    import re
+
     
 
     for i in range (len(newList)):
