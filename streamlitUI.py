@@ -169,11 +169,20 @@ def create_inlet_qd_interface():
                                      index=options.index('None'), disabled=True)
         st.info("Please upload UNICORN Method PDF first before uploading PFC document")
     
-    column_disabled = uploaded_PFC_file is None
-    if not column_disabled:
-            pfcQDMap = output_PFC_params(uploaded_PFC_file, selected_option)
+    PFC_not_uploaded = uploaded_PFC_file is None
+    saniStrategyOptions = ["PrismA", "SuRe"]
+    if not PFC_not_uploaded:
+            pfcQDMap, saniStrategy = output_PFC_params(uploaded_PFC_file, selected_option)
             if not pfcQDMap:
                 st.write(f"❌ Could not find specified unit operation, please make sure this is a word document dPFC.")
+
+            selectedSaniStrategy = st.selectbox('Verify Sanitatization Strategy:', saniStrategyOptions, 
+                                        index=saniStrategyOptions.index(saniStrategy), disabled=False)
+    else:
+        saniStrategyOptions = ['None']
+        selectedSaniStrategy = st.selectbox('Verify Sanitatization Strategy:', saniStrategyOptions, 
+                                     index=saniStrategyOptions.index('None'), disabled=True)
+        st.info("Please upload PFC before specifying sanitization strategy")
 
     default_qd_map = {
         'Equilibration': {'inlet': 'Inlet 1', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' '},
@@ -199,14 +208,14 @@ def create_inlet_qd_interface():
                 "Post Charge Wash UV",
                 value=3.0,
                 key="washUV",
-                disabled=column_disabled
+                disabled=PFC_not_uploaded
             )
         with col2:
             wavelengthSetting = st.text_input(
                 "UV Detector Wavelength (nm)",
                 value=280,
                 key="uvWavelength",
-                disabled=column_disabled
+                disabled=PFC_not_uploaded
             )
 
 
@@ -220,21 +229,21 @@ def create_inlet_qd_interface():
             "Column Bed Height",
             value=column_params['columnHeight'],
             key="columnHeight",
-            disabled=column_disabled
+            disabled=PFC_not_uploaded
         )
     with col2:
         column_params['columnDiameter'] = st.text_input(
             "Column Diameter",
             value=column_params['columnDiameter'],
             key="diameter",
-            disabled=column_disabled
+            disabled=PFC_not_uploaded
         )
     with col3:
         column_params['contactTime'] = st.text_input(
             "Contact Time",
             value=column_params['contactTime'],
             key="time",
-            disabled=column_disabled
+            disabled=PFC_not_uploaded
         )
 
     compensation_factors = {
@@ -262,21 +271,21 @@ def create_inlet_qd_interface():
                         gradCartOptions,
                         key="gradCart",
                         index = gradCartOptions.index("LHM 4250"),
-                        disabled=column_disabled
+                        disabled=PFC_not_uploaded
                     )
     with col2:
         compFactorSetting = st.selectbox("Compensation Factor Setting",
                         cfOptions,
                         key="compFactor",
                         index=cfOptions.index("2 mm CF"),
-                        disabled=column_disabled
+                        disabled=PFC_not_uploaded
                     )
     with col3:
         skidSizeSetting = st.selectbox("Gradient Skid Size",
                         gradSkidSizeOptions,
                         key="skidSize",
                         index=gradSkidSizeOptions.index("3/4"),
-                        disabled=column_disabled
+                        disabled=PFC_not_uploaded
                     )
 
     try:
@@ -291,13 +300,13 @@ def create_inlet_qd_interface():
         numMS = st.text_input("Number of Mainstreams",
                 value=0,
                 key="numMS",
-                disabled=column_disabled
+                disabled=PFC_not_uploaded
             )
     with col2:
         numCycles = st.text_input("Number of Cycles",
                 value=0,
                 key="numCycles",
-                disabled=column_disabled
+                disabled=PFC_not_uploaded
             )
         
     if int(numCycles)!=0 and int(numMS)!=0 and int(numCycles)%int(numMS)!=0:

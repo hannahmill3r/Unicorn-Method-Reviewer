@@ -1,5 +1,6 @@
 import docx
 from extractText import closest_match_unit_op
+import re
 
 
 def read_docx2(file_path):
@@ -90,7 +91,10 @@ def extract_process_info(array):
     default_flow = ''
     current_step = None
     newStep = None
-    
+
+    suRe = re.search(r'sure\s*(.*)', array[0].lower())
+    sanitizationStrategy = "SuRe" if suRe else "PrismA"
+
     for item in array:
         if 'all column flow directions are downflow' in item.lower():
             default_flow = 'Downflow'
@@ -114,8 +118,6 @@ def extract_process_info(array):
             elif 'wash' in lower_item:
                 current_step = 'Wash 1, Wash 2, Wash 3'
             
-            
-
         # Handle wash steps specifically
 
         if 'wash 1' in lower_item:
@@ -199,7 +201,7 @@ def extract_process_info(array):
         if process_info[step]['direction'] == '' and default_flow:
             process_info[step]['direction'] = default_flow
 
-    return process_info
+    return process_info, sanitizationStrategy
 
 
 
@@ -214,9 +216,9 @@ def output_PFC_params(PFCInput, unitOperationInMethod):
     for unitOp in unit_operations:
         if bestMatchUnitOp.lower() in unitOp.lower():
             details = textPages.get(unitOp)
-            process_info = extract_process_info(details)
+            process_info, saniStrategy = extract_process_info(details)
 
-            return process_info
+            return process_info, saniStrategy
     return None
 
 

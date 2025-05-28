@@ -2,6 +2,7 @@ from extractText import closest_match_unit_op
 import re
 import math
 from flowCalculations import calc_LFlow, calc_LFlow_from_residence_time
+from blockNameDict import blockNameDictionary
 
 """
 Block Verification
@@ -217,23 +218,8 @@ def check_indiv_blocks_settings_pdf(indiv_blocks, pfcData, columnParam, userInpu
     equilLFlow = calc_LFlow(float(columnParam["columnHeight"]), float(columnParam["columnDiameter"]), float(columnParam["contactTime"]))["linearFlow"]
     for index, block in enumerate(indiv_blocks):
         incorrectFieldText = []
-        direct = pfcQD = residenceTime = flowRate= ''
-        closestTitleMatch, ratio = closest_match_unit_op(block['blockName'], pfcData.keys())
-        closesTagMatch, ratioTag = closest_match_unit_op(block['settings']['flow_tags'][-1].split('_Flowrate')[0], pfcData.keys())
 
-
-        if (closesTagMatch!=closestTitleMatch):
-            if "rinse" in block['blockName'].lower():
-                closestTitleMatch, ratnew = closest_match_unit_op(block['settings']['flow_tags'][-1].split('_Flowrate')[0]+" Rinse", pfcData.keys())
-
-        for key in pfcData.keys():
-            if key == closestTitleMatch :
-                pfcQD = pfcData[key]['qd']
-                direct = pfcData[key]['direction']
-                flowRate = pfcData[key]['flow_rate']
-                residenceTime = pfcData[key]['residence time']
-                CV = pfcData[key]['CV']
-
+        closestTitleMatch, pfcQD, direct, flowRate, residenceTime, columnVolume = get_pfc_data_from_block_name(block['blockName'], pfcData)
         if "Inline" not in block["settings"]['filter_setting']:
             incorrectFieldText.append("Expected Inline filter")
               
@@ -297,20 +283,20 @@ def check_indiv_blocks_settings_pdf(indiv_blocks, pfcData, columnParam, userInpu
         try:
             if 'flush' in block['blockName'].lower() and float(block['settings']['end_block_setting'])!= float(expected_flush_breakpoint):
                 incorrectFieldText.append(f"Expected flush to have {float(expected_flush_breakpoint)} breakpoint volume, got {str(block['settings']['end_block_setting'])}")
-            elif float(block['settings']['end_block_setting'])!= float(CV) and 'flush' not in block['blockName'].lower():
-                incorrectFieldText.append(f"Expected {CV} breakpoint volume, got {float(block['settings']['end_block_setting'])}")
+            elif float(block['settings']['end_block_setting'])!= float(columnVolume) and 'flush' not in block['blockName'].lower():
+                incorrectFieldText.append(f"Expected {columnVolume} breakpoint volume, got {float(block['settings']['end_block_setting'])}")
           
         except:
-            incorrectFieldText.append(f"I was unable to process the formatting for the breakpoint volume, please double check it")
+            pass
               
         #check the snapshot breakpoint column volumes
         try:
             if 'flush' not in block['blockName'].lower():
-                if float(block['settings']['snapshot_breakpoint_setting'])!= float(CV):
-                    incorrectFieldText.append(f"Expected {CV} breakpoint volume for snapshot")
+                if float(block['settings']['snapshot_breakpoint_setting'])!= float(columnVolume):
+                    incorrectFieldText.append(f"Expected {columnVolume} breakpoint volume for snapshot")
                       
         except:
-            incorrectFieldText.append(f"I was unable to process the formatting for the snapshot breakpoint volume, please double check it")
+           pass
               
         #TODO: check inlets?
 
@@ -376,6 +362,12 @@ def check_scouting(scoutingData, pfcData, uvPreset, numOfCycles, numOfMS, blocks
         
         #loop throught the column headers for each of the tables
         for index, header in enumerate(tableHeaderList):
+            closestTitleMatch, pfcQD, direct, flowRate, residenceTime, columnVolume = get_pfc_data_from_block_name(header.lower().strip("flowrate"), pfcData)
+
+            try:
+                blocksToInclude.remove(closestTitleMatch)
+            except:
+                print(closestTitleMatch, " has already been removed")
 
             numCyclesError = f"Expected the number of cycles to be {numOfCycles}"
             
@@ -424,23 +416,9 @@ def check_scouting(scoutingData, pfcData, uvPreset, numOfCycles, numOfMS, blocks
                         
                           
             #ensure that the flowrates in the scouting section alight with the input from the user
-            if "flowrate" in header.lower():
-                closestTitleMatch, ratio = closest_match_unit_op(header, pfcData.keys())
-
-                #Pre sani shares a flowrate with equil first cv
-                if "first_cv_equil_flowrate" in header.lower():
-                    closestTitleMatch = "Pre Sanitization Rinse"
+            if "flow" in header.lower():
                 
-                try:
-                    blocksToInclude.remove(closestTitleMatch)
-                except:
-                    print(closestTitleMatch, " has already been removed")
-
-                for key in pfcData.keys():
-                    if key == closestTitleMatch :
-                        flowRate = pfcData[key]['flow_rate']
-                        residenceTime = pfcData[key]['residence time']
-                
+             
                 for val in run["settings"][index::len(tableHeaderList)]:
                     errorMsg = f"Expected flow rate to be set to {flowRate} for {header}"
                     linearFlow = str(calc_LFlow(columnParam["columnHeight"], columnParam["columnDiameter"], columnParam['contactTime'])["linearFlow"])
@@ -575,3 +553,18 @@ def validate_common_settings(block_settings, column, bubbletrap, manflow, breckp
             errors.append(error_msg)
 
     return errors
+
+def get_pfc_data_from_block_name(blockName, pfcData):
+    closestTitleMatch, ratio = closest_match_unit_op(blockName, blockNameDictionary.keys())
+    
+    try:
+        closestMatchData = pfcData[blockNameDictionary.get(closestTitleMatch)]
+        pfcQD = closestMatchData['qd']
+        direct = closestMatchData['direction']
+        flowRate = closestMatchData['flow_rate']
+        residenceTime = closestMatchData['residence time']
+        columnVolume = closestMatchData['CV']
+
+        return blockNameDictionary.get(closestTitleMatch), pfcQD, direct, flowRate, residenceTime, columnVolume
+    except:
+        return '', '', '', '', ''
