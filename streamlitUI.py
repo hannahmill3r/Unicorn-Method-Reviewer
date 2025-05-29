@@ -132,7 +132,7 @@ def display_pdf(file):
 
 
 def create_inlet_qd_interface():
-
+    parameters_in_pfc=[]
     #st.set_page_config(layout="wide")
     st.set_page_config(
     page_title="UNICORN Method Validator",
@@ -203,7 +203,6 @@ def create_inlet_qd_interface():
     saniStrategyOptions = ["PrismA", "SuRe", "None"]
     if not PFC_not_uploaded:
             try:
-                print(output_PFC_params(uploaded_PFC_file, selected_option))
                 pfcQDMap, saniStrategy, parameters_in_pfc = output_PFC_params(uploaded_PFC_file, selected_option)
                 
                 if not parameters_in_pfc:
@@ -365,30 +364,31 @@ def create_inlet_qd_interface():
 
         if pfcQDMap:
             for i in default_qd_map.keys():
+                if i in parameters_in_pfc:
                 
-                qdAssignment = pfcQDMap.get(i).get('composition')
-                directionAssignment = pfcQDMap.get(i).get('direction')
-                residenceAssignment =  pfcQDMap.get(i).get('residenceTime')
-                cvAssignment =  pfcQDMap.get(i).get('CV')
-                if pfcQDMap.get(i).get('velocity').strip() == '':
-                    if 'sani' in i.lower():
-                        try:
-                            velocityAssignment = round(calc_LFlow(float(column_params['columnHeight']), float(column_params['columnDiameter']), float(column_params['contactTime']))["linearFlow"])
-                        except: 
-                            velocityAssignment =  pfcQDMap.get(i).get('velocity')
-                    elif 'charge' in i.lower() or 'wash 1' in i.lower() and residenceAssignment.isdigit():
-                        try:
-                            velocityAssignment = round(calc_LFlow_from_residence_time(float(column_params['columnHeight']), float(residenceAssignment)))
-                        except: 
-                            velocityAssignment =  pfcQDMap.get(i).get('velocity')
-                else:
-                    velocityAssignment =  pfcQDMap.get(i).get('velocity')
+                    qdAssignment = pfcQDMap.get(i).get('composition')
+                    directionAssignment = pfcQDMap.get(i).get('direction')
+                    residenceAssignment =  pfcQDMap.get(i).get('residenceTime')
+                    cvAssignment =  pfcQDMap.get(i).get('CV')
+                    if pfcQDMap.get(i).get('velocity').strip() == '':
+                        if 'sani' in i.lower():
+                            try:
+                                velocityAssignment = round(calc_LFlow(float(column_params['columnHeight']), float(column_params['columnDiameter']), float(column_params['contactTime']))["linearFlow"])
+                            except: 
+                                velocityAssignment =  pfcQDMap.get(i).get('velocity')
+                        elif 'charge' in i.lower() or 'wash 1' in i.lower() and residenceAssignment.isdigit():
+                            try:
+                                velocityAssignment = round(calc_LFlow_from_residence_time(float(column_params['columnHeight']), float(residenceAssignment)))
+                            except: 
+                                velocityAssignment =  pfcQDMap.get(i).get('velocity')
+                    else:
+                        velocityAssignment =  pfcQDMap.get(i).get('velocity')
 
-                default_qd_map[i]['qd'] = qdAssignment
-                default_qd_map[i]['flow_rate'] = velocityAssignment
-                default_qd_map[i]['direction'] = directionAssignment
-                default_qd_map[i]['residence time'] = residenceAssignment
-                default_qd_map[i]['CV'] = cvAssignment
+                    default_qd_map[i]['qd'] = qdAssignment
+                    default_qd_map[i]['flow_rate'] = velocityAssignment
+                    default_qd_map[i]['direction'] = directionAssignment
+                    default_qd_map[i]['residence time'] = residenceAssignment
+                    default_qd_map[i]['CV'] = cvAssignment
     
         return default_qd_map
     
@@ -465,7 +465,7 @@ def create_inlet_qd_interface():
         "Submit for Comparison", 
         disabled=not (st.session_state.get('qd_validated', False) and uploaded_file is not None)
     )
-
+    print(parameters_in_pfc)
     return {
         'inlet_data': default_qd_map,
         'column_params': column_params,

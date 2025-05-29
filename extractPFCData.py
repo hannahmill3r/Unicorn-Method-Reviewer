@@ -230,7 +230,6 @@ def output_PFC_params(PFCInput, unitOperationInMethod):
     unit_operations = list_unit_ops(textPages)
 
     bestMatchUnitOp, ratio = closest_match_unit_op(unitOperationInMethod, unit_operations)
-    print("bestMatch", bestMatchUnitOp)
         
     for unitOp in unit_operations:
         if bestMatchUnitOp.lower() in unitOp.lower():
