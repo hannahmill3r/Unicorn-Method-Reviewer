@@ -132,7 +132,8 @@ def display_pdf(file):
 
 
 def create_inlet_qd_interface():
-    parameters_in_pfc=[]
+    parameters_in_pfc = []
+
     #st.set_page_config(layout="wide")
     st.set_page_config(
     page_title="UNICORN Method Validator",
@@ -187,16 +188,13 @@ def create_inlet_qd_interface():
         
         outputFile = extract_text_from_pdf('tempfile.pdf', 'output2')
         unitOperationFromMethod = extract_unit_opertaion_from_method(outputFile, options)
-        selected_option = st.selectbox('Verify Unit Operation:', options, 
-                                     index=options.index(unitOperationFromMethod), disabled=False)
+        selected_option = st.selectbox('Verify Unit Operation:', options, index=options.index(unitOperationFromMethod), disabled=False)
 
         if selected_option is not None:
-            uploaded_PFC_file = st.file_uploader("Upload PFC Word Document Containing " + 
-                                               unitOperationFromMethod + " Information", type="docx")
+            uploaded_PFC_file = st.file_uploader("Upload PFC Word Document Containing " + unitOperationFromMethod + " Information", type="docx")
     else:
         options = ['None']
-        selected_option = st.selectbox('Verify Unit Operation:', options, 
-                                     index=options.index('None'), disabled=True)
+        selected_option = st.selectbox('Verify Unit Operation:', options, index=options.index('None'), disabled=True)
         st.info("Please upload UNICORN Method PDF first before uploading PFC document")
     
     PFC_not_uploaded = uploaded_PFC_file is None
@@ -205,18 +203,19 @@ def create_inlet_qd_interface():
             try:
                 pfcQDMap, saniStrategy, parameters_in_pfc = output_PFC_params(uploaded_PFC_file, selected_option)
                 
+                st.session_state['pfcData']= parameters_in_pfc
+                
                 if not parameters_in_pfc:
                     st.write(f"❌ Could not find specified unit operation, please make sure this is a word document dPFC.")
+
             except:
                 st.write(f"❌ Could not find specified unit operation, please make sure this is a word document dPFC.")
             
 
-            selectedSaniStrategy = st.selectbox('Verify Sanitatization Strategy:', saniStrategyOptions, 
-                                        index=saniStrategyOptions.index(saniStrategy), disabled=False)
+            selectedSaniStrategy = st.selectbox('Verify Sanitatization Strategy:', saniStrategyOptions, index=saniStrategyOptions.index(saniStrategy), disabled=False)
     else:
-        saniStrategyOptions = ['None']
-        selectedSaniStrategy = st.selectbox('Verify Sanitatization Strategy:', saniStrategyOptions, 
-                                     index=saniStrategyOptions.index('None'), disabled=True)
+        saniNoOptions = ['None']
+        selectedSaniStrategy = st.selectbox('Verify Sanitatization Strategy:', saniNoOptions, index=saniNoOptions.index('None'), disabled=True)
         st.info("Please upload PFC before specifying sanitization strategy")
 
     default_qd_map = {
@@ -361,7 +360,6 @@ def create_inlet_qd_interface():
 
     inputs_disabled = uploaded_PFC_file is None or columnParamsIncomplete
     def fill_default_sample_map(default_qd_map, column_params, pfcQDMap):
-
         if pfcQDMap:
             for i in default_qd_map.keys():
                 if i in parameters_in_pfc:
@@ -465,7 +463,7 @@ def create_inlet_qd_interface():
         "Submit for Comparison", 
         disabled=not (st.session_state.get('qd_validated', False) and uploaded_file is not None)
     )
-    print(parameters_in_pfc)
+
     return {
         'inlet_data': default_qd_map,
         'column_params': column_params,

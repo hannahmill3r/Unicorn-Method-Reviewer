@@ -208,16 +208,18 @@ def extract_process_info(array):
     #parameters are assumed to be shared across a rinse and a buffer step if it is not specified in the pfc
     checks = ['direction', 'velocity', 'composition']
     for key in process_info.keys():
-        for param in checks:
-            if key + " Rinse" in process_info.keys() and process_info[key][param].strip() !='' and process_info[key + ' Rinse'][param].strip() == '':
-                process_info[key + ' Rinse'][param] = process_info[key][param].strip()
+        if key in parameters_in_pfc:
+            for param in checks:
+                if key + " Rinse" in process_info.keys() and process_info[key][param].strip() !='' and process_info[key + ' Rinse'][param].strip() == '':
+                    process_info[key + ' Rinse'][param] = process_info[key][param].strip()
 
 
 
     # Set default flow direction if not specified
-    for step in process_info:
-        if process_info[step]['direction'] == '' and default_flow:
-            process_info[step]['direction'] = default_flow
+    for key in process_info:
+        if key in parameters_in_pfc:
+            if process_info[key]['direction'] == '' and default_flow:
+                process_info[key]['direction'] = default_flow
 
     return process_info, sanitizationStrategy, parameters_in_pfc
 

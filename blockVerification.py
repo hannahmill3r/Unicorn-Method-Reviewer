@@ -458,12 +458,14 @@ def check_scouting(scoutingData, pfcData, uvPreset, numOfCycles, numOfMS, blocks
                 "blockData": run, 
                 "annotationText": incorrectFieldText
             })
-
+    incorrectFieldText = []
     for buffer in blocksToInclude:
-        if buffer.lower() != "storage" and buffer.lower() != "post sanitization rinse":
+        incorrectFieldText.append(f"Expected a flowrate block for {buffer}")
+
+    if incorrectFieldText:
             highlights.append({
                 "blockData": scoutingData[0], 
-                "annotationText": [f"Expected a flowrate block for {buffer}"]
+                "annotationText": incorrectFieldText
             })
 
     return highlights
@@ -489,36 +491,36 @@ def check_settings(header, run, index, keyList, keywords, errorMsg, cycleIndex):
 
 
 def validate_flow_settings(block, equilLFlow, flowRate, columnParam, residenceTime, pfcData):
-            """
-            Validates flow rate settings against expected values for different block types
-            Args:
-                block: Current method block being validated
-                equilLFlow: Expected equilibration/sanitization flow rate
-                flowRate: Standard flow rate from PFC
-                columnParam: Column parameters (height, etc)
-                residenceTime: Expected residence time
-                pfcData: Process data containing expected values
-            """
-            incorrectFieldText = []
-            
-            # Get flow settings and tags
-            flows = [block['settings']['flow_setting']] 
-            
-            # Split into lists if multiple flows specified
-            if "," in block['settings']['flow_setting']:
-                flows = block['settings']['flow_setting'].strip().split(",")
-            try:
-                linearFlow = str(calc_LFlow(columnParam["columnHeight"], columnParam["columnDiameter"], columnParam['contactTime'])["linearFlow"])
-                residenceFlow = str(calc_LFlow_from_residence_time(columnParam["columnHeight"], residenceTime))
-            except:
-                linearFlow = ''
-                residenceFlow = ''
+    """
+    Validates flow rate settings against expected values for different block types
+    Args:
+        block: Current method block being validated
+        equilLFlow: Expected equilibration/sanitization flow rate
+        flowRate: Standard flow rate from PFC
+        columnParam: Column parameters (height, etc)
+        residenceTime: Expected residence time
+        pfcData: Process data containing expected values
+    """
+    incorrectFieldText = []
+    
+    # Get flow settings and tags
+    flows = [block['settings']['flow_setting']] 
+    
+    # Split into lists if multiple flows specified
+    if "," in block['settings']['flow_setting']:
+        flows = block['settings']['flow_setting'].strip().split(",")
+    try:
+        linearFlow = str(calc_LFlow(columnParam["columnHeight"], columnParam["columnDiameter"], columnParam['contactTime'])["linearFlow"])
+        residenceFlow = str(calc_LFlow_from_residence_time(columnParam["columnHeight"], residenceTime))
+    except:
+        linearFlow = ''
+        residenceFlow = ''
 
-            # Validate each flow value
-            if not any(flow.strip() in flowRate for flow in flows) and not any(flow.strip() in linearFlow for flow in flows) and not any(flow.strip() in residenceFlow for flow in flows):
-                incorrectFieldText.append(f"Expected {flowRate} flow")
+    # Validate each flow value
+    if not any(flow.strip() in flowRate for flow in flows) and not any(flow.strip() in linearFlow for flow in flows) and not any(flow.strip() in residenceFlow for flow in flows):
+        incorrectFieldText.append(f"Expected {flowRate} flow")
 
-            return incorrectFieldText
+    return incorrectFieldText
 
 
 def validate_common_settings(block_settings, column, bubbletrap, manflow, breckpoint_volume):
@@ -533,11 +535,9 @@ def validate_common_settings(block_settings, column, bubbletrap, manflow, breckp
         list: List of error messages for failed validations
     """
 
-
     common_checks = {
         'manflow': (manflow, f"Expected {manflow}% ManFlow"),
         'outlet_setting': ('Waste', "All purges should go to waste"),
-        #'base_setting': (base, "Expected pump purge to be in time"), 
         'bubbletrap_setting': (bubbletrap, f"Expected bubbletrap: {bubbletrap}"),
         'column_setting': (column, f"Expected column: {column}"), 
         'end_block_setting': (breckpoint_volume, f"Expected breakpoint volume: {breckpoint_volume}")
