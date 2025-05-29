@@ -2,6 +2,26 @@ import docx
 from extractText import closest_match_unit_op
 import re
 
+default_process_info = {
+        'Regeneration': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
+        'Pre Sanitization Rinse': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
+        'Pre Sanitization Rinse 2': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
+        'Equilibration': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
+        'Charge': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
+        'Pre Sanitization': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
+        'Pre Sanitization 2': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
+        'Post Sanitization': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
+        'Post Sanitization 2': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
+        'Wash 1': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
+        'Wash 2': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
+        'Wash 3': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
+        'Elution': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
+        'Storage Rinse': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
+        'Post Sanitization Rinse': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
+        'Post Sanitization Rinse 2': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
+        'Elution': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
+        'Storage': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '}
+    }
 
 def read_docx2(file_path):
     """Read content from a docx file separating into nested lists by unit operation"""
@@ -71,26 +91,7 @@ def list_unit_ops(pages):
     return unitOperations
     
 def extract_process_info(array):
-    process_info = {
-        'Regeneration': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
-        'Pre Sanitization Rinse': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
-        'Pre Sanitization Rinse 2': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
-        'Equilibration': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
-        'Charge': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
-        'Pre Sanitization': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
-        'Pre Sanitization 2': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
-        'Post Sanitization': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
-        'Post Sanitization 2': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
-        'Wash 1': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
-        'Wash 2': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
-        'Wash 3': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
-        'Elution': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
-        'Storage Rinse': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
-        'Post Sanitization Rinse': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
-        'Post Sanitization Rinse 2': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
-        'Elution': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
-        'Storage': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '}
-    }
+    process_info = default_process_info
 
     parameters_in_pfc = []
     
@@ -229,15 +230,15 @@ def output_PFC_params(PFCInput, unitOperationInMethod):
     unit_operations = list_unit_ops(textPages)
 
     bestMatchUnitOp, ratio = closest_match_unit_op(unitOperationInMethod, unit_operations)
+    print("bestMatch", bestMatchUnitOp)
         
     for unitOp in unit_operations:
         if bestMatchUnitOp.lower() in unitOp.lower():
             details = textPages.get(unitOp)
             process_info, saniStrategy, parameters_in_pfc = extract_process_info(details)
-            print(process_info)
 
             return process_info, saniStrategy, parameters_in_pfc
-    return None
+    return default_process_info, "None", []
 
 
 

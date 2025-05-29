@@ -200,11 +200,17 @@ def create_inlet_qd_interface():
         st.info("Please upload UNICORN Method PDF first before uploading PFC document")
     
     PFC_not_uploaded = uploaded_PFC_file is None
-    saniStrategyOptions = ["PrismA", "SuRe"]
+    saniStrategyOptions = ["PrismA", "SuRe", "None"]
     if not PFC_not_uploaded:
-            pfcQDMap, saniStrategy, parameters_in_pfc = output_PFC_params(uploaded_PFC_file, selected_option)
-            if not pfcQDMap:
+            try:
+                print(output_PFC_params(uploaded_PFC_file, selected_option))
+                pfcQDMap, saniStrategy, parameters_in_pfc = output_PFC_params(uploaded_PFC_file, selected_option)
+                
+                if not parameters_in_pfc:
+                    st.write(f"❌ Could not find specified unit operation, please make sure this is a word document dPFC.")
+            except:
                 st.write(f"❌ Could not find specified unit operation, please make sure this is a word document dPFC.")
+            
 
             selectedSaniStrategy = st.selectbox('Verify Sanitatization Strategy:', saniStrategyOptions, 
                                         index=saniStrategyOptions.index(saniStrategy), disabled=False)
