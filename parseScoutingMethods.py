@@ -76,9 +76,6 @@ def parse_scouting_table(text, allBlockTextExceptLast, scoutingRunLocations):
                 recordRunInfo = False
                 currentHeaderList.append(line)
 
-
-            
-
             # method information marks the end of scouting data and the start of operator questions
             elif "method information" in line.lower():
                 endEarly = True

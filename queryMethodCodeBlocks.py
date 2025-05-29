@@ -25,6 +25,12 @@ def query_block_data(block):
         # Extract numbers from the line (will get all numbers including decimals)
         numbers = re.findall(r'\d+\.?\d*', line.group(0))
         snapshot_volume_match = numbers[0] if numbers else ' '
+
+    #there can be multiple comments
+    multi_comment_match = re.finditer(r'Comment:\s*(.*)', block)
+    commentMatches = []
+    for match in multi_comment_match:  
+        commentMatches.append(match.group(1).strip() if match else ' ')
     
     
     multi_column_match = re.finditer(r'Column:\s*(.*)', block)
@@ -117,7 +123,8 @@ def query_block_data(block):
             'snapshot_setting': snapshot_match, 
             'setmark_setting': setmark_match, 
             'snapshot_breakpoint_setting': snapshot_volume_match, 
-            'compensation_setting': comp_factor
+            'compensation_setting': comp_factor, 
+            'comments_setting': commentMatches
         }
 
     return currentBlock

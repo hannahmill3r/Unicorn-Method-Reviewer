@@ -27,6 +27,8 @@ blockNameDictionary = {
         'Pre_Use_Clean_2': 'Pre Sanitization 2',
         'Pre_Use_Rinse_1' :'Pre Sanitization Rinse', 
         'Pre_Use_Rinse_2' :'Pre Sanitization Rinse 2', 
-        'first_cv_equil_flowrate': "Pre Sanitization Rinse"
+        'first_cv_equil_flowrate': "Pre Sanitization Rinse", 
+        'Flush_Skid_Inlet_2_Elution': "Elution", 
+        'Wash_2_System_Flush': "Wash 2"
 
     }

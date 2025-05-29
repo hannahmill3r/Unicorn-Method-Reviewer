@@ -3,24 +3,29 @@ from extractText import extract_text_from_pdf
 from extractPFCData import output_PFC_params
 from extractText import extract_unit_opertaion_from_method
 import base64
+import tempfile
+import fitz
+import re
 from flowCalculations import calc_LFlow, calc_LFlow_from_residence_time
 
-def filter_incomplete_steps(qd_map):
-        all_steps = list(qd_map.keys())
-        incomplete_steps = []
+def parse_gradient_composition(text):
+    # Regular expression to match patterns like "90% A: QD0030510% B: QD00346"
+    pattern = r'(\d+)%\s*A:\s*(QD\d+)\s*(\d+)%\s*B:\s*(QD\d+)'
+    
+    match = re.search(pattern, text)
+    if match:
+        buffer_a_percent = match.group(1)
+        buffer_a_qd = match.group(2)
+        buffer_b_percent = match.group(3)
+        buffer_b_qd = match.group(4)
         
-        for step, values in qd_map.items():
-            # Check if all three values are empty (just spaces)
-            if (values['qd'].strip() == '' and 
-                values['flow_rate'].strip() == '' and 
-                values['CV'].strip() == ''):
-                incomplete_steps.append(step)
-        
-        # Remove incomplete steps from all_steps
-        final_steps = [step for step in all_steps if step not in incomplete_steps]
-        return final_steps
+        return {
+            'Buffer A': {'percent': buffer_a_percent, 'QD': buffer_a_qd},
+            'Buffer B': {'percent': buffer_b_percent, 'QD': buffer_b_qd}
+        }
+    return None
 
-def writeColumns(default_qd_map, requiredBuffers, inputs_disabled, directOptions):
+def writeColumns(default_qd_map, requiredBuffers, inputs_disabled, directOptions, parameters_in_pfc):
     """
     Creates a Streamlit interface for configuring pump parameters for both Pump A and B inlets
     
@@ -61,9 +66,35 @@ def writeColumns(default_qd_map, requiredBuffers, inputs_disabled, directOptions
                         directOptions,
                         help = helpLabel,
                         key=field_key,
-                        index=directOptions.index(default_qd_map[buffer].get(key)),
+                        index=directOptions.index(default_qd_map[buffer].get(key).strip()),
                         disabled=inputs_disabled
                     )
+                elif key == 'qd' and parse_gradient_composition(default_qd_map[buffer].get(key)):
+                    parsed_gradient = parse_gradient_composition(default_qd_map[buffer].get(key))
+
+                    col5, col6 = st.columns(2)
+                    default_qd_map[buffer][key] = [0, 0]
+                    
+                    with col5:
+                        default_qd_map[buffer][key][0] = st.text_input(
+                            label,
+                            value=parsed_gradient['Buffer A']['QD'],
+                            help = f"Buffer A: {parsed_gradient['Buffer A']['percent']}% {parsed_gradient['Buffer A']['QD']}",
+                            key=field_key + "Buffer A",
+                            disabled=inputs_disabled
+                        )
+
+                        
+                    with col6:
+                        default_qd_map[buffer][key][1] = st.text_input(
+                            label,
+                            value=parsed_gradient['Buffer B']['QD'],
+                            help = f"Buffer B: {parsed_gradient['Buffer B']['percent']}% {parsed_gradient['Buffer B']['QD']}",
+                            key=field_key + "Buffer B",
+                            disabled=inputs_disabled
+                        )
+
+                    
                 else:
                     # Standard text input for other fields
                     default_qd_map[buffer][key] = st.text_input(
@@ -77,13 +108,15 @@ def writeColumns(default_qd_map, requiredBuffers, inputs_disabled, directOptions
     # Process Pump A Inlets
     pump_a_buffers = ['Equilibration', 'Elution', 'Wash 1', "Wash 3", 'Charge', 'Pre Sanitization', 'Pre Sanitization Rinse', 'Storage Rinse']
     for buffer in pump_a_buffers:
-        create_buffer_inputs(buffer, default_qd_map[buffer].get('inlet'))
+        if buffer in parameters_in_pfc:
+            create_buffer_inputs(buffer, default_qd_map[buffer].get('inlet'))
 
     # Process Pump B Inlets
     st.subheader("Pump B Inlets")
     pump_b_buffers = ['Post Sanitization', 'Post Sanitization Rinse', 'Storage', 'Regeneration', 'Wash 2']
     for buffer in pump_b_buffers:
-        create_buffer_inputs(buffer, default_qd_map[buffer].get('inlet'))
+        if buffer in parameters_in_pfc:
+            create_buffer_inputs(buffer, default_qd_map[buffer].get('inlet'))
 
 def display_pdf(file):
     # Opening file from file path
@@ -117,14 +150,11 @@ def create_inlet_qd_interface():
     uploaded_PFC_file = None
     outputFile = None
 
-    options = ['None', 'Detergent Viral Inactivation', 'Protein A Capture Chromatography', 
+    options = ['None', 'Detergent Viral Inactivation', 'Hydrophobic Interaction Chromatography', 'Protein A Capture Chromatography', 
                'Low pH Viral Inactivation and Clarification', 'Cation Exchange Chromatography', 
                'Viral Filtration', 'Tangential Flow Filtration', 
                'Intermediate Drug Substance Dispensing and Storage']
     
-    import tempfile
-    import fitz
-
     
     if uploaded_file is not None:
         
@@ -150,7 +180,7 @@ def create_inlet_qd_interface():
         except Exception as e:
             st.error(f"Error processing or saving PDF: {e}")
 
-        options = ['Detergent Viral Inactivation', 'Protein A Capture Chromatography',
+        options = ['Detergent Viral Inactivation', 'Hydrophobic Interaction Chromatography', 'Protein A Capture Chromatography',
                   'Low pH Viral Inactivation and Clarification', 'Cation Exchange Chromatography',
                   'Viral Filtration', 'Tangential Flow Filtration',
                   'Intermediate Drug Substance Dispensing and Storage']
@@ -172,7 +202,7 @@ def create_inlet_qd_interface():
     PFC_not_uploaded = uploaded_PFC_file is None
     saniStrategyOptions = ["PrismA", "SuRe"]
     if not PFC_not_uploaded:
-            pfcQDMap, saniStrategy = output_PFC_params(uploaded_PFC_file, selected_option)
+            pfcQDMap, saniStrategy, parameters_in_pfc = output_PFC_params(uploaded_PFC_file, selected_option)
             if not pfcQDMap:
                 st.write(f"❌ Could not find specified unit operation, please make sure this is a word document dPFC.")
 
@@ -196,6 +226,10 @@ def create_inlet_qd_interface():
         'Pre Sanitization Rinse': {'inlet': 'Inlet 1', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' '},
         'Post Sanitization': {'inlet': 'Inlet 4', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' '},
         'Post Sanitization Rinse': {'inlet': 'Inlet 1', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' '},
+        'Pre Sanitization 2': {'inlet': 'Inlet 6', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' '},
+        'Pre Sanitization Rinse 2': {'inlet': 'Inlet 1', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' '},
+        'Post Sanitization 2': {'inlet': 'Inlet 6', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' '},
+        'Post Sanitization Rinse 2': {'inlet': 'Inlet 1', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' '},
         'Storage Rinse': {'inlet': 'Inlet 1', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' '},
         'Wash 2': {'inlet': 'Inlet 7', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' '}
     }
@@ -360,10 +394,12 @@ def create_inlet_qd_interface():
 
     # Create columns for Pump A Inlets
     st.subheader("Pump A Inlets")
-    directOptions = ['Downflow', 'Upflow', ' ']
+    directOptions = ['Downflow', 'Upflow', '']
     requiredBuffers = ['Post Sanitization', 'Equilibration', 'Wash 1', 'Storage']
+
+    requiredBuffersInPFC = [item for item in requiredBuffers if item in parameters_in_pfc]
     
-    writeColumns(default_qd_map, requiredBuffers, inputs_disabled, directOptions)
+    writeColumns(default_qd_map, requiredBuffersInPFC, inputs_disabled, directOptions, parameters_in_pfc)
     
 
     def is_valid_qd(qd):
@@ -384,16 +420,24 @@ def create_inlet_qd_interface():
         invalidError = []
 
         #check if any required feilds are empty
-        for buffer in requiredBuffers:
-            if not default_qd_map[buffer]['qd'].strip() or not default_qd_map[buffer]['flow_rate'].strip() or not default_qd_map[buffer]['direction'].strip():
-                invalidError.append(f"{buffer} is missing required information")
-            
+        for buffer in requiredBuffersInPFC:
+            if isinstance(default_qd_map[buffer]['qd'], list):
+                for qd in default_qd_map[buffer]['qd']:
+                    if not qd.strip() or not default_qd_map[buffer]['flow_rate'].strip() or not default_qd_map[buffer]['direction'].strip():
+                        invalidError.append(f"{buffer} is missing required information")
+            elif not default_qd_map[buffer]['qd'].strip() or not default_qd_map[buffer]['flow_rate'].strip() or not default_qd_map[buffer]['direction'].strip():
+                        invalidError.append(f"{buffer} is missing required information")
+
+                
 
         # Check QD format for all fields that have values
         for buffer in default_qd_map.keys():
-            qd = default_qd_map[buffer]['qd']
-            if qd.strip() and not is_valid_qd(qd):
-                invalidError.append(f"Invalid QD format for {buffer}. Format should be 'QD' followed by 5 digits (e.g., QD00015)")
+            if isinstance(default_qd_map[buffer]['qd'], list):
+                for qd in default_qd_map[buffer]['qd']:
+                    if qd.strip() and not is_valid_qd(qd):
+                        invalidError.append(f"Invalid QD format for {buffer}. Format should be 'QD' followed by 5 digits (e.g., QD00015)")
+            elif default_qd_map[buffer]['qd'].strip() and not is_valid_qd(default_qd_map[buffer]['qd']):
+                        invalidError.append(f"Invalid QD format for {buffer}. Format should be 'QD' followed by 5 digits (e.g., QD00015)")
             try:
                 flowRateNumber = float(default_qd_map[buffer]['flow_rate'])
             except:
@@ -409,10 +453,6 @@ def create_inlet_qd_interface():
             validation_state['is_valid'] = False
             col1 = st.columns(1)
             st.error('\n\n'.join(invalidError))
-
-    
-    
-    final_steps = filter_incomplete_steps(default_qd_map)
 
 
     submit_pressed = st.button(
@@ -431,7 +471,7 @@ def create_inlet_qd_interface():
         'number_of_cycles': numCycles, 
         'UV_detection_wavelength': wavelengthSetting, 
         'post_wash_UV': uvSetting, 
-        'scouting_blocks_included': final_steps,
+        'scouting_blocks_included': parameters_in_pfc,
         'compensation_factor': compFactor,
         'skid_size': skidSizeSetting
     }

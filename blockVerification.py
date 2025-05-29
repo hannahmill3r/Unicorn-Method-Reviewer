@@ -93,7 +93,6 @@ def check_purge_block_settings(purge_blocks, pfcData, skid_size):
             
         if 'purge_a_pump' in block['blockName'].lower():
             purge_blocks.remove(block)
-            #TODO: the breakpoint volume is hard coded and needs to be extracted based on the sharepoint file linked
             for error in validate_common_settings(block['settings'], "Bypass", "Inline", expected_manflow, expected_purge_breakpoint):
                 incorrectFieldText.append(error)
 
@@ -217,9 +216,11 @@ def check_indiv_blocks_settings_pdf(indiv_blocks, pfcData, columnParam, userInpu
 
     equilLFlow = calc_LFlow(float(columnParam["columnHeight"]), float(columnParam["columnDiameter"]), float(columnParam["contactTime"]))["linearFlow"]
     for index, block in enumerate(indiv_blocks):
+
         incorrectFieldText = []
 
         closestTitleMatch, pfcQD, direct, flowRate, residenceTime, columnVolume = get_pfc_data_from_block_name(block['blockName'], pfcData)
+
         if "Inline" not in block["settings"]['filter_setting']:
             incorrectFieldText.append("Expected Inline filter")
               
@@ -514,7 +515,7 @@ def validate_flow_settings(block, equilLFlow, flowRate, columnParam, residenceTi
                 residenceFlow = ''
 
             # Validate each flow value
-            if not any(flow in flowRate for flow in flows) and not any(flow in linearFlow for flow in flows) and not any(flow in residenceFlow for flow in flows):
+            if not any(flow.strip() in flowRate for flow in flows) and not any(flow.strip() in linearFlow for flow in flows) and not any(flow.strip() in residenceFlow for flow in flows):
                 incorrectFieldText.append(f"Expected {flowRate} flow")
 
             return incorrectFieldText
