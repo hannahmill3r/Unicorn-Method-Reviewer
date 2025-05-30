@@ -7,6 +7,7 @@ import tempfile
 import fitz
 import re
 from flowCalculations import calc_LFlow, calc_LFlow_from_residence_time
+from bugReporting import create_bug_report_menu
 
 def parse_gradient_composition(text):
     # Regular expression to match patterns like "90% A: QD0030510% B: QD00346"
@@ -139,12 +140,13 @@ def create_inlet_qd_interface():
     page_title="UNICORN Method Validator",
     page_icon="🧊",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="collapsed",
     menu_items={
         'About': "The Unicorn Method reviewer takes a dPFC document and parses a specified unit operation. The output is compared against the values described in the provided scouting method's document, highlighting possible transcription errors.",
         'Get help': "mailto:Hannah.miller@lilly.com"
-    }
-)
+        }
+    )
+    create_bug_report_menu()
     st.title("UNICORN Method Validator")
 
     uploaded_file = st.file_uploader("Upload UNICORN Method PDF", type="pdf")
