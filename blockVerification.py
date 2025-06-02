@@ -2,7 +2,8 @@ from extractText import closest_match_unit_op
 import re
 import math
 from flowCalculations import calc_LFlow, calc_LFlow_from_residence_time
-from blockNameDict import blockNameDictionary
+#from blockNameDict import blockNameDictionary
+from blockNameDict_user_validation import *
 
 """
 Block Verification
@@ -17,6 +18,8 @@ This script validates chromatography method blocks against defined requirements 
 The functions defined in the script all return highlight annotations, including pdf location and text
 for any validation failures.
 """
+
+blockNameDictionary = read_user_valided_blockName()
 
 def check_column_params(methodsColumnParams, pfcColumnParams):
     highlights = []
