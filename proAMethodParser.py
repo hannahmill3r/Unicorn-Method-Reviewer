@@ -181,10 +181,13 @@ def protein_A_method_parser(textDoc, userInput):
 
     inletsNotPurged = []
     for val in remainingInlets:
-        unpurgedQD = (pfcData.get(val).get('qd')).strip()
-        if unpurgedQD != '':
-            #we might not purge an inlet if it shares a QD with another purge, so check this first
-            if unpurgedQD not in trackedInletQDs:
+        unpurgedQD = (pfcData.get(val).get('qd'))
+        if isinstance(unpurgedQD, list):
+            for qd in unpurgedQD:
+                qd.strip()
+                if qd.strip() != ''and qd.strip() not in trackedInletQDs:
+                    inletsNotPurged.append(val)
+        elif unpurgedQD.strip() != ''and unpurgedQD.strip() not in trackedInletQDs:
                 inletsNotPurged.append(val)
     doc.close()
 

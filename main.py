@@ -48,7 +48,10 @@ def main():
 
                 with st.expander(f"❌ Failed to Purge"):
                     for i in blockData["inlets_not_purged"]:
-                        st.write(i + " was not purged with " + result['inlet_data'].get(i).get('qd'))
+                        if isinstance(result['inlet_data'].get(i).get('qd'), list):
+                            st.write(i + " was not purged with " + ', '.join(result['inlet_data'].get(i).get('qd')))
+                        else:
+                            st.write(i + " was not purged with " + result['inlet_data'].get(i).get('qd'))
                 if blockData['UV_Auto_Zero'] == False:
                     with st.expander(f"❌ Missing UV Auto Zero Block"):
                         st.write("UZ Auto Zero should be turned on for every run.")

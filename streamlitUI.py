@@ -190,6 +190,7 @@ def create_inlet_qd_interface():
         
         outputFile = extract_text_from_pdf('tempfile.pdf', 'output2')
         unitOperationFromMethod = extract_unit_opertaion_from_method(outputFile, options)
+
         selected_option = st.selectbox('Verify Unit Operation:', options, index=options.index(unitOperationFromMethod), disabled=False)
 
         if selected_option is not None:
@@ -198,23 +199,29 @@ def create_inlet_qd_interface():
         options = ['None']
         selected_option = st.selectbox('Verify Unit Operation:', options, index=options.index('None'), disabled=True)
         st.info("Please upload UNICORN Method PDF first before uploading PFC document")
-    
+
     PFC_not_uploaded = uploaded_PFC_file is None
     saniStrategyOptions = ["PrismA", "SuRe", "None"]
     if not PFC_not_uploaded:
-            try:
-                pfcQDMap, saniStrategy, parameters_in_pfc = output_PFC_params(uploaded_PFC_file, selected_option)
-                
-                st.session_state['pfcData']= parameters_in_pfc
-                
-                if not parameters_in_pfc:
-                    st.write(f"❌ Could not find specified unit operation, please make sure this is a word document dPFC.")
-
-            except:
-                st.write(f"❌ Could not find specified unit operation, please make sure this is a word document dPFC.")
+        try:
+            pfcQDMap, saniStrategy, parameters_in_pfc = output_PFC_params(uploaded_PFC_file, selected_option)
             
+            st.session_state['pfcData']= parameters_in_pfc
 
             selectedSaniStrategy = st.selectbox('Verify Sanitatization Strategy:', saniStrategyOptions, index=saniStrategyOptions.index(saniStrategy), disabled=False)
+            
+            if not parameters_in_pfc:
+                st.write(f"❌ Could not find specified unit operation, please make sure this is a word document dPFC.")
+
+        except:
+            st.write(f"❌ Could not find specified unit operation, please make sure this is a word document dPFC.")
+            PFC_not_uploaded = True
+            saniNoOptions = ['None']
+            selectedSaniStrategy = st.selectbox('Verify Sanitatization Strategy:', saniNoOptions, index=saniNoOptions.index('None'), disabled=True)
+            st.info("Please upload PFC before specifying sanitization strategy")
+            
+
+            
     else:
         saniNoOptions = ['None']
         selectedSaniStrategy = st.selectbox('Verify Sanitatization Strategy:', saniNoOptions, index=saniNoOptions.index('None'), disabled=True)
@@ -239,7 +246,7 @@ def create_inlet_qd_interface():
         'Storage Rinse': {'inlet': 'Inlet 1', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' '},
         'Wash 2': {'inlet': 'Inlet 7', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' '}
     }
-   
+
 
     with st.expander(f"Default Settings"):
         col1, col2 = st.columns(2)
@@ -360,7 +367,9 @@ def create_inlet_qd_interface():
         else:
             columnParamsIncomplete = False
 
-    inputs_disabled = uploaded_PFC_file is None or columnParamsIncomplete
+    
+    inputs_disabled = PFC_not_uploaded or columnParamsIncomplete 
+    
     def fill_default_sample_map(default_qd_map, column_params, pfcQDMap):
         if pfcQDMap:
             for i in default_qd_map.keys():

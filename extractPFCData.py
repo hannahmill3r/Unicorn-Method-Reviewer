@@ -1,6 +1,7 @@
 import docx
 from extractText import closest_match_unit_op
 import re
+from blockNameDict import blockNameDictionary
 
 default_process_info = {
         'Regeneration': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
@@ -22,6 +23,29 @@ default_process_info = {
         'Elution': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
         'Storage': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '}
     }
+'''
+def reset_default_process_info():
+    default_process_info = {
+        'Regeneration': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
+        'Pre Sanitization Rinse': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
+        'Pre Sanitization Rinse 2': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
+        'Equilibration': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
+        'Charge': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
+        'Pre Sanitization': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
+        'Pre Sanitization 2': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
+        'Post Sanitization': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
+        'Post Sanitization 2': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
+        'Wash 1': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
+        'Wash 2': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
+        'Wash 3': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
+        'Elution': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
+        'Storage Rinse': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
+        'Post Sanitization Rinse': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
+        'Post Sanitization Rinse 2': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
+        'Elution': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
+        'Storage': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '}
+    }
+'''
 
 def read_docx2(file_path):
     """Read content from a docx file separating into nested lists by unit operation"""
@@ -90,14 +114,35 @@ def list_unit_ops(pages):
 
     return unitOperations
     
-def extract_process_info(array):
-    process_info = default_process_info
+def extract_process_info(array, unitOP):
+
+    process_info = {
+        'Regeneration': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
+        'Pre Sanitization Rinse': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
+        'Pre Sanitization Rinse 2': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
+        'Equilibration': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
+        'Charge': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
+        'Pre Sanitization': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
+        'Pre Sanitization 2': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
+        'Post Sanitization': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
+        'Post Sanitization 2': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
+        'Wash 1': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
+        'Wash 2': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
+        'Wash 3': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
+        'Elution': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
+        'Storage Rinse': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
+        'Post Sanitization Rinse': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
+        'Post Sanitization Rinse 2': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
+        'Elution': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
+        'Storage': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '}
+    }
 
     parameters_in_pfc = []
     
     default_flow = ''
     current_step = None
     newStep = None
+    doubleBuffer = False
 
     suRe = re.search(r'sure\s*(.*)', array[0].lower())
     sanitizationStrategy = "SuRe" if suRe else "PrismA"
@@ -105,48 +150,29 @@ def extract_process_info(array):
     for item in array:
         if parse_default_flow_direction(item.lower()):
             default_flow = parse_default_flow_direction(item.lower())
-            
+        currentHeader = False
         parts = item.split('|')
         parts = [p.strip() for p in parts]
         lower_item = item.lower()
+        if "/" in lower_item:
+            current_steps = []
+            lower_items = lower_item.split('/')
+            for i in lower_items:
+                if "step" in i:
+                    currentHeader = True
+            for itemInBackSlash in lower_items:
+                step = detect_PFC_step(itemInBackSlash, currentHeader)
+                if step and step not in current_steps:
+                    current_steps.append(step)
 
-        # Detect current process step
-        if 'step' in lower_item:
-            if 'regeneration' in lower_item:
-                current_step = 'Regeneration'
-            elif 'sanitization' in lower_item:
-                current_step = 'Post Sanitization'
-            elif 'elution' in lower_item:
-                current_step = 'Elution'
-            elif 'storage' in lower_item:
-                current_step = 'Storage'
-            elif 'charge' in lower_item:
-                current_step = 'Charge'
-            elif 'wash' in lower_item:
-                if 'wash 2' in lower_item:
-                    current_step = 'Wash 2'
-                elif 'wash 3' in lower_item:
-                    current_step = 'Wash 3'
-                else:
-                    current_step = 'Wash 1'
-            
-        # Handle wash steps specifically
-
-        if 'wash 1' in lower_item:
-            current_step = 'Wash 1'
-        elif 'wash 2' in lower_item:
-            current_step = 'Wash 2'
-        elif 'wash 3' in lower_item:
-            current_step = 'Wash 3'
-
-        elif 'equilibration' in lower_item:
-            current_step = 'Equilibration'
-        elif 'pre' in lower_item and ('use' in lower_item or 'sani' in lower_item) and 'rinse' in lower_item:
-            current_step = 'Pre Sanitization Rinse'
-        elif 'pre' in lower_item and ('use' in lower_item or 'sani' in lower_item) and 'rinse' not in lower_item:
-            current_step = 'Pre Sanitization'
-
-
+            if len(current_steps)>=2:
+                current_step = ', '.join(current_steps)
+                doubleBuffer = True
+            else:
+                doubleBuffer = False
+        if not doubleBuffer or "/" not in lower_item:
+            if detect_PFC_step(lower_item, currentHeader):
+                current_step = detect_PFC_step(lower_item, currentHeader)
 
         # If we're in a process step, capture its parameters
         if current_step:
@@ -155,7 +181,6 @@ def extract_process_info(array):
                 if current_step + " Rinse" in process_info.keys():
                     newStep = [current_step + " Rinse"]
                 
-
             # Flow direction
             if 'flow direction' in lower_item:
                 for buffer in newStep:
@@ -205,15 +230,14 @@ def extract_process_info(array):
             elif process_info['Charge'][key].strip() != '' and process_info['Equilibration'][key].strip() == '':
                 process_info['Equilibration'][key] = process_info['Charge'][key]
 
-    #parameters are assumed to be shared across a rinse and a buffer step if it is not specified in the pfc
-    checks = ['direction', 'velocity', 'composition']
-    for key in process_info.keys():
-        if key in parameters_in_pfc:
-            for param in checks:
-                if key + " Rinse" in process_info.keys() and process_info[key][param].strip() !='' and process_info[key + ' Rinse'][param].strip() == '':
-                    process_info[key + ' Rinse'][param] = process_info[key][param].strip()
-
-
+    #parameters are assumed to be shared across a rinse and a buffer step if it is not specified in the pfc for proA
+    if unitOP == "Protein A Capture Chromatography":
+        checks = ['direction', 'velocity', 'composition']
+        for key in process_info.keys():
+            if key in parameters_in_pfc:
+                for param in checks:
+                    if key + " Rinse" in process_info.keys() and process_info[key][param].strip() !='' and process_info[key + ' Rinse'][param].strip() == '':
+                        process_info[key + ' Rinse'][param] = process_info[key][param].strip()
 
     # Set default flow direction if not specified
     for key in process_info:
@@ -236,7 +260,7 @@ def output_PFC_params(PFCInput, unitOperationInMethod):
     for unitOp in unit_operations:
         if bestMatchUnitOp.lower() in unitOp.lower():
             details = textPages.get(unitOp)
-            process_info, saniStrategy, parameters_in_pfc = extract_process_info(details)
+            process_info, saniStrategy, parameters_in_pfc = extract_process_info(details, unitOperationInMethod)
 
             return process_info, saniStrategy, parameters_in_pfc
     return default_process_info, "None", []
@@ -273,3 +297,38 @@ def parse_default_flow_direction(text):
                 return None
     
     return None
+
+
+def detect_PFC_step(lower_item, currentHeader):
+    # Detect current process step
+    lower_item = lower_item.split('|')[0]
+    current_step = None
+   
+    if 'elution' in lower_item:
+        current_step = 'Elution'
+    elif 'charge' in lower_item:
+        current_step = 'Charge'
+    elif 'wash' in lower_item:
+        if 'wash 2' in lower_item:
+            current_step = 'Wash 2'
+        elif 'wash 3' in lower_item:
+            current_step = 'Wash 3'
+        else:
+            current_step = 'Wash 1'
+
+    elif'regeneration' in lower_item:
+        current_step = 'Regeneration'
+    
+
+    elif 'equilibration' in lower_item:
+        current_step = 'Equilibration'
+    elif 'pre' in lower_item and ('use' in lower_item or 'sani' in lower_item) and 'rinse' in lower_item:
+        current_step = 'Pre Sanitization Rinse'
+    elif 'pre' in lower_item and ('use' in lower_item or 'sani' in lower_item) and 'rinse' not in lower_item:
+        current_step = 'Pre Sanitization'
+    elif 'sanitization' in lower_item:
+        current_step = 'Post Sanitization'
+    elif 'storage' in lower_item:
+        current_step = 'Storage'
+
+    return current_step

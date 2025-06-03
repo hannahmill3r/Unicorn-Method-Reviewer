@@ -131,9 +131,15 @@ def check_purge_block_settings(purge_blocks, pfcData, skid_size):
         pfcQD = ' '
         for key in pfcData.keys():
             if block['settings']['inlet_setting'] == pfcData[key]['inlet']:
-                if pfcData[key]['qd'].strip() != '' and pfcData[key]['direction'].strip() != '' and pfcData[key]['flow_rate'] != '':
-                    pfcQD = pfcData[key]['qd']
-                pass    
+                    try:
+
+                #if isinstance(pfcData[key]['qd'], list):
+
+                        if pfcData[key]['qd'].strip() != '' and pfcData[key]['direction'].strip() != '' and pfcData[key]['flow_rate'] != '':
+                            pfcQD = pfcData[key]['qd']
+                    except:
+                        pfcQD = pfcData[key]['qd']
+                #pass    
 
         #first block column settings should be upflow and downflow, all other blocks should be bypass
         if blockCounter ==0:
@@ -517,7 +523,7 @@ def validate_flow_settings(block, equilLFlow, flowRate, columnParam, residenceTi
         residenceFlow = ''
 
     # Validate each flow value
-    if not any(flow.strip() in flowRate for flow in flows) and not any(flow.strip() in linearFlow for flow in flows) and not any(flow.strip() in residenceFlow for flow in flows):
+    if not any(flow.strip() in flowRate for flow in flows) and not any(flow.strip() in linearFlow for flow in flows) and not any(flow.strip() in residenceFlow for flow in flows) and flowRate.strip() != '':
         incorrectFieldText.append(f"Expected {flowRate} flow")
 
     return incorrectFieldText
