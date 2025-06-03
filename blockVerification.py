@@ -224,6 +224,10 @@ def check_indiv_blocks_settings_pdf(indiv_blocks, pfcData, columnParam, userInpu
     for index, block in enumerate(indiv_blocks):
 
         incorrectFieldText = []
+        for comment in block['settings']['comments_setting']:
+            volume = parse_breakpoint_volume(comment, skid_size)
+            if volume and isinstance(volume, float):
+                expected_flush_breakpoint = volume
 
         closestTitleMatch, pfcQD, direct, flowRate, residenceTime, columnVolume = get_pfc_data_from_block_name(block['blockName'], pfcData)
 
@@ -575,3 +579,63 @@ def get_pfc_data_from_block_name(blockName, pfcData):
         return blockNameDictionary.get(closestTitleMatch), pfcQD, direct, flowRate, residenceTime, columnVolume
     except:
         return '', '', '', '', ''
+    
+
+def parse_breakpoint_volume(comment: str, skid_size: str) -> float:
+    """
+    Parse comments to determine breakpoint volume based on skid size and other parameters
+    
+    Args:
+        comment: The comment text from the method
+        skid_size: Size of skid ("3/8", "1/2", or "3/4")
+        num_mainstreams: Number of mainstreams (default 1)
+    
+    Returns:
+        Float representing the breakpoint volume in L
+    """
+
+    comment = comment.lower()
+    
+    # Case 1: Fixed volume regardless of skid size
+    if "regardless of skid size" in comment and ("breakpoint" in comment.lower() or "block volume" in comment.lower()):
+        import re
+        volume = float(re.findall(r'(\d+)l', comment)[0])
+        return volume
+            
+        
+    # Case 2: Different volumes based on skid size with specific volumes in comment
+    if ("breakpoint" in comment.lower() or "block volume" in comment.lower()) and any(size in comment for size in ["3/8", "1/2", "3/4"]):
+        import re
+        # Extract all number + L patterns
+        volumes = re.findall(r'(\d+)l', comment.lower())
+        # Extract all size patterns
+        sizes = re.findall(r'([134]/[248])"', comment)
+
+        # Create mapping of sizes to volumes
+        size_volume_map = {}
+        for i, size in enumerate(sizes):
+            if i < len(volumes):  # Ensure we have a volume for this size
+                if "," in size:  # Handle cases where sizes are combined
+                    for sub_size in size.split(","):
+                        size_volume_map[sub_size.strip()] = float(volumes[i])
+                else:
+                    size_volume_map[size] = float(volumes[i])
+           
+        # Return the volume for the specified skid size
+        if skid_size in size_volume_map:
+            return size_volume_map[skid_size]
+            
+        # If we can't find an exact match but sizes are grouped
+        if "3/8" in comment and "1/2" in comment and skid_size in ["3/8", "1/2"]:
+            # Find volume associated with these sizes
+            for i, size in enumerate(sizes):
+                if "3/8" in size and "1/2" in size and i < len(volumes):
+                    return float(volumes[i])
+    
+    # Default mappings if no special case matches
+    default_volumes = {
+        "3/8": 10.0,
+        "1/2": 10.0,
+        "3/4": 15.0
+    }
+    return None
