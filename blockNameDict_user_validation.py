@@ -41,7 +41,7 @@ blockNameDictionary = {
 ValidatedblockNameDictionary = {}
 
 def show_block_name():
-    blockName_df = pd.DataFrame(list(blockNameDictionary.items()), columns=['Key', 'Value'])
+    blockName_df = pd.DataFrame(list(blockNameDictionary.items()), columns=['Unicorn Method Terminology', 'PFC Terminology'])
     with st.sidebar:
         with st.expander("Verify the Block name list 📋"):
             user_validate_df = st.data_editor(blockName_df,use_container_width=True,num_rows="fixed",key="verify_list_editor")
@@ -60,7 +60,7 @@ def show_block_name():
 def write_user_validated_blockname(df,validated_dict):
     for rows in df.iterrows():
         row = rows[1]
-        validated_dict[row.Key] = row.Value
+        validated_dict[row['Unicorn Method Terminology']] = row['PFC Terminology']
     with open('user_validated_blockName_Dict.json','w') as f:
         json.dump(validated_dict,f,indent=4)
     

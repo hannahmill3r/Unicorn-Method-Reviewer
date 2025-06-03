@@ -37,9 +37,9 @@ def writeColumns(default_qd_map, requiredBuffers, inputs_disabled, directOptions
         inputs_disabled (bool): Whether input fields should be disabled
         directOptions (list): Available options for flow direction
     """
-    def add_new_buffer(default_qd_map,buffer):
+    def add_new_buffer(default_qd_map, buffer):
 
-        default_qd_map[buffer] = {'inlet': 'Inlet 7', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' '}
+        #default_qd_map[buffer] = {'inlet': 'Inlet 7', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': }
         """Creates standardized input fields for each buffer"""
         # Create 5 columns with specific width ratios
         cols = st.columns([2.25, 3,3,3,3,3], vertical_alignment="center")
@@ -161,7 +161,7 @@ def writeColumns(default_qd_map, requiredBuffers, inputs_disabled, directOptions
                         disabled=inputs_disabled
                     )
 
-    def enable_add_buffer(default_qd_map,parameters_in_pfc,button_key,label):
+    def enable_add_buffer(availableBuffers, default_qd_map, parameters_in_pfc,button_key,label):
 
         #unique session state key per button
         show_key = f'show_multiselect_{button_key}'
@@ -177,34 +177,34 @@ def writeColumns(default_qd_map, requiredBuffers, inputs_disabled, directOptions
             st.session_state[show_key] = True
 
         if st.session_state[show_key]:
-            additional_buffer = [i for i in default_qd_map.keys() if i not in parameters_in_pfc]
+            additional_buffer = [i for i in availableBuffers if i not in parameters_in_pfc]
             new_buffer = st.multiselect('Select Buffer',options = additional_buffer,key = f'additional_buffer_{button_key}')
 
             for buffer in new_buffer:
                 add_new_buffer(default_qd_map,buffer)
 
     # Process Pump A Inlets
-    pump_a_buffers = ['Equilibration', 'Elution', 'Wash 1', "Wash 3", 'Charge', 'Pre Sanitization', 'Pre Sanitization Rinse', 'Storage Rinse']
+    pump_a_buffers = [key for key, value in default_qd_map.items() if value['pump'] == 'A']
     for buffer in pump_a_buffers:
         if buffer in parameters_in_pfc:
             create_buffer_inputs(buffer, default_qd_map[buffer].get('inlet'))
 
     # =================================== additional buffer ===================================
     
-    enable_add_buffer(default_qd_map,parameters_in_pfc,'pump_a','Add Buffer to Pump A ➕')
+    enable_add_buffer(pump_a_buffers, default_qd_map, parameters_in_pfc,'pump_a','Add Buffer to Pump A ➕')
 
     # ==========================================================================================
 
     # Process Pump B Inlets
     st.subheader("Pump B Inlets")
-    pump_b_buffers = ['Post Sanitization', 'Post Sanitization Rinse', 'Storage', 'Regeneration', 'Wash 2']
+    pump_b_buffers = [key for key, value in default_qd_map.items() if value['pump'] == 'B']
     for buffer in pump_b_buffers:
         if buffer in parameters_in_pfc:
             create_buffer_inputs(buffer, default_qd_map[buffer].get('inlet'))
 
     # =================================== additional buffer ===================================
     
-    enable_add_buffer(default_qd_map,parameters_in_pfc,'pump_b','Add Buffer to Pump B ➕')
+    enable_add_buffer(pump_b_buffers, default_qd_map, parameters_in_pfc,'pump_b','Add Buffer to Pump B ➕')
 
     # ==========================================================================================
 
@@ -318,23 +318,23 @@ def create_inlet_qd_interface():
         st.info("Please upload PFC before specifying sanitization strategy")
 
     default_qd_map = {
-        'Equilibration': {'inlet': 'Inlet 1', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' '},
-        'Elution': {'inlet': 'Inlet 2', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' '},
-        'Wash 1': {'inlet': 'Inlet 3', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' '},
-        'Wash 3': {'inlet': 'Inlet 3', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' '},
-        'Charge': {'inlet': 'Sample', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' '},
-        'Storage': {'inlet': 'Inlet 5', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' '},
-        'Regeneration': {'inlet': 'Inlet 6', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' '},
-        'Pre Sanitization': {'inlet': 'Inlet 4', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' '},
-        'Pre Sanitization Rinse': {'inlet': 'Inlet 1', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' '},
-        'Post Sanitization': {'inlet': 'Inlet 4', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' '},
-        'Post Sanitization Rinse': {'inlet': 'Inlet 1', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' '},
-        'Pre Sanitization 2': {'inlet': 'Inlet 6', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' '},
-        'Pre Sanitization Rinse 2': {'inlet': 'Inlet 1', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' '},
-        'Post Sanitization 2': {'inlet': 'Inlet 6', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' '},
-        'Post Sanitization Rinse 2': {'inlet': 'Inlet 1', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' '},
-        'Storage Rinse': {'inlet': 'Inlet 1', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' '},
-        'Wash 2': {'inlet': 'Inlet 7', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' '}
+        'Equilibration': {'inlet': 'Inlet 1', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'A'},
+        'Elution': {'inlet': 'Inlet 2', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'A'},
+        'Wash 1': {'inlet': 'Inlet 3', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'A'},
+        'Wash 3': {'inlet': 'Inlet 3', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'A'},
+        'Charge': {'inlet': 'Sample', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'A'},
+        'Storage': {'inlet': 'Inlet 5', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'B'},
+        'Regeneration': {'inlet': 'Inlet 6', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'B'},
+        'Pre Sanitization': {'inlet': 'Inlet 4', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'A'},
+        'Pre Sanitization Rinse': {'inlet': 'Inlet 1', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'A'},
+        'Post Sanitization': {'inlet': 'Inlet 4', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'B'},
+        'Post Sanitization Rinse': {'inlet': 'Inlet 1', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'A'},
+        'Pre Sanitization 2': {'inlet': 'Inlet 6', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'A'},
+        'Pre Sanitization Rinse 2': {'inlet': 'Inlet 1', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'A'},
+        'Post Sanitization 2': {'inlet': 'Inlet 6', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'B'},
+        'Post Sanitization Rinse 2': {'inlet': 'Inlet 1', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'A'},
+        'Storage Rinse': {'inlet': 'Inlet 1', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'A'},
+        'Wash 2': {'inlet': 'Inlet 7', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'B'}
     }
 
 

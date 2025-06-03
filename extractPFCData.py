@@ -1,7 +1,7 @@
 import docx
 from extractText import closest_match_unit_op
 import re
-from blockNameDict import blockNameDictionary
+from blockNameDict_user_validation import blockNameDictionary
 
 default_process_info = {
         'Regeneration': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
@@ -23,29 +23,7 @@ default_process_info = {
         'Elution': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
         'Storage': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '}
     }
-'''
-def reset_default_process_info():
-    default_process_info = {
-        'Regeneration': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
-        'Pre Sanitization Rinse': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
-        'Pre Sanitization Rinse 2': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
-        'Equilibration': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
-        'Charge': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
-        'Pre Sanitization': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
-        'Pre Sanitization 2': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
-        'Post Sanitization': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
-        'Post Sanitization 2': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
-        'Wash 1': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
-        'Wash 2': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
-        'Wash 3': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
-        'Elution': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
-        'Storage Rinse': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
-        'Post Sanitization Rinse': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
-        'Post Sanitization Rinse 2': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
-        'Elution': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
-        'Storage': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '}
-    }
-'''
+
 
 def read_docx2(file_path):
     """Read content from a docx file separating into nested lists by unit operation"""
