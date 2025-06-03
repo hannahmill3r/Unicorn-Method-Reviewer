@@ -427,9 +427,7 @@ def check_scouting(scoutingData, pfcData, uvPreset, numOfCycles, numOfMS, blocks
                         
                           
             #ensure that the flowrates in the scouting section alight with the input from the user
-            if "flow" in header.lower():
-                
-             
+            if "flow" in header.lower():   
                 for val in run["settings"][index::len(tableHeaderList)]:
                     errorMsg = f"Expected flow rate to be set to {flowRate} for {header}"
                     linearFlow = str(calc_LFlow(columnParam["columnHeight"], columnParam["columnDiameter"], columnParam['contactTime'])["linearFlow"])
@@ -441,7 +439,6 @@ def check_scouting(scoutingData, pfcData, uvPreset, numOfCycles, numOfMS, blocks
                         linearFlow = 0
                         residenceFlow = 0
                     try:
-
                         if float(val)!= float(flowRate) and float(val)!= linearFlow and float(val) != residenceFlow and errorMsg not in incorrectFieldText:        
                             incorrectFieldText.append(errorMsg)
                             

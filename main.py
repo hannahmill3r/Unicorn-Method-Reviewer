@@ -25,7 +25,7 @@ def main():
 
             # Save uploaded file to disk temporarily
             if result['uploaded_file'] is not None:
-
+                #TODO: add try catch here?
                 blockData = protein_A_method_parser(text, result)
 
                 highlightsPurge = check_purge_block_settings(blockData["purge_data"], result['inlet_data'], result['skid_size'])
