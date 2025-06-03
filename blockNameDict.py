@@ -1,5 +1,5 @@
 #TODO: this is hard coded but I would love to have it accessable in the UI so that if any changes to the methoid are made it could be easily changed without changing the code.
-blockNameDictionary = {
+'''blockNameDictionary = {
         'Equilibration': 'Equilibration',
         'Elution': 'Elution',
         'Wash_1': 'Wash 1',
@@ -31,4 +31,4 @@ blockNameDictionary = {
         'Flush_Skid_Inlet_2_Elution': "Elution", 
         'Wash_2_System_Flush': "Wash 2"
 
-    }
+    }'''
