@@ -43,17 +43,19 @@ ValidatedblockNameDictionary = {}
 def show_block_name():
     blockName_df = pd.DataFrame(list(blockNameDictionary.items()), columns=['Key', 'Value'])
     with st.sidebar:
-        with st.expander("📋 Verify the Block name list "):
+        with st.expander("Verify the Block name list 📋"):
             user_validate_df = st.data_editor(blockName_df,use_container_width=True,num_rows="fixed",key="verify_list_editor")
             #ValidatedblockNameDictionary = user_validate_df.to_dict(orient='records')
             validated_button = st.button('Validated')
             if not user_validate_df.equals(blockName_df) and validated_button:
                 write_user_validated_blockname(user_validate_df,ValidatedblockNameDictionary)
-                print('Editted:',ValidatedblockNameDictionary)
+                st.write('Validated !! ✅')
             elif validated_button:
                 write_user_validated_blockname(user_validate_df,ValidatedblockNameDictionary)
+                st.write('Validated !! ✅')
             else:
                 write_user_validated_blockname(user_validate_df,ValidatedblockNameDictionary)
+            
 
 def write_user_validated_blockname(df,validated_dict):
     for rows in df.iterrows():
@@ -61,6 +63,7 @@ def write_user_validated_blockname(df,validated_dict):
         validated_dict[row.Key] = row.Value
     with open('user_validated_blockName_Dict.json','w') as f:
         json.dump(validated_dict,f,indent=4)
+    
 
 def read_user_valided_blockName():
     
