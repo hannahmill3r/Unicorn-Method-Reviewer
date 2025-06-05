@@ -40,6 +40,7 @@ def writeColumns(default_qd_map, requiredBuffers, inputs_disabled, directOptions
     def add_new_buffer(default_qd_map, buffer):
 
         #default_qd_map[buffer] = {'inlet': 'Inlet 7', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': }
+
         """Creates standardized input fields for each buffer"""
         # Create 5 columns with specific width ratios
         cols = st.columns([2.25, 3,3,3,3,3], vertical_alignment="center")
@@ -243,10 +244,8 @@ def create_inlet_qd_interface():
     uploaded_PFC_file = None
     outputFile = None
 
-    options = ['None', 'Detergent Viral Inactivation', 'Hydrophobic Interaction Chromatography', 'Protein A Capture Chromatography', 
-               'Low pH Viral Inactivation and Clarification', 'Cation Exchange Chromatography', 
-               'Viral Filtration', 'Tangential Flow Filtration', 
-               'Intermediate Drug Substance Dispensing and Storage']
+    options = ['None', 'Hydrophobic Interaction Chromatography', 'Protein A Capture Chromatography', 'Cation Exchange Chromatography', 
+               'Viral Filtration', 'Tangential Flow Filtration']
     
     
     if uploaded_file is not None:
@@ -273,10 +272,8 @@ def create_inlet_qd_interface():
         except Exception as e:
             st.error(f"Error processing or saving PDF: {e}")
 
-        options = ['Detergent Viral Inactivation', 'Hydrophobic Interaction Chromatography', 'Protein A Capture Chromatography',
-                  'Low pH Viral Inactivation and Clarification', 'Cation Exchange Chromatography',
-                  'Viral Filtration', 'Tangential Flow Filtration',
-                  'Intermediate Drug Substance Dispensing and Storage']
+        options = ['Hydrophobic Interaction Chromatography', 'Protein A Capture Chromatography', 'Cation Exchange Chromatography', 
+               'Viral Filtration', 'Tangential Flow Filtration']
         
         outputFile = extract_text_from_pdf('tempfile.pdf', 'output2')
         unitOperationFromMethod = extract_unit_opertaion_from_method(outputFile, options)
@@ -445,9 +442,12 @@ def create_inlet_qd_interface():
                 key="numCycles",
                 disabled=PFC_not_uploaded
             )
-        
-    if int(numCycles)!=0 and int(numMS)!=0 and int(numCycles)%int(numMS)!=0:
-        st.error("Expected the number of cycles to be divisible by number of mainstreams, please double check this")
+    try:    
+        if int(numCycles)!=0 and int(numMS)!=0 and int(numCycles)%int(numMS)!=0:
+            st.error("Expected the number of cycles to be divisible by number of mainstreams, please double check this")
+    except:
+        st.error("Number of cycles or number of mainstream input format is incorrect. Please doble check that these are integer values with no special characters.")
+
         
     
     columnParamsIncomplete = True
@@ -532,8 +532,38 @@ def create_inlet_qd_interface():
                         invalidError.append(f"{buffer} is missing required information")
             elif not default_qd_map[buffer]['qd'].strip() or not default_qd_map[buffer]['flow_rate'].strip() or not default_qd_map[buffer]['direction'].strip():
                         invalidError.append(f"{buffer} is missing required information")
+        
+        
 
-                
+        values_to_check = [
+            (wavelengthSetting, "UV wavelength", float), 
+            (uvSetting, "Post charge wash UV", float), 
+            (numCycles, "number of cycles", int),
+            (numMS, "number of mainstreams", int)
+        ]
+
+        for value, error_msg, typefunc in values_to_check:
+            try:
+                typefunc(value)
+            except:
+                invalidError.append(f"Incorrect format for {error_msg}.")
+
+
+        incorrect_column_params = []
+
+        for key in column_params:
+            value = column_params.get(key)
+            try:
+                float(value)
+            except:
+                incorrect_column_params.append(value)
+
+        if len(incorrect_column_params)>1:
+            invalidError.append(f"Incorrect column parameters detected, {', '.join(incorrect_column_params)} are invalid inputs")
+        elif len(incorrect_column_params)==1:
+            invalidError.append(f"Incorrect column parameter detected, {''.join(incorrect_column_params)} is an invalid input")
+
+
 
         # Check QD format for all fields that have values
         for buffer in default_qd_map.keys():
@@ -544,10 +574,22 @@ def create_inlet_qd_interface():
             elif default_qd_map[buffer]['qd'].strip() and not is_valid_qd(default_qd_map[buffer]['qd']):
                         invalidError.append(f"Invalid QD format for {buffer}. Format should be 'QD' followed by 5 digits (e.g., QD00015)")
             try:
-                flowRateNumber = float(default_qd_map[buffer]['flow_rate'])
+                float(default_qd_map[buffer]['flow_rate'])
             except:
                 if default_qd_map[buffer]['flow_rate'].strip():
                     invalidError.append(f"Expected flow rate to be a number for {buffer}. (e.g., 300)")
+
+            try:
+                float(default_qd_map[buffer]['CV'])
+            except:
+                if default_qd_map[buffer]['CV'].strip():
+                    invalidError.append(f"Expected CV to be a number for {buffer}. (e.g., 2)")
+
+            try:
+                float(default_qd_map[buffer]['residence time'])
+            except:
+                if default_qd_map[buffer]['residence time'].strip() and default_qd_map[buffer]['residence time']!="--":
+                    invalidError.append(f"Expected residence time to be a number or -- for {buffer}. (e.g., 30, --)")
         
         if invalidError == []:
             st.success("All parameters are valid!")

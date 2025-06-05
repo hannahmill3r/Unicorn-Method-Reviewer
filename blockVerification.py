@@ -31,7 +31,7 @@ def check_column_params(methodsColumnParams, pfcColumnParams):
     pfcH = pfcColumnParams['columnHeight']
     pfcD = pfcColumnParams["columnDiameter"]
     pfcContactTime = pfcColumnParams["contactTime"]
-    pfcClac = calc_LFlow(float(pfcH), float(pfcD), float(pfcContactTime))
+    pfcClac = calc_LFlow(pfcH, pfcD, pfcContactTime)
 
     pfcCV = pfcClac["columnVolume"]
     
@@ -43,14 +43,17 @@ def check_column_params(methodsColumnParams, pfcColumnParams):
           
     if methodD !=pfcD:
         incorrectFieldText.append(f"Incorrect column diameter, expected {pfcD}")
-          
-    if methodCV != (f'{pfcCV:.3f}') and methodCV != (f'{pfcCV:.2f}'):
-        if methodD !=pfcD:
-            incorrectFieldText.append(f"Incorrect column volume, expected {pfcCV:.3f}. Likely due to incorrect column diameter")
-        if methodH !=pfcH:
-            incorrectFieldText.append(f"Incorrect column volume, expected {pfcCV:.3f}. Likely due to incorrect column height")
-        else:
-            incorrectFieldText.append(f"Incorrect column volume, expected {pfcCV:.3f}")
+    
+    if isinstance(methodCV, float) and isinstance(pfcCV, float):
+        if methodCV != (f'{pfcCV:.3f}') and methodCV != (f'{pfcCV:.2f}'):
+            if methodD !=pfcD:
+                incorrectFieldText.append(f"Incorrect column volume, expected {pfcCV:.3f}. Likely due to incorrect column diameter")
+            if methodH !=pfcH:
+                incorrectFieldText.append(f"Incorrect column volume, expected {pfcCV:.3f}. Likely due to incorrect column height")
+            else:
+                incorrectFieldText.append(f"Incorrect column volume, expected {pfcCV:.3f}")
+    else:
+        incorrectFieldText.append(f"Incorrect column volume, expected {pfcCV:.3f}. Likely due to incorrect column diameter")
           
 
     if incorrectFieldText:
@@ -87,6 +90,7 @@ def check_purge_block_settings(purge_blocks, pfcData, skid_size):
 
 
     #analyse pump a and b seperately, time based blocks dont have anything we validate so remove them from other purge blocks as well
+    #TODO:Check purge pump QD, pump a/b might not be for inlet 1, SHOULD ACTUALLY BE first inlet used from A
     for block in purge_blocks[::-1]:
         incorrectFieldText = []
         if "time" in block['settings']['base_setting'].lower():
