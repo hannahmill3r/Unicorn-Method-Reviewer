@@ -20,6 +20,8 @@ blockNameDictionary = {
         'Rinse_1':'Post Sanitization Rinse',
         'Rinse_2': 'Post Sanitization Rinse 2',
         'Post_Use_Sanitization': 'Post Sanitization',
+        'Post_Use_Sani': 'Post Sanitization',
+        'Pre_Use_Sani': 'Pre Sanitization',
         'Clean_1': 'Post Sanitization',
         'Clean_2': 'Post Sanitization',
         'Rinse_3': 'Post Sanitization Rinse',
@@ -33,7 +35,18 @@ blockNameDictionary = {
         'Pre_Use_Rinse_2' :'Pre Sanitization Rinse 2', 
         'first_cv_equil_flowrate': "Pre Sanitization Rinse", 
         'Flush_Skid_Inlet_2_Elution': "Elution", 
-        'Wash_2_System_Flush': "Wash 2"
+        'Wash_2_System_Flush': "Wash 2", 
+        'High_Salt_Wash': 'High Salt Wash',
+        'Post_Charge_Wash': 'Wash 1',
+        'Pre_Equilibration': 'Pre-Equilibration', 
+        'MabSelect_Equilibration': 'Equilibration', 
+        'Equil': 'Equilibration',
+        'Pre-Equil': 'Pre-Equilibration', 
+        'Pre_Sani': 'Pre Sanitization',
+        'Post_Sani': 'Post Sanitization',
+        'Post_Use_column_Sanitization': 'Post Sanitization',
+        'Pre_Use_column_Sanitization': 'Pre Sanitization',
+
 
     }
 

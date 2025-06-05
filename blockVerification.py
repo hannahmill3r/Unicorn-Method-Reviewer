@@ -5,21 +5,7 @@ from flowCalculations import calc_LFlow, calc_LFlow_from_residence_time
 #from blockNameDict import blockNameDictionary
 from blockNameDict_user_validation import *
 
-"""
-Block Verification
 
-This script validates chromatography method blocks against defined requirements by:
-- Checking column parameters (height, diameter, volume)
-- Validating purge, mainstream, and individual block settings
-- Verifying correct flow rates, residence times, and outlet configurations
-- Ensuring proper watch settings for UV monitoring and peak collection
-- Confirming scouting run parameters match PFC specifications
-
-The functions defined in the script all return highlight annotations, including pdf location and text
-for any validation failures.
-"""
-
-blockNameDictionary = read_user_valided_blockName()
 
 def check_column_params(methodsColumnParams, pfcColumnParams):
     highlights = []
@@ -108,7 +94,7 @@ def check_purge_block_settings(purge_blocks, pfcData, skid_size, firstPumpAInlet
                 incorrectFieldText.append(error)
 
             if firstPumpAInlet != block["settings"]['inlet_setting']: 
-                incorrectFieldText.append(f"Expected Inlet 1")
+                incorrectFieldText.append(f"Expected {firstPumpAInlet}")
 
             if block['settings']['filter_setting']!= "Inline":
                 incorrectFieldText.append("Expected inline filter")
@@ -120,7 +106,7 @@ def check_purge_block_settings(purge_blocks, pfcData, skid_size, firstPumpAInlet
                 incorrectFieldText.append(error)
                   
             if firstPumpBInlet != block["settings"]['inlet_setting']: 
-                incorrectFieldText.append(f"Expected Inlet 7")
+                incorrectFieldText.append(f"Expected {firstPumpBInlet}")
                   
             if block['settings']['filter_setting']!= "Bypass":
                 incorrectFieldText.append("Expected bypass filter")
@@ -143,14 +129,11 @@ def check_purge_block_settings(purge_blocks, pfcData, skid_size, firstPumpAInlet
         for key in pfcData.keys():
             if block['settings']['inlet_setting'] == pfcData[key]['inlet']:
                     try:
-
-                #if isinstance(pfcData[key]['qd'], list):
-
                         if pfcData[key]['qd'].strip() != '' and pfcData[key]['direction'].strip() != '' and pfcData[key]['flow_rate'] != '':
                             pfcQD = pfcData[key]['qd']
                     except:
                         pfcQD = pfcData[key]['qd']
-                #pass    
+
 
         #first block column settings should be upflow and downflow, all other blocks should be bypass
         if blockCounter ==0:
@@ -399,6 +382,7 @@ def check_scouting(scoutingData, pfcData, uvPreset, numOfCycles, numOfMS, blocks
         #loop throught the column headers for each of the tables
         for index, header in enumerate(tableHeaderList):
             closestTitleMatch, pfcQD, direct, flowRate, residenceTime, columnVolume, pump, inlet = get_pfc_data_from_block_name(header.lower().strip("flowrate"), pfcData)
+            print(header.lower().strip("flowrate"), closestTitleMatch)
 
             try:
                 blocksToInclude.remove(closestTitleMatch)
@@ -440,8 +424,8 @@ def check_scouting(scoutingData, pfcData, uvPreset, numOfCycles, numOfMS, blocks
                     try:
                         if float(val)!= float(uvPreset) and errorMsg not in incorrectFieldText:        
                             incorrectFieldText.append(errorMsg)
-                    except:
-                        print("Int value Expected:", val)
+                    except Exception as e:
+                        print("Int value Expected:", val, e)
                           
             #post sani rinse should be run after every single step
             if "post" in header.lower() and "sani" in header.lower() and "rinse" in header.lower():
@@ -455,8 +439,8 @@ def check_scouting(scoutingData, pfcData, uvPreset, numOfCycles, numOfMS, blocks
             if "flow" in header.lower():   
                 for val in run["settings"][index::len(tableHeaderList)]:
                     errorMsg = f"Expected flow rate to be set to {flowRate} for {header}"
-                    linearFlow = str(calc_LFlow(columnParam["columnHeight"], columnParam["columnDiameter"], columnParam['contactTime'])["linearFlow"])
-                    residenceFlow = str(calc_LFlow_from_residence_time(columnParam["columnHeight"], residenceTime))
+                    #linearFlow = str(calc_LFlow(columnParam["columnHeight"], columnParam["columnDiameter"], columnParam['contactTime'])["linearFlow"])
+                    #residenceFlow = str(calc_LFlow_from_residence_time(columnParam["columnHeight"], residenceTime))
                     try:
                         linearFlow = (calc_LFlow(columnParam["columnHeight"], columnParam["columnDiameter"], columnParam['contactTime'])["linearFlow"])
                         residenceFlow = (calc_LFlow_from_residence_time(columnParam["columnHeight"], residenceTime))
@@ -464,11 +448,11 @@ def check_scouting(scoutingData, pfcData, uvPreset, numOfCycles, numOfMS, blocks
                         linearFlow = 0
                         residenceFlow = 0
                     try:
-                        if float(val)!= float(flowRate) and float(val)!= linearFlow and float(val) != residenceFlow and errorMsg not in incorrectFieldText:        
+                        if round(float(val))!= round(float(flowRate)) and round(float(val))!= round(linearFlow) and round(float(val)) != round(residenceFlow) and errorMsg not in incorrectFieldText:        
                             incorrectFieldText.append(errorMsg)
                             
-                    except:
-                        print("Int value Expected:", val, tableHeaderList)
+                    except Exception as e:
+                        print("Int value Expected:", val, tableHeaderList, e)
 
             #Conditions in which only one run is expected to have a certain value, and all other cycles should be blank
             conditions = [
@@ -492,7 +476,8 @@ def check_scouting(scoutingData, pfcData, uvPreset, numOfCycles, numOfMS, blocks
             })
     incorrectFieldText = []
     for buffer in blocksToInclude:
-        incorrectFieldText.append(f"Expected a flowrate block for {buffer}")
+        if buffer != "Storage Rinse":
+            incorrectFieldText.append(f"Expected a flowrate block for {buffer}")
 
     if incorrectFieldText:
             highlights.append({
@@ -542,14 +527,16 @@ def validate_flow_settings(block, equilLFlow, flowRate, columnParam, residenceTi
     if "," in block['settings']['flow_setting']:
         flows = block['settings']['flow_setting'].strip().split(",")
     try:
-        linearFlow = str(calc_LFlow(columnParam["columnHeight"], columnParam["columnDiameter"], columnParam['contactTime'])["linearFlow"])
-        residenceFlow = str(calc_LFlow_from_residence_time(columnParam["columnHeight"], residenceTime))
+        linearFlow = str(round(calc_LFlow(columnParam["columnHeight"], columnParam["columnDiameter"], columnParam['contactTime'])["linearFlow"]))
+        residenceFlow = str(round(calc_LFlow_from_residence_time(columnParam["columnHeight"], residenceTime)))
     except:
         linearFlow = ''
         residenceFlow = ''
 
     # Validate each flow value
+    
     if not any(flow.strip() in flowRate for flow in flows) and not any(flow.strip() in linearFlow for flow in flows) and not any(flow.strip() in residenceFlow for flow in flows) and flowRate.strip() != '':
+        print(block['blockName'], flows, linearFlow, residenceFlow)    
         incorrectFieldText.append(f"Expected {flowRate} flow")
 
     return incorrectFieldText
@@ -588,6 +575,22 @@ def validate_common_settings(block_settings, column, bubbletrap, manflow, breckp
     return errors
 
 def get_pfc_data_from_block_name(blockName, pfcData):
+    """
+    Block Verification
+
+    This script validates chromatography method blocks against defined requirements by:
+    - Checking column parameters (height, diameter, volume)
+    - Validating purge, mainstream, and individual block settings
+    - Verifying correct flow rates, residence times, and outlet configurations
+    - Ensuring proper watch settings for UV monitoring and peak collection
+    - Confirming scouting run parameters match PFC specifications
+
+    The functions defined in the script all return highlight annotations, including pdf location and text
+    for any validation failures.
+    """
+
+    blockNameDictionary = read_user_valided_blockName()
+
     closestTitleMatch, ratio = closest_match_unit_op(blockName, blockNameDictionary.keys())
     
     try:

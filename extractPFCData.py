@@ -21,7 +21,9 @@ default_process_info = {
         'Post Sanitization Rinse': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
         'Post Sanitization Rinse 2': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
         'Elution': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
-        'Storage': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '}
+        'Storage': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '}, 
+        'Neutralization': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '}, 
+
     }
 
 
@@ -93,7 +95,7 @@ def list_unit_ops(pages):
     return unitOperations
     
 def extract_process_info(array, unitOP):
-
+    highSaltWash = False
     process_info = {
         'Regeneration': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
         'Pre Sanitization Rinse': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
@@ -112,7 +114,10 @@ def extract_process_info(array, unitOP):
         'Post Sanitization Rinse': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
         'Post Sanitization Rinse 2': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
         'Elution': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
-        'Storage': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '}
+        'Storage': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '}, 
+        'Neutralization': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
+        'High Salt Wash': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
+        'Pre-Equilibration': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
     }
 
     parameters_in_pfc = []
@@ -126,6 +131,7 @@ def extract_process_info(array, unitOP):
     sanitizationStrategy = "SuRe" if suRe else "PrismA"
 
     for item in array:
+    
         if parse_default_flow_direction(item.lower()):
             default_flow = parse_default_flow_direction(item.lower())
         currentHeader = False
@@ -139,7 +145,7 @@ def extract_process_info(array, unitOP):
                 if "step" in i:
                     currentHeader = True
             for itemInBackSlash in lower_items:
-                step = detect_PFC_step(itemInBackSlash, currentHeader)
+                step = detect_PFC_step(itemInBackSlash, currentHeader, unitOP)
                 if step and step not in current_steps:
                     current_steps.append(step)
 
@@ -149,11 +155,12 @@ def extract_process_info(array, unitOP):
             else:
                 doubleBuffer = False
         if not doubleBuffer or "/" not in lower_item:
-            if detect_PFC_step(lower_item, currentHeader):
-                current_step = detect_PFC_step(lower_item, currentHeader)
+            if detect_PFC_step(lower_item, currentHeader, unitOP):
+                current_step = detect_PFC_step(lower_item, currentHeader, unitOP)
 
         # If we're in a process step, capture its parameters
-        if current_step:
+        if current_step and 'step' not in lower_item:
+            print(current_step, lower_item)
             newStep = current_step.split(', ')
             if 'rinse' in lower_item:
                 if current_step + " Rinse" in process_info.keys():
@@ -187,10 +194,29 @@ def extract_process_info(array, unitOP):
 
                 except:
                     pass
+                salt_indicators = ['nacl', 'kcl', 'cacl', 'mgcl', 'na2so4', 'K2SO4',
+                                'sodium chloride', 'potassium chloride', 'calcium chloride',
+                                'sodium acetate', 'potassium acetate',
+                                'sodium phosphate', 'potassium phosphate'
+                            ]
             # Composition
             elif any(term in lower_item for term in ['composition', 'buffer composition']):
                 for buffer in newStep:
+                    #In Non ProA Chromatography, high salt washes may replace regeneration steps if the composition is a salt
+                    if buffer == "Regeneration":
+                        if unitOP!= "Protein A Capture Chromatography":
+                            if any(term in lower_item for term in salt_indicators):
+                                highSaltWash = True
+
+                        
+
+
                     process_info[buffer]['composition'] = parts[1] if len(parts) > 1 else ''
+    print(process_info)
+    process_info.pop('Neutralization')
+    if highSaltWash:
+        process_info['High Salt Wash'] = process_info['Regeneration']
+        process_info.pop('Regeneration')
 
     #grab all of the buffers that had something explicitly included about them in the PFC, will ignore all of the other ones later when we display them with streamlit
     for buffer in process_info.keys():
@@ -199,14 +225,18 @@ def extract_process_info(array, unitOP):
             if process_info[buffer][key].strip()!='' and process_info[buffer][key].strip()!='--'and buffer not in parameters_in_pfc:
                 parameters_in_pfc.append(buffer)
 
-    #sometimes parameters are shared across charge and equilibration, if one is empty and the other has a value, replace the empty value
-    for key in process_info['Charge'].keys():
+    for key in process_info['Pre-Equilibration'].keys():
         if key!= 'CV':
-            if process_info['Charge'][key].strip() == '' and process_info['Equilibration'][key].strip() != '':
-                process_info['Charge'][key] = process_info['Equilibration'][key]
+            if process_info['Pre-Equilibration'][key].strip() == '' and process_info['Equilibration'][key].strip() != '':
+                process_info['Pre-Equilibration'][key] = process_info['Equilibration'][key]
 
-            elif process_info['Charge'][key].strip() != '' and process_info['Equilibration'][key].strip() == '':
-                process_info['Equilibration'][key] = process_info['Charge'][key]
+    for key in process_info['Wash 1'].keys():
+        if key!= 'CV':
+            if process_info['Wash 2'][key].strip() == '' and process_info['Wash 1'][key].strip() != '':
+                process_info['Wash 2'][key] = process_info['Wash 1'][key]
+            if process_info['Wash 3'][key].strip() == '' and process_info['Wash 1'][key].strip() != '':
+                process_info['Wash 3'][key] = process_info['Wash 1'][key]
+
 
     #parameters are assumed to be shared across a rinse and a buffer step if it is not specified in the pfc for proA
     if unitOP == "Protein A Capture Chromatography":
@@ -277,13 +307,20 @@ def parse_default_flow_direction(text):
     return None
 
 
-def detect_PFC_step(lower_item, currentHeader):
+def detect_PFC_step(lower_item, currentHeader, unitOp):
     # Detect current process step
     lower_item = lower_item.split('|')[0]
     current_step = None
    
     if 'elution' in lower_item:
         current_step = 'Elution'
+    elif 'column preparation' in lower_item:
+        if unitOp== "Protein A Capture Chromatography": 
+            current_step = 'Equilibration, Pre Sanitization Rinse, Pre Sanitization' 
+        else:
+            current_step = 'Equilibration, Pre Sanitization'
+    elif 'neutralization' in lower_item:
+        current_step = 'Neutralization'
     elif 'charge' in lower_item:
         current_step = 'Charge'
     elif 'wash' in lower_item:
@@ -296,9 +333,10 @@ def detect_PFC_step(lower_item, currentHeader):
 
     elif'regeneration' in lower_item:
         current_step = 'Regeneration'
-    
-
-    elif 'equilibration' in lower_item:
+    elif 'pre' in lower_item and 'equil' in lower_item:
+        print("test")
+        current_step = 'Pre-Equilibration'
+    elif 'equil' in lower_item:
         current_step = 'Equilibration'
     elif 'pre' in lower_item and ('use' in lower_item or 'sani' in lower_item) and 'rinse' in lower_item:
         current_step = 'Pre Sanitization Rinse'
