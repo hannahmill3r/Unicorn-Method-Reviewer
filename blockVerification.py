@@ -44,16 +44,15 @@ def check_column_params(methodsColumnParams, pfcColumnParams):
     if methodD !=pfcD:
         incorrectFieldText.append(f"Incorrect column diameter, expected {pfcD}")
     
-    if isinstance(methodCV, float) and isinstance(pfcCV, float):
-        if methodCV != (f'{pfcCV:.3f}') and methodCV != (f'{pfcCV:.2f}'):
-            if methodD !=pfcD:
-                incorrectFieldText.append(f"Incorrect column volume, expected {pfcCV:.3f}. Likely due to incorrect column diameter")
-            if methodH !=pfcH:
-                incorrectFieldText.append(f"Incorrect column volume, expected {pfcCV:.3f}. Likely due to incorrect column height")
-            else:
-                incorrectFieldText.append(f"Incorrect column volume, expected {pfcCV:.3f}")
-    else:
-        incorrectFieldText.append(f"Incorrect column volume, expected {pfcCV:.3f}. Likely due to incorrect column diameter")
+    
+    if methodCV != (f'{pfcCV:.3f}') and methodCV != (f'{pfcCV:.2f}'):
+        if methodD !=pfcD:
+            incorrectFieldText.append(f"Incorrect column volume, expected {pfcCV:.3f}. Likely due to incorrect column diameter")
+        if methodH !=pfcH:
+            incorrectFieldText.append(f"Incorrect column volume, expected {pfcCV:.3f}. Likely due to incorrect column height")
+        else:
+            incorrectFieldText.append(f"Incorrect column volume, expected {pfcCV:.3f}")
+
           
 
     if incorrectFieldText:
@@ -65,7 +64,7 @@ def check_column_params(methodsColumnParams, pfcColumnParams):
     return highlights
 
 
-def check_purge_block_settings(purge_blocks, pfcData, skid_size):
+def check_purge_block_settings(purge_blocks, pfcData, skid_size, firstPumpAInlet, firstPumpBInlet):
     """
     Check purge method block data against the user entered pfc data 
     
@@ -85,6 +84,11 @@ def check_purge_block_settings(purge_blocks, pfcData, skid_size):
         '3/4': {"Manflow": 60, "Purge Volume": 15}
     }
 
+    if not firstPumpAInlet:
+        firstPumpAInlet = "Inlet 1"
+    if not firstPumpBInlet:
+        firstPumpBInlet = "Inlet 7"
+
     
     expected_manflow = skidSizeDict[skid_size]["Manflow"]
 
@@ -103,7 +107,7 @@ def check_purge_block_settings(purge_blocks, pfcData, skid_size):
             for error in validate_common_settings(block['settings'], "Bypass", "Inline", expected_manflow, expected_purge_breakpoint):
                 incorrectFieldText.append(error)
 
-            if "Inlet 1" != block["settings"]['inlet_setting']: 
+            if firstPumpAInlet != block["settings"]['inlet_setting']: 
                 incorrectFieldText.append(f"Expected Inlet 1")
 
             if block['settings']['filter_setting']!= "Inline":
@@ -115,7 +119,7 @@ def check_purge_block_settings(purge_blocks, pfcData, skid_size):
             for error in validate_common_settings(block['settings'], "Bypass", "Bypass", expected_manflow, expected_purge_breakpoint):
                 incorrectFieldText.append(error)
                   
-            if "Inlet 7" != block["settings"]['inlet_setting']: 
+            if firstPumpBInlet != block["settings"]['inlet_setting']: 
                 incorrectFieldText.append(f"Expected Inlet 7")
                   
             if block['settings']['filter_setting']!= "Bypass":
@@ -217,6 +221,8 @@ def check_MS_blocks_settings_pdf(MS_blocks, pfcData, numberofMS, skid_size):
 
 def check_indiv_blocks_settings_pdf(indiv_blocks, pfcData, columnParam, userInputCompensationData, skid_size):
     highlights = []
+    firstPumpAInlet = None
+    firstPumpBInlet = None
 
     skidSizeDict = {
         '3/8': {"Manflow": 100, "Purge Volume": 7},
@@ -236,7 +242,7 @@ def check_indiv_blocks_settings_pdf(indiv_blocks, pfcData, columnParam, userInpu
             if volume and isinstance(volume, float):
                 expected_flush_breakpoint = volume
 
-        closestTitleMatch, pfcQD, direct, flowRate, residenceTime, columnVolume = get_pfc_data_from_block_name(block['blockName'], pfcData)
+        closestTitleMatch, pfcQD, direct, flowRate, residenceTime, columnVolume, pump, inlet = get_pfc_data_from_block_name(block['blockName'], pfcData)
 
         if "Inline" not in block["settings"]['filter_setting']:
             incorrectFieldText.append("Expected Inline filter")
@@ -264,7 +270,9 @@ def check_indiv_blocks_settings_pdf(indiv_blocks, pfcData, columnParam, userInpu
         #Flushes do not have a totalizer reset
         else:
             #Check buffers that should be reset through wash pump A
-            if "rinse" in block['blockName'].lower() or "wash_1" in block['blockName'].lower() or "wash_3" in block['blockName'].lower() or "equil" in block['blockName'].lower() or "elution" in block['blockName'].lower() or "charge" in block['blockName'].lower():
+            if "A" in pump:
+                if not firstPumpAInlet:
+                    firstPumpAInlet = inlet
                 if ("pa" not in block['settings']['reset_setting'].lower()):
 
                     #Blocks will sometime's share previous buffer settings if they have the same QD
@@ -273,7 +281,9 @@ def check_indiv_blocks_settings_pdf(indiv_blocks, pfcData, columnParam, userInpu
                           
 
             #Check buffers that should be reset through wash pump B
-            else:
+            elif "B" in pump:
+                if not firstPumpBInlet:
+                    firstPumpBInlet = inlet
                 if ("pb" not in block['settings']['reset_setting'].lower()):
                     #Blocks will sometime's share previous buffer settings if they have the same QD
                     if (indiv_blocks[index-1]['settings']['inlet_QD_setting'] != block['settings']['inlet_QD_setting']) and 'pb' not in indiv_blocks[index-1]['settings']['reset_setting'].lower():
@@ -314,9 +324,17 @@ def check_indiv_blocks_settings_pdf(indiv_blocks, pfcData, columnParam, userInpu
                     incorrectFieldText.append(f"Expected {columnVolume} breakpoint volume for snapshot")
                       
         except:
-           pass
-              
-        #TODO: check inlets?
+           pass     
+
+        if inlet not in block['settings']['inlet_setting'] or block['settings']['inlet_setting'] not in inlet and inlet.strip()!='' and block['settings']['inlet_setting'].strip()!='':
+            #if the previous buffer has the same composition, they will share the same inlet, otherwise, this inlet is incorect
+            if indiv_blocks[index-1]['settings']['inlet_setting'] in block['settings']['inlet_setting'] or  block['settings']['inlet_setting'] in indiv_blocks[index-1]['settings']['inlet_setting']:    
+                prevClosestTitleMatch, prevPfcQD, prevDirect, prevFlowRate, prevResidenceTime, prevColumnVolume, prevPump, prevInlet = get_pfc_data_from_block_name(block['blockName'], pfcData)
+
+                if prevPfcQD not in pfcQD or pfcQD not in prevPfcQD:
+                    incorrectFieldText.append(f"Expected {inlet} got {block['settings']['inlet_setting']}")
+            else:
+                incorrectFieldText.append(f"Expected {inlet} got {block['settings']['inlet_setting']}")
 
         if incorrectFieldText:
             highlights.append({
@@ -324,7 +342,7 @@ def check_indiv_blocks_settings_pdf(indiv_blocks, pfcData, columnParam, userInpu
                 "annotationText": incorrectFieldText
             })
 
-    return highlights
+    return highlights, firstPumpAInlet, firstPumpBInlet
 
 def check_watch_settings(blocks):
 
@@ -380,7 +398,7 @@ def check_scouting(scoutingData, pfcData, uvPreset, numOfCycles, numOfMS, blocks
         
         #loop throught the column headers for each of the tables
         for index, header in enumerate(tableHeaderList):
-            closestTitleMatch, pfcQD, direct, flowRate, residenceTime, columnVolume = get_pfc_data_from_block_name(header.lower().strip("flowrate"), pfcData)
+            closestTitleMatch, pfcQD, direct, flowRate, residenceTime, columnVolume, pump, inlet = get_pfc_data_from_block_name(header.lower().strip("flowrate"), pfcData)
 
             try:
                 blocksToInclude.remove(closestTitleMatch)
@@ -579,10 +597,12 @@ def get_pfc_data_from_block_name(blockName, pfcData):
         flowRate = closestMatchData['flow_rate']
         residenceTime = closestMatchData['residence time']
         columnVolume = closestMatchData['CV']
+        pump = closestMatchData['pump']
+        inlet = closestMatchData['inlet']
 
-        return blockNameDictionary.get(closestTitleMatch), pfcQD, direct, flowRate, residenceTime, columnVolume
+        return blockNameDictionary.get(closestTitleMatch), pfcQD, direct, flowRate, residenceTime, columnVolume, pump, inlet
     except:
-        return '', '', '', '', ''
+        return '', '', '', '', '', '', ''
     
 
 def parse_breakpoint_volume(comment: str, skid_size: str) -> float:

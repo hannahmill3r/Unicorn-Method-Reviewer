@@ -4,7 +4,6 @@ from blockVerification import check_purge_block_settings, check_watch_settings, 
 from streamlitUI import create_inlet_qd_interface, display_pdf
 from extractText import extract_text_from_pdf
 import streamlit as st
-
 import os
 
 
@@ -12,7 +11,7 @@ def main():
     result = create_inlet_qd_interface()
 
     if result['submit_pressed']:
-        st.info("Processing document and comparing QD numbers...")
+        st.info("Processing document and comparing parameters...")
         
         # Process the PDF and analyze purge blocks
         outputFile = extract_text_from_pdf('tempfile.pdf', 'output2')
@@ -28,10 +27,10 @@ def main():
                 #TODO: add try catch here?
                 blockData = protein_A_method_parser(text, result)
 
-                highlightsPurge = check_purge_block_settings(blockData["purge_data"], result['inlet_data'], result['skid_size'])
+                highlightsIndiv, firstPumpAInlet, firstPumpBInlet = check_indiv_blocks_settings_pdf(blockData["indiv_block_data"], result['inlet_data'], result['column_params'], result['compensation_factor'], result['skid_size'])
+                highlightsPurge = check_purge_block_settings(blockData["purge_data"], result['inlet_data'], result['skid_size'], firstPumpAInlet, firstPumpBInlet)
                 highlightsMS = check_MS_blocks_settings_pdf(blockData["equilibration_data"], result['inlet_data'], result["number_of_MS"], result['skid_size'])
                 highlightsColumnParams = check_column_params(blockData["column_params"], result['column_params'])
-                highlightsIndiv = check_indiv_blocks_settings_pdf(blockData["indiv_block_data"], result['inlet_data'], result['column_params'], result['compensation_factor'], result['skid_size'])
                 highlightsWatchSettings = check_watch_settings(blockData["watch_block_data"])
                 highlightsFinalBlock = check_end_of_run_pdf(blockData["final_block_data"])
                 highlightsScouting = check_scouting(blockData["scouting_data"], result['inlet_data'], result['post_wash_UV'], result['number_of_cycles'], result["number_of_MS"], result["scouting_blocks_included"], result['column_params'])

@@ -1,10 +1,10 @@
 UNICORN 7.3.0
-1(12)
-User: AM/c304117  4/4/2024 7:26:07 AM -04:00
-Method: v002 Scouting Method LA1031 CEX
+1(19)
+User: AM/c304117  4/4/2025 10:08:09 AM -04:00
+Method:  v001 Scouting Method LB2273 Protein A
 Text instructions
 Main method:
-0.00   Base: CV, Vc=73.796 {l}, LA1031_CEX_26pt1cm_H_X_60cm_D
+0.00   Base: CV, Vc=27.037 {l}, LB2273_ProA_17cm_H_x_45cm_D
 0.00   Phase: Method Settings
 0.00   Base: SameAsMain
 0.00   Phase: User Defined
@@ -13,56 +13,51 @@ Main method:
 0.00   Block: Start_Conditions
 0.00   Base: SameAsMain
 0.00   Air_Alarm: Disabled, Disabled
-Comment: Disabling Flow warning prevents "no flow" error when method 
-is run.
 0.00   Flow warning: Disabled
 Comment: Reduce flow deviation if method will require flowrate less 
-than 10 L/hr 
+than 10 L/hr
 0.00   FlowDeviation_FIT_PA: 20.0 {l/hour}, -20.0 {l/hour}, 300.0 
 {sec}, Enabled
 0.00   FlowDeviation_FIT_PB: 20.0 {l/hour}, -20.0 {l/hour}, 300.0 
 {sec}, Enabled
-0.00   PIT_PB: 3.00 {bar}, 0.00 {bar}, 2.70 {bar}, 0.00 {bar}, 0.00 
-{bar}, Enabled
 0.00   PIT_PA: 5.00 {bar}, 0.00 {bar}, 3.50 {bar}, 0.00 {bar}, 0.00 
 {bar}, Enabled
-Comment: For valley or peak cut, see method notes for guidance to set 
-the UV_MinPeak
-0.00   UV_MinPeak: 0.0000 {AU}, 0.0000 {AU}, 0.0000 {AU}
+0.00   PIT_PB: 3.00 {bar}, 0.00 {bar}, 2.80 {bar}, 0.00 {bar}, 0.00 
+{bar}, Enabled
 0.00   Wavelength: 280 {nm}, 0 {nm}, 0 {nm}
 0.00   End_Block
-Comment: THROUGHOUT: Purge volume = 7L, 10L, and 15L for 3/8", 1/2", and 
-3/4" skid respectively
-Comment: THROUGHOUT: Manflow = 60% for 3/4" skid. Manflow = 100% for 3/8" 
-and 1/2" skid
+Comment: THROUGHOUT: Update inlet purges to 7L, 10L, 15L for 3/8", 1/2", 
+3/4" respectively
+Comment: THROUGHOUT: ManFlow 60% for 3/4" skid, ManFlow 100% for 3/8" and 
+1/2" skid
+Comment: THROUGHOUT: Ensure totalizer reset matches pump in block
 0.00   Block: (Startup_Blocks)#Startup_Blocks
 0.00   Base: SameAsMain
 0.00   Block: Prepare_Purge_Col_Bypass
 0.00   Base: Time, ColumnSameAsMain
-0.00   Message: Prepare to purge column bypass line.  Ensure column 
-is bypassed.  , Screen, No sound
+0.00   Message: Prepare to purge Inlet 5 and air from bypass line 
+and installed hoses.  Ensure column is bypassed., Screen, No sound
 0.00   Pause: Infinite {min}
 0.01   End_Block
 0.00   Block: Purge_Inlet_5_Col_Bypass
 0.00   Base: Volume, ColumnSameAsMain
 0.00   Air_Alarm: Disabled, Disabled
 0.00   Inlet: Closed, Inlet5
-
-UNICORN 7.3.0
-2(12)
-User: AM/c304117  4/4/2024 7:26:07 AM -04:00
-Method: v002 Scouting Method LA1031 CEX
 0.00   BubbleTrap: Bypass
 0.00   Filter: Bypass
 0.00   Column: UpFlow
+
+UNICORN 7.3.0
+2(19)
+User: AM/c304117  4/4/2025 10:08:09 AM -04:00
+Method:  v001 Scouting Method LB2273 Protein A
 0.00   Outlet: Waste
 0.00   ManFlow: 60.0 {%}
-0.00   Set mark: Purge column bypass line with resin storage 
-solution. 
-Comment: Regardless of skid size, keep purge volume 10 L upflow and 
-10 L downflow
-10.00   Column: DownFlow
-20.00   End_Block
+0.00   Set mark: Purge Inlet 5 and Column Bypass Line: QD00249
+Comment: Breakpoint settings: 10L up and down for 3/8" and 1/2," 15L 
+up and down for 3/4."
+15.00   Column: DownFlow
+30.00   End_Block
 0.00   Block: Place_Column_Inline
 0.00   Base: Time, ColumnSameAsMain
 0.00   Message: Close valves to column bypass loop and open column 
@@ -78,12 +73,12 @@ valves (column inline)., Screen, No sound
 0.00   Column: Bypass_Both
 0.00   Outlet: Waste
 0.00   ManFlow: 60.0 {%}
-0.00   Set mark: Purge Inlet Sample: QD00305
+0.00   Set mark: Purge Inlet Sample: QD00015
 15.00   End_Block
 0.00   Block: Connect_Equil_to_Inlet_1
 0.00   Base: Time, ColumnSameAsMain
-0.00   Message: Connect QD00305 to Inlet 1 and open clamps., Screen, 
-No sound
+0.00   Message: Connect the QD00015 to Inlet 1 and open clamps., 
+Screen, No sound
 0.00   Pause: Infinite {min}
 0.01   End_Block
 0.00   Block: Purge_Inlet_4
@@ -95,23 +90,45 @@ No sound
 0.00   Column: Bypass_Both
 0.00   Outlet: Waste
 0.00   ManFlow: 60.0 {%}
-0.00   Set mark: Purge Inlet 4: QD00007
-
-UNICORN 7.3.0
-3(12)
-User: AM/c304117  4/4/2024 7:26:07 AM -04:00
-Method: v002 Scouting Method LA1031 CEX
+0.00   Set mark: Purge Inlet 4: QD00203
 15.00   End_Block
 0.00   Block: Purge_Inlet_7
 0.00   Base: Volume, ColumnSameAsMain
 0.00   Air_Alarm: Disabled, Disabled
+
+UNICORN 7.3.0
+3(19)
+User: AM/c304117  4/4/2025 10:08:09 AM -04:00
+Method:  v001 Scouting Method LB2273 Protein A
 0.00   Inlet: Closed, Inlet7
 0.00   BubbleTrap: Bypass
 0.00   Filter: Bypass
 0.00   Column: Bypass_Both
 0.00   Outlet: Waste
 0.00   ManFlow: 60.0 {%}
-0.00   Set mark: Purge Inlet 7: QD00346
+0.00   Set mark: Purge Inlet 7: QD00121
+15.00   End_Block
+0.00   Block: Purge_Inlet_2
+0.00   Base: Volume, ColumnSameAsMain
+0.00   Air_Alarm: Disabled, Disabled
+0.00   Inlet: Inlet2, Closed
+0.00   BubbleTrap: Bypass
+0.00   Filter: Bypass
+0.00   Column: Bypass_Both
+0.00   Outlet: Waste
+0.00   ManFlow: 60.0 {%}
+0.00   Set mark: Purge Inlet 2: QD00429
+15.00   End_Block
+0.00   Block: Purge_Inlet_3
+0.00   Base: Volume, ColumnSameAsMain
+0.00   Air_Alarm: Disabled, Disabled
+0.00   Inlet: Inlet3, Closed
+0.00   BubbleTrap: Bypass
+0.00   Filter: Bypass
+0.00   Column: Bypass_Both
+0.00   Outlet: Waste
+0.00   Set mark: Purge Inlet 3: QD00514
+0.00   ManFlow: 60.0 {%}
 15.00   End_Block
 0.00   End_Block
 0.00   Block: (Prepare_Purge_Skid_Filter)#Prepare_Purge_Skid_Filter
@@ -127,28 +144,31 @@ Method: v002 Scouting Method LA1031 CEX
 0.00   Filter: Inline
 0.00   Column: Bypass_Both
 0.00   Outlet: Waste
+
+UNICORN 7.3.0
+4(19)
+User: AM/c304117  4/4/2025 10:08:09 AM -04:00
+Method:  v001 Scouting Method LB2273 Protein A
 0.00   ManFlow: 60.0 {%}
-0.00   Set mark: Filter Wetting and Purge of Inlet 1 QD00305
-Comment: Regardless of skid size, keep purge volume 20 L
+0.00   Set mark: Purge Inlet 1 and Filter
+Comment: Regardless of skid size, keep 20L breakpoint with standard 
+skid filter setup.
+Comment: Adjust breakpoint in scenarios with non-standard filter 
+setups (i.e. glass fiber + cartridge filter)
 20.00   End_Block
 0.00   Block: (Flush_Outlet_Mainstreams_Equil)
 #Flush_Outlet_Mainstreams_Equil
 0.00   Base: Volume, ColumnSameAsMain
-0.00   Air_Alarm: Disabled, Disabled
 0.00   Inlet: Inlet1, Closed
 0.00   BubbleTrap: Inline
 0.00   Filter: Inline
 0.00   Column: Bypass_Both
-0.00   ManFlow: 60.0 {%}
 0.00   Fractions: 3, 5.0 {l}, Outlet1
-Comment: Update end block volume to number of MS times 5L for each 
-outlet
+0.00   ManFlow: 60.0 {%}
+Comment: Set breakpoint to number of mainstreams times 5L.
+Comment: Always keep with filter flush; block strategically placed to 
+provide additional filter flush.
 15.00   End_Block
-
-UNICORN 7.3.0
-4(12)
-User: AM/c304117  4/4/2024 7:26:07 AM -04:00
-Method: v002 Scouting Method LA1031 CEX
 0.00   Block: (Pause_attach_outlet_containers)
 #Pause_attach_outlet_containers
 0.00   Base: Time, ColumnSameAsMain
@@ -156,9 +176,32 @@ Method: v002 Scouting Method LA1031 CEX
 instructions., Screen, No sound
 0.00   Pause: Infinite {min}
 0.01   End_Block
-0.00   Block: (Pre-Use_Sanitization)#Pre-Use_Sanitization
+0.00   Block: (MabSelect_Pre_Use_Rinse_And_Sanitization)
+#MabSelect_Pre_Use_Rinse_And_Sanitization
 0.00   Base: SameAsMain
-0.00   Block: Pre_Use_Column_Sanitization
+Comment: Select sanitization strategy based on PFC definition. Delete 
+sani block not used.
+0.00   Block: Pre_Sani_Rinse
+0.00   Base: SameAsMain
+0.00   Air_Alarm: Disabled, Enabled
+0.00   FIT_PA_Totalizer_Reset
+0.00   Inlet: Inlet1, Closed
+0.00   BubbleTrap: Inline
+0.00   Filter: Inline
+0.00   Column: DownFlow
+0.00   Outlet: Waste
+0.00   Flow: (136)#Pre_Sani_Flowrate {cm/h}
+Comment: Set velocity to achieve 2 CV over 15 minutes.
+Comment: Velocity (cm/hr) = ((Column Volume x 2/0.25) x 1000)/CSA
+0.00   Set mark: Pre_Sani_Rinse
+
+UNICORN 7.3.0
+5(19)
+User: AM/c304117  4/4/2025 10:08:09 AM -04:00
+Method:  v001 Scouting Method LB2273 Protein A
+0.50   Snapshot: Pre_Sani_Rinse End
+0.50   End_Block
+0.00   Block: Pre_Sanitization
 0.00   Base: SameAsMain
 0.00   Air_Alarm: Disabled, Enabled
 0.00   FIT_PB_Totalizer_Reset
@@ -167,61 +210,61 @@ instructions., Screen, No sound
 0.00   Filter: Inline
 0.00   Column: DownFlow
 0.00   Outlet: Waste
-0.00   Flow: (200)#Pre-Use_Sani_Flowrate {cm/h}
-0.00   Set mark: Pre-Use Column Sanitization Start
-2.00   Snapshot: Pre-Use Column Sanitization End
+0.00   Flow: (136)#Pre_Sani_Flowrate {cm/h}
+0.00   Set mark: Pre_Sani
+2.00   Snapshot: Pre_Sani End
 2.00   End_Block
-0.00   Block: Pause_Complete_Sanitization
-0.00   Base: Time, ColumnSameAsMain
-0.00   Pause: 30.00 {min}
-0.01   End_Block
 0.00   End_Block
 0.00   Block: Purge_B_Pump
 0.00   Base: Time, ColumnSameAsMain
 0.00   Air_Alarm: Disabled, Disabled
 0.00   Inlet: Closed, Inlet7
-Comment: Change inlet to match first inlet used from B pump
+Comment: Change inlet to match first inlet used from B pump, 
+henceforth (from this point forward).
+Comment: Inlet purge volumes do not apply to pump purges and block 
+should remain in base of time.
 0.00   BubbleTrap: Bypass
 0.00   Filter: Bypass
 0.00   Column: Bypass_Both
 0.00   Outlet: Waste
 0.00   ManFlow: 60.0 {%}
-0.00   Set mark: Purge Inlet 7: QD00346
+0.00   Set mark: Purge Inlet 7
 2.00   End_Block
 0.00   Block: Purge_A_Pump
 0.00   Base: Time, ColumnSameAsMain
 0.00   Air_Alarm: Disabled, Disabled
 0.00   Inlet: Inlet1, Closed
-Comment: Change inlet to match first inlet used from A pump
-
-UNICORN 7.3.0
-5(12)
-User: AM/c304117  4/4/2024 7:26:07 AM -04:00
-Method: v002 Scouting Method LA1031 CEX
+Comment: Change inlet to match first inlet used from A pump, 
+henceforth (from this point forward).
+Comment: Inlet purge volumes do not apply to pump purges and block 
+should remain in base of time.
 0.00   BubbleTrap: Inline
 0.00   Filter: Inline
 0.00   Column: Bypass_Both
 0.00   Outlet: Waste
 0.00   ManFlow: 60.0 {%}
-0.00   Set mark: Purge Inlet sample: QD00305
+
+UNICORN 7.3.0
+6(19)
+User: AM/c304117  4/4/2025 10:08:09 AM -04:00
+Method:  v001 Scouting Method LB2273 Protein A
+0.00   Set mark: Purge Inlet 1
 2.00   End_Block
-0.00   Block: Equilibration
+0.00   Block: MabSelect_Equilibration
 0.00   Base: SameAsMain
 0.00   Air_Alarm: Disabled, Enabled
 0.00   FIT_PA_Totalizer_Reset
-0.00   FIT_PB_Totalizer_Reset
-0.00   FIT_PA+PB_Totalizer_Reset
-0.00   Inlet: Inlet1, Inlet7
+0.00   Inlet: Inlet1, Closed
 0.00   BubbleTrap: Inline
 0.00   Filter: Inline
 0.00   Column: DownFlow
 0.00   Outlet: Waste
-0.00   GradMode: FlowGradient
-0.00   Gradient: 10.0 {%B}, 0.00 {base}
-0.00   Flow: (200)#Equil_Flowrate {cm/h}
-0.00   Set mark: Column Equil Start
-3.00   Snapshot: Equil End
-3.00   End_Block
+0.00   Flow: (136)#First_CV_Equil_Flowrate {cm/h}
+0.00   Set mark: Equil
+1.00   Flow: (300)#Equil_Flowrate {cm/h}
+2.00   Snapshot: Equil End
+2.00   End_Block
+Comment: DELETE if using MabSelect SuRe or SuReLX
 0.00   Block: UV_Auto_Zero
 0.00   Base: Time, ColumnSameAsMain
 0.00   AT_PF_AZ
@@ -235,200 +278,253 @@ Screen, No sound
 0.01   End_Block
 0.00   Block: Charge
 0.00   Base: Volume, ColumnSameAsMain
-0.00   Snapshot: Charge Begin
+0.00   Injection_Mark
 0.00   Air_Alarm: Disabled, Enabled
 0.00   FIT_PA_Totalizer_Reset
 0.00   Inlet: Sample, Closed
 0.00   BubbleTrap: Inline
 0.00   Filter: Inline
 0.00   Column: DownFlow
+0.00   Outlet: Waste
+Comment: If process uses Triton, change to Outlet 9. Green detergent 
+does not require special waste.
+0.00   Flow: (170)#Charge_Flowrate {cm/h}
+0.00   Set mark: Charge
+(850.00)#Set_Charge_Volume   Snapshot: Charge End
+850.00   End_Block
 
 UNICORN 7.3.0
-6(12)
-User: AM/c304117  4/4/2024 7:26:07 AM -04:00
-Method: v002 Scouting Method LA1031 CEX
-0.00   Outlet: Waste
-0.00   Flow: (200)#Charge_Flowrate {cm/h}
-0.00   Set mark: Column Charge Start
-(800.00)#Set_Charge_Volume   Snapshot: Charge End
-800.00   End_Block
-0.00   Block: Post_Charge_Wash
+7(19)
+User: AM/c304117  4/4/2025 10:08:09 AM -04:00
+Method:  v001 Scouting Method LB2273 Protein A
+0.00   Block: Wash_1
 0.00   Base: SameAsMain
+Comment: Ensure first column wash flows through the material load pump
 0.00   Air_Alarm: Disabled, Enabled
 0.00   FIT_PA_Totalizer_Reset
-0.00   FIT_PB_Totalizer_Reset
-0.00   FIT_PA+PB_Totalizer_Reset
-0.00   Inlet: Inlet1, Inlet7
+0.00   Inlet: Inlet1, Closed
 0.00   BubbleTrap: Inline
 0.00   Filter: Inline
 0.00   Column: DownFlow
 0.00   Outlet: Waste
-0.00   GradMode: FlowGradient
-0.00   Gradient: 10.0 {%B}, 0.00 {base}
-0.00   Flow: (200)#Post_Charge_Wash_Flowrate {cm/h}
-0.00   Set mark: Post_Charge_Wash
-2.00   Snapshot: Post Charge Wash End
-2.00   Watch off: AT_PF_UV_1
+Comment: If process uses Triton, change to Outlet 9. Green detergent 
+does not require special waste.
+0.00   Flow: (170)#Wash_1_Flowrate {cm/h}
+0.00   Set mark: Wash_1
+2.00   Snapshot: Wash_1 End
 2.00   End_Block
-0.00   Block: (Elution)#Elution
-0.00   Base: SameAsMain
+0.00   Block: Wash_2_System_Flush
+0.00   Base: Volume, ColumnSameAsMain
+0.00   Air_Alarm: Disabled, Disabled
+0.00   Inlet: Closed, Inlet7
+0.00   BubbleTrap: Inline
+0.00   Filter: Inline
+0.00   Column: Bypass_Both
+0.00   Outlet: Waste
+0.00   Flow: (300)#Wash_2_Flowrate {cm/h}
+0.00   Set mark: System Flush
 0.00   Air_Alarm: Disabled, Enabled
-0.00   FIT_PA_Totalizer_Reset
+Comment: Set block volume to 10L, 15L, or 20L for 3/8", 1/2", or 3/4" 
+respectively.
+Comment: Extended flush volume is to achieve complete skid flush with 
+wash 2 buffer (cond. turnover).
+20.00   End_Block
+0.00   Block: Wash_2
+0.00   Base: SameAsMain
+0.00   New chromatogram: Wash2Chromatogram
+0.00   Air_Alarm: Disabled, Enabled
 0.00   FIT_PB_Totalizer_Reset
-0.00   FIT_PA+PB_Totalizer_Reset
-0.00   Inlet: Inlet1, Inlet7
+0.00   Inlet: Closed, Inlet7
 0.00   BubbleTrap: Inline
 0.00   Filter: Inline
 0.00   Column: DownFlow
 0.00   Outlet: Waste
-0.00   Flow: (200)#Elution_Flowrate {cm/h}
-Comment: FS will go to Outlet Waste
-0.00   Gradient: 90.0 {%B}, 10.00 {base}
-0.00   GradMode: FlowGradient
-0.00   Set mark: Elution - FS
-0.00   Snapshot: Start FS
+0.00   Flow: (300)#Wash_2_Flowrate {cm/h}
+0.00   Injection_Mark
+
+UNICORN 7.3.0
+8(19)
+User: AM/c304117  4/4/2025 10:08:09 AM -04:00
+Method:  v001 Scouting Method LB2273 Protein A
+0.00   Set mark: Wash_2
+Comment: Confirm with Development- some molecules expect high UV in 
+Wash 2. Remove watch if that is the case.
+0.50   Watch: AT_PF_UV_1, Greater than, (3.0000)#Post_Charge_Wash_UV 
+{AU}, Pause_Warning_High_UV
+0.00   Base: SameAsMain
+0.00   Message: Warning: HIGH UV.  Contact MA, TS or Supervision., 
+Screen, No sound
+0.00   Pause: Infinite {min}
+0.00   End_Block
+4.00   Snapshot: Wash_2 End
+4.00   Watch off: AT_PF_UV_1
+4.00   End_Block
+0.00   Block: Wash_3
+0.00   Base: SameAsMain
+0.00   Air_Alarm: Disabled, Enabled
+0.00   FIT_PA_Totalizer_Reset
+0.00   Inlet: Inlet3, Closed
+0.00   BubbleTrap: Inline
+0.00   Filter: Inline
+0.00   Column: DownFlow
+0.00   Outlet: Waste
+0.00   Flow: (300)#Wash_3_Flowrate {cm/h}
+0.00   Set mark: Wash_3
+0.00   Watch: AT_PF_UV_1, Greater than, (3.0000)#Post_Charge_Wash_UV 
+{AU}, Pause_Warning_High_UV
+0.00   Base: SameAsMain
+0.00   Message: Warning: HIGH UV.  Contact MA, TS or Supervision., 
+Screen, No sound
+0.00   Pause: Infinite {min}
+0.00   End_Block
+4.00   Snapshot: Wash_3 End
+4.00   Watch off: AT_PF_UV_1
+4.00   End_Block
+Comment: DELETE Wash_3 block if only 2 washes
+0.00   Block: Flush_Skid_Inlet_2_Elution
+0.00   Base: Volume, ColumnSameAsMain
+0.00   Watch off: AT_PF_UV_1
+0.00   Air_Alarm: Disabled, Disabled
+0.00   Inlet: Inlet2, Closed
+0.00   BubbleTrap: Inline
+0.00   Filter: Inline
+0.00   Column: Bypass_Both
+0.00   Outlet: Waste
+0.00   ManFlow: 60.0 {%}
+
+UNICORN 7.3.0
+9(19)
+User: AM/c304117  4/4/2025 10:08:09 AM -04:00
+Method:  v001 Scouting Method LB2273 Protein A
+0.00   Set mark: Flush skid with Elution buffer
+3.00   Flow: (300)#Elution_Flowrate {cm/h}
+4.00   Air_Alarm: Disabled, Enabled
+Comment: Set block volume to 10L, 15L, or 20L for 3/8", 1/2", or 3/4" 
+respectively. 
+Comment: Extended flush volume is to acheive complete skid flush with 
+elution buffer (pH turnover).
+20.00   End_Block
+0.00   Block: Elution
+0.00   Base: SameAsMain
+0.00   Air_Alarm: Disabled, Enabled
+0.00   FIT_PA_Totalizer_Reset
+0.00   Inlet: Inlet2, Closed
+0.00   BubbleTrap: Inline
+0.00   Filter: Inline
+0.00   Column: DownFlow
+0.00   Outlet: Waste
+0.00   Flow: (300)#Elution_Flowrate {cm/h}
+0.00   Set mark: Elution
 0.00   Watch: PIT_PA., Greater than, 3.00 {bar}, Elution_Message
 0.00   Base: SameAsMain
 0.00   Message: Pause during elution may trigger UV and impact 
 mainstream collection, Screen, No sound
-
-UNICORN 7.3.0
-7(12)
-User: AM/c304117  4/4/2024 7:26:07 AM -04:00
-Method: v002 Scouting Method LA1031 CEX
 0.00   End_Block
-0.00   Watch: PIT_PB., Greater than, 2.50 {bar}, Elution_Message_PB
-0.00   Base: SameAsMain
-0.00   Message: Pause during elution may trigger UV and impact 
-mainstream collection, Screen, No sound
-0.00   End_Block
-0.00   Watch: PIT_PB., Greater than, 2.70 {bar}, Slow_Flow
-0.00   Base: SameAsMain
-0.00   Flow: (150)#Reduced_Elution_Flow {cm/h}
-0.00   End_Block
-Comment: LHM4350 Compensation Factor w/2mm Path = 4.92
+Comment: LHM4350 2mm Path Length Compensation Factor = 4.92
 0.00   Block: Watch_UV
 0.00   Base: SameAsMain
 0.00   Watch: AT_PF_UV_1, Greater than, 0.2033 {AU}, Collect_Peak
 0.00   Base: SameAsMain
+0.00   Injection_Mark
 0.00   Outlet: (Outlet1)#MS_Outlet
-0.00   Set mark: Elution - MS
-0.00   Snapshot: Start MS Collection
-0.00   Watch: AT_PF_UV_1, Greater than, 1.5000 {AU}, 
+0.00   Watch: AT_PF_UV_1, Greater than, 0.7500 {AU}, 
 watch_Less_Than
 0.00   Base: SameAsMain
-0.00   Watch: AT_PF_UV_1, Less than, 0.8130 {AU}, End block
+Comment: Design peak protect to be adequately above backside cut 
+but within skid capability (ex. ~NMT 3 AU).
+0.00   Watch: AT_PF_UV_1, Less than, 0.2033 {AU}, End block
+0.00   End_Block
+Comment: BS cut triggers end block command, ends elution block & 
+automatically transitions to next block.
 0.00   End_Block
 0.00   End_Block
-0.00   End_Block
-10.00   Gradient: 90.0 {%B}, 0.00 {base}
-10.00   GradMode: FlowGradient
-12.00   Snapshot: Elution End
-12.00   Watch off: AT_PF_UV_1
-12.00   End_Block
-0.00   Block: (Elution_Full_Backside)#Elution_Full_Backside
+5.00   Snapshot: Elution End
+5.00   Watch off: AT_PF_UV_1
+5.00   End_Block
+
+UNICORN 7.3.0
+10(19)
+User: AM/c304117  4/4/2025 10:08:09 AM -04:00
+Method:  v001 Scouting Method LB2273 Protein A
+0.00   Block: Regeneration
 0.00   Base: SameAsMain
+Comment: Turn off the pressure watches from Elution.
+0.00   Watch off: PIT_PA.
+0.00   Watch off: PIT_PB.
+0.00   Watch off: AT_PF_UV_1
 0.00   Air_Alarm: Disabled, Enabled
 0.00   FIT_PA_Totalizer_Reset
-0.00   FIT_PB_Totalizer_Reset
-0.00   FIT_PA+PB_Totalizer_Reset
-0.00   Inlet: Inlet1, Inlet7
+0.00   Inlet: Inlet2, Closed
 0.00   BubbleTrap: Inline
 0.00   Filter: Inline
 0.00   Column: DownFlow
 0.00   Outlet: Waste
-0.00   Flow: (200)#Elution_Flowrate {cm/h}
-Comment: FS will go to Outlet Waste
-0.00   GradMode: FlowGradient
-
-UNICORN 7.3.0
-8(12)
-User: AM/c304117  4/4/2024 7:26:07 AM -04:00
-Method: v002 Scouting Method LA1031 CEX
-0.00   Gradient: 90.0 {%B}, 10.00 {base}
-0.00   Set mark: Elution - FS
-0.00   Snapshot: Start FS
-0.00   Watch: PIT_PA., Greater than, 3.00 {bar}, Elution_Message
+0.00   Flow: (300)#Regen_Flowrate {cm/h}
+0.00   Set mark: Regen
+3.00   FlowDeviation_FIT_PA: 20.0 {l/hour}, -20.0 {l/hour}, 300.0 
+{sec}, Disabled
+3.00   FlowDeviation_FIT_PB: 20.0 {l/hour}, -20.0 {l/hour}, 300.0 
+{sec}, Disabled
+3.00   Snapshot: Regen End
+3.00   End_Block
+0.00   Block: (MabSelect_Post_Rinse_And_Sanitization)
+#MabSelect_Post_Rinse_And_Sanitization
 0.00   Base: SameAsMain
-0.00   Message: Pause during elution may trigger UV and impact 
-mainstream collection, Screen, No sound
-0.00   End_Block
-0.00   Watch: PIT_PB., Greater than, 2.50 {bar}, Elution_Message_PB
-0.00   Base: SameAsMain
-0.00   Message: Pause during elution may trigger UV and impact 
-mainstream collection, Screen, No sound
-0.00   End_Block
-Comment: LHM4350 Compensation Factor w/2mm Path = 4.92
-0.00   Watch: PIT_PB., Greater than, 2.70 {bar}, Slow_Flow
-0.00   Base: SameAsMain
-0.00   Flow: (150)#Reduced_Elution_Flow {cm/h}
-0.00   End_Block
-0.00   Block: Watch_UV_1
-0.00   Base: SameAsMain
-0.00   Watch: AT_PF_UV_1, Greater than, 0.2033 {AU}, Collect_Peak_1
-0.00   Base: SameAsMain
-0.00   Outlet: (Outlet1)#MS_Outlet
-0.00   Set mark: Elution - MS
-0.00   Snapshot: Start MS Collection
-0.00   Watch: AT_PF_UV_1, Greater than, 1.5000 {AU}, 
-watch_Less_Than_1
-0.00   Base: SameAsMain
-0.00   Watch: AT_PF_UV_1, Less than, 0.8130 {AU}, stop_Collect
-0.00   Base: SameAsMain
-0.00   Outlet: Waste
-0.00   Set mark: Elution - BS
-0.00   Snapshot: Mainstream Collection End -Start BS
-Comment: BS will go to Outlet Waste
-0.00   End_Block
-0.00   End_Block
-0.00   End_Block
-0.00   End_Block
-10.00   Gradient: 90.0 {%B}, 0.00 {base}
-10.00   GradMode: FlowGradient
-12.00   Snapshot: Elution End
-12.00   Watch off: AT_PF_UV_1
-12.00   End_Block
-0.00   Block: Post_Use_Sanitization
-
-UNICORN 7.3.0
-9(12)
-User: AM/c304117  4/4/2024 7:26:07 AM -04:00
-Method: v002 Scouting Method LA1031 CEX
-0.00   Base: SameAsMain
-0.00   Block: Post_Use_Column_Sanitization
-0.00   Base: SameAsMain
-Comment: Turn off the pressure watches from Elution:
+Comment: Turn off the pressure watches from Elution.
 0.00   Watch off: PIT_PA.
 0.00   Watch off: PIT_PB.
 0.00   Watch off: AT_PF_UV_1
-0.00   New chromatogram: PostUseColSanitz
-0.00   Snapshot: Mainstream End, Begin Post Use Column Sanitization
+0.00   Block: Rinse_3
+0.00   Base: SameAsMain
+0.00   Air_Alarm: Disabled, Enabled
+0.00   FIT_PA_Totalizer_Reset
+0.00   Inlet: Inlet1, Closed
+0.00   BubbleTrap: Inline
+0.00   Filter: Inline
+0.00   Column: UpFlow
+0.00   Outlet: Waste
+0.00   Flow: (136)#Post_Use_Sani_Flowrate {cm/h}
+0.00   Set mark: Rinse_3
+0.50   Snapshot: Rinse_3 End
+0.50   End_Block
+0.00   Block: Post_Use_Sanitization
+0.00   Base: SameAsMain
+0.00   Air_Alarm: Disabled, Enabled
+
+UNICORN 7.3.0
+11(19)
+User: AM/c304117  4/4/2025 10:08:09 AM -04:00
+Method:  v001 Scouting Method LB2273 Protein A
 0.00   FIT_PB_Totalizer_Reset
 0.00   Inlet: Closed, Inlet4
 0.00   BubbleTrap: Inline
 0.00   Filter: Inline
 0.00   Column: UpFlow
 0.00   Outlet: Waste
-0.00   Flow: (200)#Post_Use_Sani_Flowrate {cm/h}
-0.00   Injection_Mark
-0.00   Set mark: Post Use Column Sanitization Start
-2.00   FlowDeviation_FIT_PA: 20.0 {l/hour}, -20.0 {l/hour}, 300.0 
-{sec}, Disabled
-2.00   FlowDeviation_FIT_PB: 20.0 {l/hour}, -20.0 {l/hour}, 300.0 
-{sec}, Disabled
-2.00   Snapshot: End Post Use Column Sanitization
+0.00   Flow: (136)#Post_Use_Sani_Flowrate {cm/h}
+Comment: Set velocity to hit 2 CV in 15 min
+0.00   Set mark: Post_Use_Sani
+2.00   Snapshot: Post_Use_Sani End
 2.00   End_Block
-0.00   Block: Pause_Complete_Sanitization_
-0.00   Base: Time, ColumnSameAsMain
-0.00   Pause: 30.00 {min}
-0.01   End_Block
 0.00   End_Block
+Comment: Keep for Mab Select, Delete for Mab Select SuRe
 0.00   Block: (Column_Storage)#Column_Storage
 0.00   Base: SameAsMain
-0.00   FlowDeviation_FIT_PA: 20.0 {l/hour}, -20.0 {l/hour}, 300.0 
-{sec}, Enabled
-0.00   FlowDeviation_FIT_PB: 20.0 {l/hour}, -20.0 {l/hour}, 300.0 
-{sec}, Enabled
+0.00   Block: Storage_Rinse
+0.00   Base: SameAsMain
+0.00   Air_Alarm: Disabled, Enabled
+0.00   FIT_PA_Totalizer_Reset
+0.00   Inlet: Inlet1, Closed
+0.00   BubbleTrap: Inline
+0.00   Filter: Inline
+0.00   Column: UpFlow
+0.00   Outlet: Waste
+0.00   Flow: (300)#Storage_Flowrate {cm/h}
+0.00   Set mark: Storage_Rinse
+0.50   Snapshot: Storage_Rinse_End
+0.50   End_Block
+0.00   Block: Storage
+0.00   Base: SameAsMain
 0.00   Air_Alarm: Disabled, Enabled
 0.00   FIT_PB_Totalizer_Reset
 0.00   Inlet: Closed, Inlet5
@@ -436,29 +532,33 @@ Comment: Turn off the pressure watches from Elution:
 0.00   Filter: Inline
 0.00   Column: UpFlow
 0.00   Outlet: Waste
-0.00   Flow: (200)#Storage_Flowrate {cm/h}
-0.00   Set mark: Column Storage
-
-UNICORN 7.3.0
-10(12)
-User: AM/c304117  4/4/2024 7:26:07 AM -04:00
-Method: v002 Scouting Method LA1031 CEX
-2.00   Snapshot: Column_Storage
+0.00   Flow: (300)#Storage_Flowrate {cm/h}
+0.00   Set mark: Storage
+2.00   Snapshot: Storage End
 2.00   End_Block
+0.00   End_Block
 0.00   Block: (Blank)#Blank
 0.00   Base: SameAsMain
+
+UNICORN 7.3.0
+12(19)
+User: AM/c304117  4/4/2025 10:08:09 AM -04:00
+Method:  v001 Scouting Method LB2273 Protein A
 0.00   End_Block
 0.00   Block: Return_to_Default
 0.00   Base: Time, Any
+Comment: This block sets skid flowpath back to default settings to 
+prevent nuisance valve alarms,
 0.00   ManFlow: 0.0 {%}
 0.05   Filter: Bypass
-0.10   Column: Bypass_Both
-0.15   BubbleTrap: Inline
-0.15   Inlet: Closed, Closed
+0.05   Column: Bypass_Both
+0.10   BubbleTrap: Inline
+0.10   Inlet: Closed, Closed
 0.50   Outlet: Closed
 0.50   End_Block
 0.00   Block: End_of_Run_Delay
 0.00   Base: Time, Any
+Comment: This block gives system time for data transfer to server.
 0.10   End_Block
 Scouting
 Run
@@ -485,135 +585,978 @@ Yes
 Blank
 Blank
 Blank
-Run
-Included
-Flush_Outlet_Mai
-nstreams_Equil
-Pause_attach_out
-let_containers
-Pre-
-Use_Sanitization
-1
-Yes
-Flush_Outlet_Mai
-nstreams_Equil
-Pause_attach_out
-let_containers
-Pre-
-Use_Sanitization
-2
+4
 Yes
 Blank
 Blank
 Blank
-3
+5
 Yes
 Blank
 Blank
 Blank
-Run
-Included
-Pre-
-Use_Sani_Flowrat
-e
-Equil_Flowrate
-Connect_Charge_t
-o_Inlet_Sample
-1
+6
 Yes
-200
-200
-Connect_Charge_t
-o_Inlet_Sample
-2
-Yes
-200
-200
 Blank
-3
+Blank
+Blank
+7
 Yes
-200
-200
-Connect_Charge_t
-o_Inlet_Sample
-Run
-Included
-Charge_Flowrate
-Set_Charge_Volum
-e
-Post_Charge_Wash
-_Flowrate
-1
+Blank
+Blank
+Blank
+8
 Yes
-200
-800.00
-200
-2
+Blank
+Blank
+Blank
+9
 Yes
-200
-800.00
-200
+Blank
+Blank
+Blank
+10
+Yes
+Blank
+Blank
+Blank
+11
+Yes
+Blank
+Blank
+Blank
+12
+Yes
+Blank
+Blank
+Blank
+13
+Yes
+Blank
+Blank
+Blank
+14
+Yes
+Blank
+Blank
+Blank
+15
+Yes
+Blank
+Blank
+Blank
+16
+Yes
+Blank
+Blank
+Blank
+17
+Yes
+Blank
+Blank
+Blank
+18
+Yes
+Blank
+Blank
+Blank
+19
+Yes
+Blank
+Blank
+Blank
+20
+Yes
+Blank
+Blank
+Blank
+21
+Yes
+Blank
+Blank
+Blank
+22
+Yes
+Blank
+Blank
+Blank
+23
+Yes
+Blank
+Blank
+Blank
 
 UNICORN 7.3.0
-11(12)
-User: AM/c304117  4/4/2024 7:26:07 AM -04:00
-Method: v002 Scouting Method LA1031 CEX
+13(19)
+User: AM/c304117  4/4/2025 10:08:09 AM -04:00
+Method:  v001 Scouting Method LB2273 Protein A
 Run
 Included
+Startup_Blocks
+Prepare_Purge_Sk
+id_Filter
+Purge_Skid_Filte
+r_Inlet_1
+24
+Yes
+Blank
+Blank
+Blank
+Run
+Included
+Flush_Outlet_Mai
+nstreams_Equil
+Pause_attach_out
+let_containers
+MabSelect_Pre_Us
+e_Rinse_And_Sani
+tization
+1
+Yes
+Flush_Outlet_Mai
+nstreams_Equil
+Pause_attach_out
+let_containers
+MabSelect_Pre_Us
+e_Rinse_And_Sani
+tization
+2
+Yes
+Blank
+Blank
+Blank
+3
+Yes
+Blank
+Blank
+Blank
+4
+Yes
+Blank
+Blank
+Blank
+5
+Yes
+Blank
+Blank
+Blank
+6
+Yes
+Blank
+Blank
+Blank
+7
+Yes
+Blank
+Blank
+Blank
+8
+Yes
+Blank
+Blank
+Blank
+9
+Yes
+Blank
+Blank
+Blank
+10
+Yes
+Blank
+Blank
+Blank
+11
+Yes
+Blank
+Blank
+Blank
+12
+Yes
+Blank
+Blank
+Blank
+13
+Yes
+Blank
+Blank
+Blank
+14
+Yes
+Blank
+Blank
+Blank
+15
+Yes
+Blank
+Blank
+Blank
+16
+Yes
+Blank
+Blank
+Blank
+17
+Yes
+Blank
+Blank
+Blank
+18
+Yes
+Blank
+Blank
+Blank
+19
+Yes
+Blank
+Blank
+Blank
+20
+Yes
+Blank
+Blank
+Blank
+21
+Yes
+Blank
+Blank
+Blank
+22
+Yes
+Blank
+Blank
+Blank
+23
+Yes
+Blank
+Blank
+Blank
+24
+Yes
+Blank
+Blank
+Blank
+Run
+Included
+Pre_Sani_Flowrat
+e
+First_CV_Equil_F
+lowrate
+Equil_Flowrate
+1
+Yes
+136
+136
+300
+2
+Yes
+136
+136
+300
+3
+Yes
+136
+136
+300
+4
+Yes
+136
+136
+300
+5
+Yes
+136
+136
+300
+6
+Yes
+136
+136
+300
+7
+Yes
+136
+136
+300
+8
+Yes
+136
+136
+300
+9
+Yes
+136
+136
+300
+
+UNICORN 7.3.0
+14(19)
+User: AM/c304117  4/4/2025 10:08:09 AM -04:00
+Method:  v001 Scouting Method LB2273 Protein A
+Run
+Included
+Pre_Sani_Flowrat
+e
+First_CV_Equil_F
+lowrate
+Equil_Flowrate
+10
+Yes
+136
+136
+300
+11
+Yes
+136
+136
+300
+12
+Yes
+136
+136
+300
+13
+Yes
+136
+136
+300
+14
+Yes
+136
+136
+300
+15
+Yes
+136
+136
+300
+16
+Yes
+136
+136
+300
+17
+Yes
+136
+136
+300
+18
+Yes
+136
+136
+300
+19
+Yes
+136
+136
+300
+20
+Yes
+136
+136
+300
+21
+Yes
+136
+136
+300
+22
+Yes
+136
+136
+300
+23
+Yes
+136
+136
+300
+24
+Yes
+136
+136
+300
+Run
+Included
+Connect_Charge_t
+o_Inlet_Sample
 Charge_Flowrate
 Set_Charge_Volum
 e
-Post_Charge_Wash
-_Flowrate
-3
-Yes
-200
-800.00
-200
-Run
-Included
-Elution
-Elution_Flowrate
-Reduced_Elution_
-Flow
 1
 Yes
-Blank
-200
-150
+Connect_Charge_t
+o_Inlet_Sample
+170
+850.00
 2
 Yes
-Elution
-200
-150
+Blank
+170
+850.00
 3
 Yes
-Elution
-200
-150
+Blank
+170
+850.00
+4
+Yes
+Blank
+170
+850.00
+5
+Yes
+Blank
+170
+850.00
+6
+Yes
+Blank
+170
+850.00
+7
+Yes
+Blank
+170
+850.00
+8
+Yes
+Blank
+170
+850.00
+9
+Yes
+Blank
+170
+850.00
+10
+Yes
+Blank
+170
+850.00
+11
+Yes
+Blank
+170
+850.00
+12
+Yes
+Blank
+170
+850.00
+13
+Yes
+Blank
+170
+850.00
+14
+Yes
+Blank
+170
+850.00
+15
+Yes
+Blank
+170
+850.00
+16
+Yes
+Blank
+170
+850.00
+17
+Yes
+Blank
+170
+850.00
+18
+Yes
+Blank
+170
+850.00
+19
+Yes
+Blank
+170
+850.00
+20
+Yes
+Blank
+170
+850.00
+21
+Yes
+Blank
+170
+850.00
+22
+Yes
+Blank
+170
+850.00
+23
+Yes
+Blank
+170
+850.00
+24
+Yes
+Blank
+170
+850.00
+
+UNICORN 7.3.0
+15(19)
+User: AM/c304117  4/4/2025 10:08:09 AM -04:00
+Method:  v001 Scouting Method LB2273 Protein A
 Run
 Included
+Wash_1_Flowrate
+Wash_2_Flowrate
+Post_Charge_Wash
+_UV
+1
+Yes
+170
+300
+3.0000
+2
+Yes
+170
+300
+3.0000
+3
+Yes
+170
+300
+3.0000
+4
+Yes
+170
+300
+3.0000
+5
+Yes
+170
+300
+3.0000
+6
+Yes
+170
+300
+3.0000
+7
+Yes
+170
+300
+3.0000
+8
+Yes
+170
+300
+3.0000
+9
+Yes
+170
+300
+3.0000
+10
+Yes
+170
+300
+3.0000
+11
+Yes
+170
+300
+3.0000
+12
+Yes
+170
+300
+3.0000
+13
+Yes
+170
+300
+3.0000
+14
+Yes
+170
+300
+3.0000
+15
+Yes
+170
+300
+3.0000
+16
+Yes
+170
+300
+3.0000
+17
+Yes
+170
+300
+3.0000
+18
+Yes
+170
+300
+3.0000
+19
+Yes
+170
+300
+3.0000
+20
+Yes
+170
+300
+3.0000
+21
+Yes
+170
+300
+3.0000
+22
+Yes
+170
+300
+3.0000
+23
+Yes
+170
+300
+3.0000
+24
+Yes
+170
+300
+3.0000
+Run
+Included
+Wash_3_Flowrate
+Elution_Flowrate
 MS_Outlet
-Elution_Full_Bac
-kside
+1
+Yes
+300
+300
+Outlet1
+2
+Yes
+300
+300
+Outlet1
+3
+Yes
+300
+300
+Outlet1
+4
+Yes
+300
+300
+Outlet1
+5
+Yes
+300
+300
+Outlet1
+6
+Yes
+300
+300
+Outlet1
+7
+Yes
+300
+300
+Outlet1
+8
+Yes
+300
+300
+Outlet1
+9
+Yes
+300
+300
+Outlet2
+10
+Yes
+300
+300
+Outlet2
+11
+Yes
+300
+300
+Outlet2
+12
+Yes
+300
+300
+Outlet2
+13
+Yes
+300
+300
+Outlet2
+14
+Yes
+300
+300
+Outlet2
+15
+Yes
+300
+300
+Outlet2
+16
+Yes
+300
+300
+Outlet2
+
+UNICORN 7.3.0
+16(19)
+User: AM/c304117  4/4/2025 10:08:09 AM -04:00
+Method:  v001 Scouting Method LB2273 Protein A
+Run
+Included
+Wash_3_Flowrate
+Elution_Flowrate
+MS_Outlet
+17
+Yes
+300
+300
+Outlet3
+18
+Yes
+300
+300
+Outlet3
+19
+Yes
+300
+300
+Outlet3
+20
+Yes
+300
+300
+Outlet3
+21
+Yes
+300
+300
+Outlet3
+22
+Yes
+300
+300
+Outlet3
+23
+Yes
+300
+300
+Outlet3
+24
+Yes
+300
+300
+Outlet3
+Run
+Included
+Regen_Flowrate
+MabSelect_Post_R
+inse_And_Sanitiz
+ation
 Post_Use_Sani_Fl
 owrate
 1
 Yes
-Outlet1
-Elution_Full_Bac
-kside
-200
+300
+MabSelect_Post_R
+inse_And_Sanitiz
+ation
+136
 2
 Yes
-Outlet2
-Blank
-200
+300
+MabSelect_Post_R
+inse_And_Sanitiz
+ation
+136
 3
 Yes
-Outlet3
-Blank
-200
+300
+MabSelect_Post_R
+inse_And_Sanitiz
+ation
+136
+4
+Yes
+300
+MabSelect_Post_R
+inse_And_Sanitiz
+ation
+136
+5
+Yes
+300
+MabSelect_Post_R
+inse_And_Sanitiz
+ation
+136
+6
+Yes
+300
+MabSelect_Post_R
+inse_And_Sanitiz
+ation
+136
+7
+Yes
+300
+MabSelect_Post_R
+inse_And_Sanitiz
+ation
+136
+8
+Yes
+300
+MabSelect_Post_R
+inse_And_Sanitiz
+ation
+136
+9
+Yes
+300
+MabSelect_Post_R
+inse_And_Sanitiz
+ation
+136
+10
+Yes
+300
+MabSelect_Post_R
+inse_And_Sanitiz
+ation
+136
+11
+Yes
+300
+MabSelect_Post_R
+inse_And_Sanitiz
+ation
+136
+
+UNICORN 7.3.0
+17(19)
+User: AM/c304117  4/4/2025 10:08:09 AM -04:00
+Method:  v001 Scouting Method LB2273 Protein A
+Run
+Included
+Regen_Flowrate
+MabSelect_Post_R
+inse_And_Sanitiz
+ation
+Post_Use_Sani_Fl
+owrate
+12
+Yes
+300
+MabSelect_Post_R
+inse_And_Sanitiz
+ation
+136
+13
+Yes
+300
+MabSelect_Post_R
+inse_And_Sanitiz
+ation
+136
+14
+Yes
+300
+MabSelect_Post_R
+inse_And_Sanitiz
+ation
+136
+15
+Yes
+300
+MabSelect_Post_R
+inse_And_Sanitiz
+ation
+136
+16
+Yes
+300
+MabSelect_Post_R
+inse_And_Sanitiz
+ation
+136
+17
+Yes
+300
+MabSelect_Post_R
+inse_And_Sanitiz
+ation
+136
+18
+Yes
+300
+MabSelect_Post_R
+inse_And_Sanitiz
+ation
+136
+19
+Yes
+300
+MabSelect_Post_R
+inse_And_Sanitiz
+ation
+136
+20
+Yes
+300
+MabSelect_Post_R
+inse_And_Sanitiz
+ation
+136
+21
+Yes
+300
+MabSelect_Post_R
+inse_And_Sanitiz
+ation
+136
+22
+Yes
+300
+MabSelect_Post_R
+inse_And_Sanitiz
+ation
+136
+23
+Yes
+300
+MabSelect_Post_R
+inse_And_Sanitiz
+ation
+136
+24
+Yes
+300
+MabSelect_Post_R
+inse_And_Sanitiz
+ation
+136
 Run
 Included
 Column_Storage
@@ -622,41 +1565,178 @@ Blank
 1
 Yes
 Blank
-200
+300
 Blank
 2
 Yes
 Blank
-200
+300
 Blank
 3
 Yes
+Blank
+300
+Blank
+
+UNICORN 7.3.0
+18(19)
+User: AM/c304117  4/4/2025 10:08:09 AM -04:00
+Method:  v001 Scouting Method LB2273 Protein A
+Run
+Included
 Column_Storage
-200
+Storage_Flowrate
+Blank
+4
+Yes
+Blank
+300
+Blank
+5
+Yes
+Blank
+300
+Blank
+6
+Yes
+Blank
+300
+Blank
+7
+Yes
+Blank
+300
+Blank
+8
+Yes
+Blank
+300
+Blank
+9
+Yes
+Blank
+300
+Blank
+10
+Yes
+Blank
+300
+Blank
+11
+Yes
+Blank
+300
+Blank
+12
+Yes
+Blank
+300
+Blank
+13
+Yes
+Blank
+300
+Blank
+14
+Yes
+Blank
+300
+Blank
+15
+Yes
+Blank
+300
+Blank
+16
+Yes
+Blank
+300
+Blank
+17
+Yes
+Blank
+300
+Blank
+18
+Yes
+Blank
+300
+Blank
+19
+Yes
+Blank
+300
+Blank
+20
+Yes
+Blank
+300
+Blank
+21
+Yes
+Blank
+300
+Blank
+22
+Yes
+Blank
+300
+Blank
+23
+Yes
+Blank
+300
+Blank
+24
+Yes
+Column_Storage
+300
 Blank
 Method information
 Signatures
-Date:4/4/2024 7:25:37 AM -04:00
-Description:This method is signed for LA1031 CEX on 4Apr2024
+Date:4/4/2025 10:06:21 AM -04:00
+Description:This method is locked down for LB2273 proA phase I
 User name:c304117
 Full name:Helen Corbat
 Job title:Engineer - BRD Technical Operations
 Lock status:The item is locked
+Start protocol
+Method Items to display at method start:
+Scouting
 Questions
-No. 1: Is QD00305 connected to Inlet Sample?
+Result Name And Location
+Questions
+No. 1: Is QD00015 connected to Inlet Sample?
 Question type: Mandatory
 Answer type: Multiple choice
-No. 2: Is QD00007 connected to Inlet 4?
-Question type: Mandatory
-Answer type: Textual input
-No. 3: Is QD00008 connected to Inlet 5?
-Question type: Mandatory
-Answer type: Multiple choice
-No. 4: Is QD00346 connected to Inlet 7?
+No. 2: Is QD00429 connected to Inlet 2?
 
 UNICORN 7.3.0
-12(12)
-User: AM/c304117  4/4/2024 7:26:07 AM -04:00
-Method: v002 Scouting Method LA1031 CEX
+19(19)
+User: AM/c304117  4/4/2025 10:08:09 AM -04:00
+Method:  v001 Scouting Method LB2273 Protein A
 Question type: Mandatory
+Answer type: Multiple choice
+No. 3: Is QD00514 connected to Inlet 3?
+Question type: Mandatory
+Answer type: Multiple choice
+No. 4: Is QD00203 connected to Inlet 4?
+Question type: Mandatory
+Answer type: Multiple choice
+No. 5: Is QD00249 connected to Inlet 5?
+Question type: Mandatory
+Answer type: Multiple choice
+No. 6: Is QD00121 connected to Inlet 7?
+Question type: Mandatory
+Answer type: Multiple choice
+No. 7: Ensure Outlet Waste directed to AWN?
+Question type: Mandatory
+Answer type: Multiple choice
+No. 8: Ensure Secondary Waste is set up appropriately?
+Question type: Mandatory
+Answer type: Multiple choice
+Result name and location
+Result folder name: /K360PP/1 Campaigns/LB2273/Phase I/Protein A
+Scouting folder name: LB2273 ProA BR
+Result name: LB2273 ProA BR (Type: Name) without unique identifier
 

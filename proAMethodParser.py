@@ -21,8 +21,7 @@ def protein_A_method_parser(textDoc, userInput):
 
     pdf_path = 'tempfile.pdf'
     pfcData = userInput['inlet_data']
-    #skidSize = userInput['skid_size']
-    #skidCompensationFactor = userInput['compensation_factor']
+
 
     remainingInlets = list(pfcData.keys())
     # Open PDF document

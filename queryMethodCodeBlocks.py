@@ -105,6 +105,8 @@ def query_block_data(block):
             return{}
 
 
+        if "sample" in inlet_setting.lower():
+            inlet_setting = "Inlet 1"
 
         currentBlock = {
             'column_setting': column_setting,
@@ -126,7 +128,6 @@ def query_block_data(block):
             'compensation_setting': comp_factor, 
             'comments_setting': commentMatches
         }
-
     return currentBlock
 
 
