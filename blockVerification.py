@@ -152,7 +152,10 @@ def check_purge_block_settings(purge_blocks, pfcData, skid_size, firstPumpAInlet
             if pfcData['Equilibration']['qd']!= pfcQD != block["settings"]['inlet_QD_setting']:
                 incorrectFieldText.append(f"Final purge should use equillibration buffer")
 
-        if  pfcQD != block["settings"]['inlet_QD_setting']:
+        if isinstance(pfcQD, list):
+            pfcQD = pfcQD[0]
+
+        if pfcQD != block["settings"]['inlet_QD_setting']:
             incorrectFieldText.append(f"Expected {pfcQD}")
         
         if incorrectFieldText:
@@ -190,9 +193,12 @@ def check_MS_blocks_settings_pdf(MS_blocks, pfcData, numberofMS, skid_size):
        
         if int(block["settings"]['fraction_setting']) != int(numberofMS):
             incorrectFieldText.append(f"Expected number of mainstreams to be: {numberofMS}")
-            
+        
+        if isinstance(methodQD, list):
+            methodQD = methodQD[0]
         if methodQD != block["settings"]['inlet_QD_setting']: 
-            incorrectFieldText.append(f"Expected {methodQD}")
+            blockQD = block["settings"]['inlet_QD_setting']
+            incorrectFieldText.append(f"Expected {methodQD}, got {blockQD}")
              
         if incorrectFieldText !=[]:
             highlights.append({
@@ -312,12 +318,13 @@ def check_indiv_blocks_settings_pdf(indiv_blocks, pfcData, columnParam, userInpu
         #check the snapshot breakpoint column volumes
         try:
             if 'flush' not in block['blockName'].lower():
-                if float(block['settings']['snapshot_breakpoint_setting'])!= (float(columnVolume)+ isocraticHoldCV):
+                if float(block['settings']['snapshot_breakpoint_setting'])!= (float(columnVolume)+ isocraticHoldCV) and float(block['settings']['snapshot_breakpoint_setting'])!= float(columnVolume):
                     incorrectFieldText.append(f"Expected {columnVolume} breakpoint volume for snapshot")
                       
         except:
            pass     
 
+           '''
         if inlet not in block['settings']['inlet_setting'] or block['settings']['inlet_setting'] not in inlet and inlet.strip()!='' and block['settings']['inlet_setting'].strip()!='':
             #if the previous buffer has the same composition, they will share the same inlet, otherwise, this inlet is incorect
             if indiv_blocks[index-1]['settings']['inlet_setting'] in block['settings']['inlet_setting'] or  block['settings']['inlet_setting'] in indiv_blocks[index-1]['settings']['inlet_setting']:    
@@ -327,7 +334,7 @@ def check_indiv_blocks_settings_pdf(indiv_blocks, pfcData, columnParam, userInpu
                     incorrectFieldText.append(f"Expected {inlet} got {block['settings']['inlet_setting']}")
             else:
                 incorrectFieldText.append(f"Expected {inlet} got {block['settings']['inlet_setting']}")
-
+'''
         if incorrectFieldText:
             highlights.append({
                 "blockData": block, 
@@ -460,7 +467,7 @@ def check_scouting(scoutingData, pfcData, uvPreset, numOfCycles, numOfMS, blocks
                             incorrectFieldText.append(errorMsg)
                             
                     except Exception as e:
-                        print("Int value Expected:", val, tableHeaderList, e)
+                        print("Int value Expected:", val, tableHeaderList, e, header)
 
             #Conditions in which only one run is expected to have a certain value, and all other cycles should be blank
             conditions = [

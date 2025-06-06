@@ -236,7 +236,8 @@ def extract_process_info(array, unitOP):
 
     print(parameters_in_pfc)
     if 'Regeneration' in parameters_in_pfc and unitOP != "Protein A Capture Chromatography":
-        parameters_in_pfc.remove('Regeneration')
+        if process_info['Regeneration']['composition'] == process_info['Post Sanitization']['composition']:
+            parameters_in_pfc.remove('Regeneration')
 
 
     for key in process_info['Pre-Equilibration'].keys():
