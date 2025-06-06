@@ -4,25 +4,27 @@ import re
 from blockNameDict_user_validation import blockNameDictionary
 
 default_process_info = {
-        'Regeneration': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
-        'Pre Sanitization Rinse': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
-        'Pre Sanitization Rinse 2': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
-        'Equilibration': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
-        'Charge': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
-        'Pre Sanitization': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
-        'Pre Sanitization 2': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
-        'Post Sanitization': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
-        'Post Sanitization 2': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
-        'Wash 1': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
-        'Wash 2': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
-        'Wash 3': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
-        'Elution': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
-        'Storage Rinse': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
-        'Post Sanitization Rinse': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
-        'Post Sanitization Rinse 2': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
-        'Elution': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
-        'Storage': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '}, 
-        'Neutralization': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '}, 
+        'Regeneration': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' ', 'isocratic hold': ' '},
+        'Pre Sanitization Rinse': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' ', 'isocratic hold': ' '},
+        'Pre Sanitization Rinse 2': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' ', 'isocratic hold': ' '},
+        'Equilibration': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' ', 'isocratic hold': ' '},
+        'Charge': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' ', 'isocratic hold': ' '},
+        'Pre Sanitization': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' ', 'isocratic hold': ' '},
+        'Pre Sanitization 2': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' ', 'isocratic hold': ' '},
+        'Post Sanitization': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' ', 'isocratic hold': ' '},
+        'Post Sanitization 2': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' ', 'isocratic hold': ' '},
+        'Wash 1': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' ', 'isocratic hold': ' '},
+        'Wash 2': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' ', 'isocratic hold': ' '},
+        'Wash 3': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' ', 'isocratic hold': ' '},
+        'Elution': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' ', 'isocratic hold': ' '},
+        'Storage Rinse': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' ', 'isocratic hold': ' '},
+        'Post Sanitization Rinse': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' ', 'isocratic hold': ' '},
+        'Post Sanitization Rinse 2': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' ', 'isocratic hold': ' '},
+        'Elution': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' ', 'isocratic hold': ' '},
+        'Storage': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' ', 'isocratic hold': ' '}, 
+        'Neutralization': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' ', 'isocratic hold': ' '}, 
+        'High Salt Wash': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' ', 'isocratic hold': ' '},
+        'Pre-Equilibration': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' ', 'isocratic hold': ' '},
 
     }
 
@@ -97,27 +99,27 @@ def list_unit_ops(pages):
 def extract_process_info(array, unitOP):
     highSaltWash = False
     process_info = {
-        'Regeneration': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
-        'Pre Sanitization Rinse': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
-        'Pre Sanitization Rinse 2': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
-        'Equilibration': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
-        'Charge': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
-        'Pre Sanitization': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
-        'Pre Sanitization 2': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
-        'Post Sanitization': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
-        'Post Sanitization 2': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
-        'Wash 1': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
-        'Wash 2': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
-        'Wash 3': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
-        'Elution': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
-        'Storage Rinse': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
-        'Post Sanitization Rinse': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
-        'Post Sanitization Rinse 2': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
-        'Elution': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
-        'Storage': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '}, 
-        'Neutralization': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
-        'High Salt Wash': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
-        'Pre-Equilibration': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' '},
+        'Regeneration': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' ', 'isocratic hold': ' '},
+        'Pre Sanitization Rinse': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' ', 'isocratic hold': ' '},
+        'Pre Sanitization Rinse 2': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' ', 'isocratic hold': ' '},
+        'Equilibration': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' ', 'isocratic hold': ' '},
+        'Charge': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' ', 'isocratic hold': ' '},
+        'Pre Sanitization': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' ', 'isocratic hold': ' '},
+        'Pre Sanitization 2': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' ', 'isocratic hold': ' '},
+        'Post Sanitization': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' ', 'isocratic hold': ' '},
+        'Post Sanitization 2': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' ', 'isocratic hold': ' '},
+        'Wash 1': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' ', 'isocratic hold': ' '},
+        'Wash 2': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' ', 'isocratic hold': ' '},
+        'Wash 3': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' ', 'isocratic hold': ' '},
+        'Elution': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' ', 'isocratic hold': ' '},
+        'Storage Rinse': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' ', 'isocratic hold': ' '},
+        'Post Sanitization Rinse': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' ', 'isocratic hold': ' '},
+        'Post Sanitization Rinse 2': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' ', 'isocratic hold': ' '},
+        'Elution': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' ', 'isocratic hold': ' '},
+        'Storage': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' ', 'isocratic hold': ' '}, 
+        'Neutralization': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' ', 'isocratic hold': ' '},
+        'High Salt Wash': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' ', 'isocratic hold': ' '},
+        'Pre-Equilibration': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' ', 'isocratic hold': ' '},
     }
 
     parameters_in_pfc = []
@@ -160,7 +162,6 @@ def extract_process_info(array, unitOP):
 
         # If we're in a process step, capture its parameters
         if current_step and 'step' not in lower_item:
-            print(current_step, lower_item)
             newStep = current_step.split(', ')
             if 'rinse' in lower_item:
                 if current_step + " Rinse" in process_info.keys():
@@ -172,8 +173,13 @@ def extract_process_info(array, unitOP):
                     process_info[buffer]['direction'] = parts[1] if len(parts) > 1 else ''
             # Flow velocity - only capturing NMT value
             elif 'cv' in parts[0].lower() and 'volume' in  parts[0].lower():
+                if 'isocratic' in parts[0].lower():
+                    key = 'isocratic hold'
+                else:
+                    key = 'CV'
+
                 for buffer in newStep:
-                    process_info[buffer]['CV'] = parts[1] if len(parts) > 1 else ''
+                    process_info[buffer][key] = parts[1] if len(parts) > 1 else ''
             elif any(term in lower_item for term in ['flow velocity', 'velocity', 'flow:', 'residence', 'exposure']):
 
                 # Extract the NMT value
@@ -194,16 +200,17 @@ def extract_process_info(array, unitOP):
 
                 except:
                     pass
-                salt_indicators = ['nacl', 'kcl', 'cacl', 'mgcl', 'na2so4', 'K2SO4',
-                                'sodium chloride', 'potassium chloride', 'calcium chloride',
-                                'sodium acetate', 'potassium acetate',
-                                'sodium phosphate', 'potassium phosphate'
-                            ]
+                
             # Composition
             elif any(term in lower_item for term in ['composition', 'buffer composition']):
                 for buffer in newStep:
                     #In Non ProA Chromatography, high salt washes may replace regeneration steps if the composition is a salt
                     if buffer == "Regeneration":
+                        salt_indicators = ['nacl', 'kcl', 'cacl', 'mgcl', 'na2so4', 'k2so4',
+                                'sodium chloride', 'potassium chloride', 'calcium chloride',
+                                'sodium acetate', 'potassium acetate',
+                                'sodium phosphate', 'potassium phosphate'
+                            ]
                         if unitOP!= "Protein A Capture Chromatography":
                             if any(term in lower_item for term in salt_indicators):
                                 highSaltWash = True
@@ -212,11 +219,9 @@ def extract_process_info(array, unitOP):
 
 
                     process_info[buffer]['composition'] = parts[1] if len(parts) > 1 else ''
-    print(process_info)
+
     process_info.pop('Neutralization')
-    if highSaltWash:
-        process_info['High Salt Wash'] = process_info['Regeneration']
-        process_info.pop('Regeneration')
+    
 
     #grab all of the buffers that had something explicitly included about them in the PFC, will ignore all of the other ones later when we display them with streamlit
     for buffer in process_info.keys():
@@ -224,6 +229,15 @@ def extract_process_info(array, unitOP):
             
             if process_info[buffer][key].strip()!='' and process_info[buffer][key].strip()!='--'and buffer not in parameters_in_pfc:
                 parameters_in_pfc.append(buffer)
+    if highSaltWash:
+        process_info['High Salt Wash'] = process_info['Regeneration']
+        parameters_in_pfc.append('High Salt Wash')
+        parameters_in_pfc.remove('Regeneration')
+
+    print(parameters_in_pfc)
+    if 'Regeneration' in parameters_in_pfc and unitOP != "Protein A Capture Chromatography":
+        parameters_in_pfc.remove('Regeneration')
+
 
     for key in process_info['Pre-Equilibration'].keys():
         if key!= 'CV':
@@ -334,7 +348,6 @@ def detect_PFC_step(lower_item, currentHeader, unitOp):
     elif'regeneration' in lower_item:
         current_step = 'Regeneration'
     elif 'pre' in lower_item and 'equil' in lower_item:
-        print("test")
         current_step = 'Pre-Equilibration'
     elif 'equil' in lower_item:
         current_step = 'Equilibration'

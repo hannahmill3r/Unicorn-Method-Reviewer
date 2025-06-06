@@ -225,7 +225,16 @@ def check_indiv_blocks_settings_pdf(indiv_blocks, pfcData, columnParam, userInpu
             if volume and isinstance(volume, float):
                 expected_flush_breakpoint = volume
 
-        closestTitleMatch, pfcQD, direct, flowRate, residenceTime, columnVolume, pump, inlet = get_pfc_data_from_block_name(block['blockName'], pfcData)
+        closestTitleMatch, pfcQD, direct, flowRate, residenceTime, columnVolume, pump, inlet, isocraticHoldCV = get_pfc_data_from_block_name(block['blockName'], pfcData)
+
+        #process isocratic hold as a float, if its an empty string, than we will add nothing to the breakpoint value
+        if isocraticHoldCV.strip()!='':
+            try:
+                isocraticHoldCV = float(isocraticHoldCV)
+            except:
+                isocraticHoldCV = 0
+        else:
+            isocraticHoldCV = 0
 
         if "Inline" not in block["settings"]['filter_setting']:
             incorrectFieldText.append("Expected Inline filter")
@@ -294,7 +303,7 @@ def check_indiv_blocks_settings_pdf(indiv_blocks, pfcData, columnParam, userInpu
         try:
             if 'flush' in block['blockName'].lower() and float(block['settings']['end_block_setting'])!= float(expected_flush_breakpoint):
                 incorrectFieldText.append(f"Expected flush to have {float(expected_flush_breakpoint)} breakpoint volume, got {str(block['settings']['end_block_setting'])}")
-            elif float(block['settings']['end_block_setting'])!= float(columnVolume) and 'flush' not in block['blockName'].lower():
+            elif float(block['settings']['end_block_setting'])!= (float(columnVolume) + isocraticHoldCV) and 'flush' not in block['blockName'].lower():
                 incorrectFieldText.append(f"Expected {columnVolume} breakpoint volume, got {float(block['settings']['end_block_setting'])}")
           
         except:
@@ -303,7 +312,7 @@ def check_indiv_blocks_settings_pdf(indiv_blocks, pfcData, columnParam, userInpu
         #check the snapshot breakpoint column volumes
         try:
             if 'flush' not in block['blockName'].lower():
-                if float(block['settings']['snapshot_breakpoint_setting'])!= float(columnVolume):
+                if float(block['settings']['snapshot_breakpoint_setting'])!= (float(columnVolume)+ isocraticHoldCV):
                     incorrectFieldText.append(f"Expected {columnVolume} breakpoint volume for snapshot")
                       
         except:
@@ -312,7 +321,7 @@ def check_indiv_blocks_settings_pdf(indiv_blocks, pfcData, columnParam, userInpu
         if inlet not in block['settings']['inlet_setting'] or block['settings']['inlet_setting'] not in inlet and inlet.strip()!='' and block['settings']['inlet_setting'].strip()!='':
             #if the previous buffer has the same composition, they will share the same inlet, otherwise, this inlet is incorect
             if indiv_blocks[index-1]['settings']['inlet_setting'] in block['settings']['inlet_setting'] or  block['settings']['inlet_setting'] in indiv_blocks[index-1]['settings']['inlet_setting']:    
-                prevClosestTitleMatch, prevPfcQD, prevDirect, prevFlowRate, prevResidenceTime, prevColumnVolume, prevPump, prevInlet = get_pfc_data_from_block_name(block['blockName'], pfcData)
+                prevClosestTitleMatch, prevPfcQD, prevDirect, prevFlowRate, prevResidenceTime, prevColumnVolume, prevPump, prevInlet, prevIso = get_pfc_data_from_block_name(block['blockName'], pfcData)
 
                 if prevPfcQD not in pfcQD or pfcQD not in prevPfcQD:
                     incorrectFieldText.append(f"Expected {inlet} got {block['settings']['inlet_setting']}")
@@ -381,8 +390,7 @@ def check_scouting(scoutingData, pfcData, uvPreset, numOfCycles, numOfMS, blocks
         
         #loop throught the column headers for each of the tables
         for index, header in enumerate(tableHeaderList):
-            closestTitleMatch, pfcQD, direct, flowRate, residenceTime, columnVolume, pump, inlet = get_pfc_data_from_block_name(header.lower().strip("flowrate"), pfcData)
-            print(header.lower().strip("flowrate"), closestTitleMatch)
+            closestTitleMatch, pfcQD, direct, flowRate, residenceTime, columnVolume, pump, inlet, isocraticHoldCV = get_pfc_data_from_block_name(header.lower().strip("flowrate"), pfcData)
 
             try:
                 blocksToInclude.remove(closestTitleMatch)
@@ -536,7 +544,6 @@ def validate_flow_settings(block, equilLFlow, flowRate, columnParam, residenceTi
     # Validate each flow value
     
     if not any(flow.strip() in flowRate for flow in flows) and not any(flow.strip() in linearFlow for flow in flows) and not any(flow.strip() in residenceFlow for flow in flows) and flowRate.strip() != '':
-        print(block['blockName'], flows, linearFlow, residenceFlow)    
         incorrectFieldText.append(f"Expected {flowRate} flow")
 
     return incorrectFieldText
@@ -602,10 +609,11 @@ def get_pfc_data_from_block_name(blockName, pfcData):
         columnVolume = closestMatchData['CV']
         pump = closestMatchData['pump']
         inlet = closestMatchData['inlet']
+        isocraticHoldCV = closestMatchData['isocratic hold']
 
-        return blockNameDictionary.get(closestTitleMatch), pfcQD, direct, flowRate, residenceTime, columnVolume, pump, inlet
+        return blockNameDictionary.get(closestTitleMatch), pfcQD, direct, flowRate, residenceTime, columnVolume, pump, inlet, isocraticHoldCV
     except:
-        return '', '', '', '', '', '', ''
+        return '', '', '', '', '', '', '', ''
     
 
 def parse_breakpoint_volume(comment: str, skid_size: str) -> float:
