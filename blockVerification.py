@@ -224,6 +224,7 @@ def check_indiv_blocks_settings_pdf(indiv_blocks, pfcData, columnParam, userInpu
 
     equilLFlow = calc_LFlow(float(columnParam["columnHeight"]), float(columnParam["columnDiameter"]), float(columnParam["contactTime"]))["linearFlow"]
     for index, block in enumerate(indiv_blocks):
+        print(block['blockName'], block['settings'])
 
         incorrectFieldText = []
         for comment in block['settings']['comments_setting']:

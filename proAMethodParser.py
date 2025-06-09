@@ -122,7 +122,7 @@ def protein_A_method_parser(textDoc, userInput):
                                     "settings": watchBlockSettings
                                 })
 
-                            #watch blokcs are indented and their blocks will absorb the snapshot and end settings from the last block, so make that fix here
+                            #watch blokcs are indented and their blocks will absorb the snapshot, gradient, and end settings from the last block, so make that fix here
                             if individualBlockData!=[] and watchBlockSettings!=[]:
                                 try:
                                     individualBlockData[-1]['settings']['snapshot_setting'] = watchBlockSettings['snapshot_setting'][-1]
@@ -138,6 +138,28 @@ def protein_A_method_parser(textDoc, userInput):
                                     individualBlockData[-1]['settings']['end_block_setting'] = watchBlockSettings['end_block_setting'][-1]
                                 except (IndexError, KeyError):
                                     individualBlockData[-1]['settings']['end_block_setting'] = ''
+
+                                try:
+                                    individualBlockData[-1]['settings']['grad_mode_setting'] = watchBlockSettings['grad_mode_setting']
+                                except (IndexError, KeyError):
+                                    individualBlockData[-1]['settings']['grad_mode_setting'] = ''
+
+                                try:
+                                    individualBlockData[-1]['settings']['grad_setting'] = watchBlockSettings['grad_setting']
+                                except (IndexError, KeyError):
+                                    individualBlockData[-1]['settings']['grad_setting'] = ''
+
+                                try:
+                                    individualBlockData[-1]['settings']['grad_volume_setting'] = watchBlockSettings['grad_volume_setting']
+                                except (IndexError, KeyError):
+                                    individualBlockData[-1]['settings']['grad_volume_setting'] = ''
+
+                                try:
+                                    individualBlockData[-1]['settings']['grad_mode_volume_setting'] = watchBlockSettings['grad_mode_volume_setting']
+                                except (IndexError, KeyError):
+                                    individualBlockData[-1]['settings']['grad_mode_volume_setting'] = ''
+
+
 
                         elif "block:" in text.lower() and "purge" not in text.lower():                                   
                             indivBlockSettings = query_block_data(blocks[blockCounter])

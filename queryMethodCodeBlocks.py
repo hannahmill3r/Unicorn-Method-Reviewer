@@ -11,11 +11,19 @@ def query_block_data(block):
     base_match = re.search(r'Base:\s*(.*)', block)
     snapshot_match = re.search(r'Snapshot:\s*(.*)', block)
     inlet_match = re.search(r'Inlet:\s*(.*)', block)
+
+    #TODO this needs to be an interation, in non pro A there may be multiple inlets in two different pumps for the same buffer
     reset_match = re.search(r'FIT\s*(.*)', block)
     fraction_match = re.search(r'Fractions:\s*(.*)', block)
     manflow_match = re.search(r'ManFlow:\s*(\d+\.?\d*)\s*{\%}', block)
     QD_match = re.search(r'QD\s*(.*)', block)
     setmark_match = re.search(r'Set mark:\s*(.*)', block)
+
+    #gradient information
+    gradient_mode_match = re.search(r'GradMode::\s*(.*)', block)
+    gradient_match = re.search(r'Gradient:\s*(.*)', block)
+    gradient_volume_match = re.search(r'(\d+\.?\d*)\s*Gradient:', block)
+    gradient_mode_volume_match = re.search(r'(\d+\.?\d*)\s*GradMode:', block)
 
 
     #there can be multiple snapshot volumes, we only care about the last one
@@ -88,6 +96,13 @@ def query_block_data(block):
     flow_value = float(manflow_match.group(1)) if manflow_match else ' '
     QD_match_value = QD_match.group().strip().replace(" ", "") if QD_match else ' '
     comp_factor = methodCompFactor.group(1).strip() if methodCompFactor else ' '
+    grad_mode = gradient_mode_match.group(1).strip() if gradient_mode_match else ' '
+    grad_setting = gradient_match.group(1).strip() if gradient_match else ' '
+    grad_volume = gradient_volume_match.group(1).strip() if gradient_volume_match else ' '
+    grad_mode_volume = gradient_mode_volume_match.group(1).strip() if gradient_mode_volume_match else ' '
+
+
+
     
     inlet_number = None
     if inlet_match:
@@ -126,7 +141,12 @@ def query_block_data(block):
             'setmark_setting': setmark_match, 
             'snapshot_breakpoint_setting': snapshot_volume_match, 
             'compensation_setting': comp_factor, 
-            'comments_setting': commentMatches
+            'comments_setting': commentMatches, 
+            'grad_mode_setting': grad_mode, 
+            'grad_setting': grad_setting, 
+            'grad_volume_setting': grad_volume, 
+            'grad_mode_volume_setting': grad_mode_volume
+
         }
     return currentBlock
 
