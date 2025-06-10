@@ -27,9 +27,9 @@ def main():
                 #TODO: add try catch here?
                 blockData = protein_A_method_parser(text, result)
 
-                highlightsIndiv, firstPumpAInlet, firstPumpBInlet = check_indiv_blocks_settings_pdf(blockData["indiv_block_data"], result['inlet_data'], result['column_params'], result['compensation_factor'], result['skid_size'])
-                highlightsPurge = check_purge_block_settings(blockData["purge_data"], result['inlet_data'], result['skid_size'], firstPumpAInlet, firstPumpBInlet)
-                highlightsMS = check_MS_blocks_settings_pdf(blockData["equilibration_data"], result['inlet_data'], result["number_of_MS"], result['skid_size'])
+                highlightsIndiv, firstPumpAInlet, firstPumpBInlet = check_indiv_blocks_settings_pdf(blockData["indiv_block_data"], result['inlet_data'], result['column_params'], result['compensation_factor'], result['skid_size'], blockData["skid_size_dict"])
+                highlightsPurge = check_purge_block_settings(blockData["purge_data"], result['inlet_data'], result['skid_size'], firstPumpAInlet, firstPumpBInlet, blockData["skid_size_dict"])
+                highlightsMS = check_MS_blocks_settings_pdf(blockData["equilibration_data"], result['inlet_data'], result["number_of_MS"], result['skid_size'], blockData["skid_size_dict"])
                 highlightsColumnParams = check_column_params(blockData["column_params"], result['column_params'])
                 highlightsWatchSettings = check_watch_settings(blockData["watch_block_data"])
                 highlightsFinalBlock = check_end_of_run_pdf(blockData["final_block_data"])

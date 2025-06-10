@@ -50,7 +50,7 @@ def check_column_params(methodsColumnParams, pfcColumnParams):
     return highlights
 
 
-def check_purge_block_settings(purge_blocks, pfcData, skid_size, firstPumpAInlet, firstPumpBInlet):
+def check_purge_block_settings(purge_blocks, pfcData, skid_size, firstPumpAInlet, firstPumpBInlet, skidSizeDict):
     """
     Check purge method block data against the user entered pfc data 
     
@@ -63,12 +63,6 @@ def check_purge_block_settings(purge_blocks, pfcData, skid_size, firstPumpAInlet
     """
         
     highlights = []
-
-    skidSizeDict = {
-        '3/8': {"Manflow": 100, "Purge Volume": 7},
-        '1/2': {"Manflow": 100, "Purge Volume": 10},
-        '3/4': {"Manflow": 60, "Purge Volume": 15}
-    }
 
     if not firstPumpAInlet:
         firstPumpAInlet = "Inlet 1"
@@ -87,6 +81,11 @@ def check_purge_block_settings(purge_blocks, pfcData, skid_size, firstPumpAInlet
             expected_purge_breakpoint = 2.0
         else:
             expected_purge_breakpoint = skidSizeDict[skid_size]["Purge Volume"]
+        
+        for comment in block['settings']['comments_setting']:
+            volume = parse_breakpoint_volume(comment, skid_size, skidSizeDict)
+            if volume and isinstance(volume, float):
+                expected_purge_breakpoint = volume
             
         if 'purge_a_pump' in block['blockName'].lower():
             purge_blocks.remove(block)
@@ -134,6 +133,12 @@ def check_purge_block_settings(purge_blocks, pfcData, skid_size, firstPumpAInlet
                     except:
                         pfcQD = pfcData[key]['qd']
 
+        expected_purge_breakpoint = skidSizeDict[skid_size]["Purge Volume"]
+
+        for comment in block['settings']['comments_setting']:
+            volume = parse_breakpoint_volume(comment, skid_size, skidSizeDict)
+            if volume and isinstance(volume, float):
+                expected_purge_breakpoint = volume
 
         #first block column settings should be upflow and downflow, all other blocks should be bypass
         if blockCounter ==0:
@@ -152,8 +157,8 @@ def check_purge_block_settings(purge_blocks, pfcData, skid_size, firstPumpAInlet
             if pfcData['Equilibration']['qd']!= pfcQD != block["settings"]['inlet_QD_setting']:
                 incorrectFieldText.append(f"Final purge should use equillibration buffer")
 
-        if isinstance(pfcQD, list):
-            pfcQD = pfcQD[0]
+        if isinstance(pfcQD, dict):
+            pfcQD = pfcQD["Buffer A QD"]
 
         if pfcQD != block["settings"]['inlet_QD_setting']:
             incorrectFieldText.append(f"Expected {pfcQD}")
@@ -167,15 +172,8 @@ def check_purge_block_settings(purge_blocks, pfcData, skid_size, firstPumpAInlet
     return highlights
 
 
-def check_MS_blocks_settings_pdf(MS_blocks, pfcData, numberofMS, skid_size):
+def check_MS_blocks_settings_pdf(MS_blocks, pfcData, numberofMS, skid_size, skidSizeDict):
     highlights = []
-
-
-    skidSizeDict = {
-        '3/8': {"Manflow": 100, "Purge Volume": 7},
-        '1/2': {"Manflow": 100, "Purge Volume": 10},
-        '3/4': {"Manflow": 60, "Purge Volume": 15}
-    }
 
     expected_manflow = skidSizeDict[skid_size]["Manflow"]
 
@@ -194,8 +192,8 @@ def check_MS_blocks_settings_pdf(MS_blocks, pfcData, numberofMS, skid_size):
         if int(block["settings"]['fraction_setting']) != int(numberofMS):
             incorrectFieldText.append(f"Expected number of mainstreams to be: {numberofMS}")
         
-        if isinstance(methodQD, list):
-            methodQD = methodQD[0]
+        if isinstance(methodQD, dict):
+            methodQD = methodQD["Buffer A QD"]
         if methodQD != block["settings"]['inlet_QD_setting']: 
             blockQD = block["settings"]['inlet_QD_setting']
             incorrectFieldText.append(f"Expected {methodQD}, got {blockQD}")
@@ -208,27 +206,19 @@ def check_MS_blocks_settings_pdf(MS_blocks, pfcData, numberofMS, skid_size):
 
     return highlights
 
-def check_indiv_blocks_settings_pdf(indiv_blocks, pfcData, columnParam, userInputCompensationData, skid_size):
+def check_indiv_blocks_settings_pdf(indiv_blocks, pfcData, columnParam, userInputCompensationData, skid_size, skidSizeDict):
     highlights = []
     firstPumpAInlet = None
     firstPumpBInlet = None
-
-    skidSizeDict = {
-        '3/8': {"Manflow": 100, "Purge Volume": 7},
-        '1/2': {"Manflow": 100, "Purge Volume": 10},
-        '3/4': {"Manflow": 60, "Purge Volume": 15}
-    }
 
     expected_flush_breakpoint = skidSizeDict[skid_size]["Purge Volume"]
     expected_manflow = skidSizeDict[skid_size]["Manflow"]
 
     equilLFlow = calc_LFlow(float(columnParam["columnHeight"]), float(columnParam["columnDiameter"]), float(columnParam["contactTime"]))["linearFlow"]
     for index, block in enumerate(indiv_blocks):
-        print(block['blockName'], block['settings'])
-
         incorrectFieldText = []
         for comment in block['settings']['comments_setting']:
-            volume = parse_breakpoint_volume(comment, skid_size)
+            volume = parse_breakpoint_volume(comment, skid_size, skidSizeDict)
             if volume and isinstance(volume, float):
                 expected_flush_breakpoint = volume
 
@@ -258,7 +248,7 @@ def check_indiv_blocks_settings_pdf(indiv_blocks, pfcData, columnParam, userInpu
             incorrectFieldText.append(error)
 
         if "flush" in block["blockName"].lower():
-            match, ratio = closest_match_unit_op(block['settings']['setmark_setting'], [block["blockName"]])
+            percentMatch, ratio = closest_match_unit_op(block['settings']['setmark_setting'], [block["blockName"]])
             if ratio < .20:
                 incorrectFieldText.append("Please double check setmark naming, similarity score was low")
             if "Bypass" not in block["settings"]['column_setting']:
@@ -323,19 +313,33 @@ def check_indiv_blocks_settings_pdf(indiv_blocks, pfcData, columnParam, userInpu
                     incorrectFieldText.append(f"Expected {columnVolume} breakpoint volume for snapshot")
                       
         except:
-           pass     
+           pass  
 
-           '''
-        if inlet not in block['settings']['inlet_setting'] or block['settings']['inlet_setting'] not in inlet and inlet.strip()!='' and block['settings']['inlet_setting'].strip()!='':
-            #if the previous buffer has the same composition, they will share the same inlet, otherwise, this inlet is incorect
-            if indiv_blocks[index-1]['settings']['inlet_setting'] in block['settings']['inlet_setting'] or  block['settings']['inlet_setting'] in indiv_blocks[index-1]['settings']['inlet_setting']:    
-                prevClosestTitleMatch, prevPfcQD, prevDirect, prevFlowRate, prevResidenceTime, prevColumnVolume, prevPump, prevInlet, prevIso = get_pfc_data_from_block_name(block['blockName'], pfcData)
+        #gradient setting should align with percents and CVs specified in the pfc
+        for index, settings in enumerate(block['settings']['gradient_settings']):  
+            if settings['grad_mode_setting'].strip() and settings['grad_mode_setting']!='FlowGradient' :
+                incorrectFieldText.append(f"Expected FlowGradient gradient mode")
+            if settings['grad_setting'].strip():
+                percentMatch = re.search(r'(\d+(?:\.\d+)?)\s*\{%B\}', settings['grad_setting'])
+                bufferBMEthodsPercent = percentMatch.group(1).strip() if percentMatch else ' '
 
-                if prevPfcQD not in pfcQD or pfcQD not in prevPfcQD:
-                    incorrectFieldText.append(f"Expected {inlet} got {block['settings']['inlet_setting']}")
-            else:
-                incorrectFieldText.append(f"Expected {inlet} got {block['settings']['inlet_setting']}")
-'''
+                baseMatch = re.search(r'(\d+(?:\.\d+)?)\s*\{base\}', settings['grad_setting'])
+                bufferBMEthodsBase = baseMatch.group(1).strip() if baseMatch else ' '
+                
+                if bufferBMEthodsPercent.strip() and pfcQD["Buffer B Percent"] not in bufferBMEthodsPercent:
+                    incorrectFieldText.append(f"Incorrect buffer gradient, expected {pfcQD['Buffer B Percent']}")
+                if bufferBMEthodsPercent.strip() and columnVolume not in bufferBMEthodsBase and 'elution' in closestTitleMatch.lower() and float(settings['grad_volume_setting'])==0:
+                    incorrectFieldText.append(f"Incorrect base volume, expected {columnVolume}, got {bufferBMEthodsBase}")
+
+            #only the last setting should have a volume eqal to column volume before isocratic hold, all others should be 0 unless other hold strategy is used
+            gradVolumeErrorMsg = f"When isocratic hold used, expected gradient volume of {columnVolume}"
+            if settings['grad_volume_setting'].strip() and isocraticHoldCV!=0 and settings== block['settings']['gradient_settings'][-1]:
+                if float(settings['grad_volume_setting'])!= (float(columnVolume)) and gradVolumeErrorMsg not in incorrectFieldText:
+                    incorrectFieldText.append(gradVolumeErrorMsg)
+            if settings['grad_mode_volume_setting'].strip()and isocraticHoldCV!=0 and settings== block['settings']['gradient_settings'][-1]:
+                if float(settings['grad_mode_volume_setting'])!= (float(columnVolume)) and gradVolumeErrorMsg not in incorrectFieldText:
+                    incorrectFieldText.append(gradVolumeErrorMsg)
+
         if incorrectFieldText:
             highlights.append({
                 "blockData": block, 
@@ -345,9 +349,7 @@ def check_indiv_blocks_settings_pdf(indiv_blocks, pfcData, columnParam, userInpu
     return highlights, firstPumpAInlet, firstPumpBInlet
 
 def check_watch_settings(blocks):
-
     highlights = []
-    
 
     for block in blocks:
         incorrectFieldText = []
@@ -356,11 +358,9 @@ def check_watch_settings(blocks):
         if  "MS_Outlet" not in block["settings"]['outlet_setting']:
             incorrectFieldText.append("Elution should go to MS outlet")
             
-
         if block['settings']['backside_setting'] >= block['settings']['peak_protect_setting']:
             incorrectFieldText.append("Peak protection should be greater than backside cut.")
             
-
         if incorrectFieldText:
             highlights.append({
                 "blockData": block, 
@@ -411,7 +411,6 @@ def check_scouting(scoutingData, pfcData, uvPreset, numOfCycles, numOfMS, blocks
             if numOfCycles!=run['settings'][-len(tableHeaderList)] and numCyclesError not in incorrectFieldText:
                 incorrectFieldText.append(f"Expected the number of cycles to be {numOfCycles}")
                   
-            
             #outlets should be evenly split based on the number of cycles and number of mainstreams
             if "ms_outlet" in header.lower():
                 try:
@@ -496,10 +495,7 @@ def check_scouting(scoutingData, pfcData, uvPreset, numOfCycles, numOfMS, blocks
             incorrectFieldText.append(f"Expected a flowrate block for {buffer}")
 
     if incorrectFieldText:
-            highlights.append({
-                "blockData": scoutingData[0], 
-                "annotationText": incorrectFieldText
-            })
+            highlights[0]["annotationText"]= highlights[0]["annotationText"]+(incorrectFieldText)
 
     return highlights
 
@@ -624,7 +620,7 @@ def get_pfc_data_from_block_name(blockName, pfcData):
         return '', '', '', '', '', '', '', ''
     
 
-def parse_breakpoint_volume(comment: str, skid_size: str) -> float:
+def parse_breakpoint_volume(comment: str, skid_size: str, skidSizeDict:dict) -> float:
     """
     Parse comments to determine breakpoint volume based on skid size and other parameters
     
@@ -638,17 +634,20 @@ def parse_breakpoint_volume(comment: str, skid_size: str) -> float:
     """
 
     comment = comment.lower()
-    
+    if ("up" in comment or "upflow" in comment) and ("down" in comment or "downflow" in comment) and "and" in comment:
+        multiplier = 2
+    else:
+        multiplier = 1
+    print(multiplier)
     # Case 1: Fixed volume regardless of skid size
-    if "regardless of skid size" in comment and ("breakpoint" in comment.lower() or "block volume" in comment.lower()):
-        import re
-        volume = float(re.findall(r'(\d+)l', comment)[0])
+    if "regardless of skid size" in comment and ("breakpoint" in comment or "block volume" in comment or "purge volume" in comment):
+        match = re.findall(r'(\d+)\s*[lL]', comment)
+        if match:
+            volume = float(match[0])*multiplier
         return volume
-            
-        
+ 
     # Case 2: Different volumes based on skid size with specific volumes in comment
     if ("breakpoint" in comment.lower() or "block volume" in comment.lower()) and any(size in comment for size in ["3/8", "1/2", "3/4"]):
-        import re
         # Extract all number + L patterns
         volumes = re.findall(r'(\d+)l', comment.lower())
         # Extract all size patterns
@@ -660,9 +659,9 @@ def parse_breakpoint_volume(comment: str, skid_size: str) -> float:
             if i < len(volumes):  # Ensure we have a volume for this size
                 if "," in size:  # Handle cases where sizes are combined
                     for sub_size in size.split(","):
-                        size_volume_map[sub_size.strip()] = float(volumes[i])
+                        size_volume_map[sub_size.strip()] = float(volumes[i])*multiplier
                 else:
-                    size_volume_map[size] = float(volumes[i])
+                    size_volume_map[size] = float(volumes[i])*multiplier
            
         # Return the volume for the specified skid size
         if skid_size in size_volume_map:
@@ -673,12 +672,6 @@ def parse_breakpoint_volume(comment: str, skid_size: str) -> float:
             # Find volume associated with these sizes
             for i, size in enumerate(sizes):
                 if "3/8" in size and "1/2" in size and i < len(volumes):
-                    return float(volumes[i])
+                    return float(volumes[i])*multiplier
     
-    # Default mappings if no special case matches
-    default_volumes = {
-        "3/8": 10.0,
-        "1/2": 10.0,
-        "3/4": 15.0
-    }
     return None

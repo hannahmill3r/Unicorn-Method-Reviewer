@@ -234,7 +234,6 @@ def extract_process_info(array, unitOP):
         parameters_in_pfc.append('High Salt Wash')
         parameters_in_pfc.remove('Regeneration')
 
-    print(parameters_in_pfc)
     if 'Regeneration' in parameters_in_pfc and unitOP != "Protein A Capture Chromatography":
         if process_info['Regeneration']['composition'] == process_info['Post Sanitization']['composition']:
             parameters_in_pfc.remove('Regeneration')

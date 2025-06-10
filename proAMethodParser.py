@@ -69,6 +69,34 @@ def protein_A_method_parser(textDoc, userInput):
                                 "columnData": query_column_data(text), 
                                 "location": get_page_location(span)
                             }
+                        
+                        if "start" in text.lower() and "block:" in text.lower():
+                            #default volumes and manflow %
+                            skidSizeDict = {
+                                '3/8': {"Manflow": 100, "Purge Volume": 7},
+                                '1/2': {"Manflow": 100, "Purge Volume": 10},
+                                '3/4': {"Manflow": 60, "Purge Volume": 15}
+                            }
+                            
+                            # Find all THROUGHOUT comments in the block
+                            throughout_comments = [match.group(1).strip() for match in re.finditer(r'Comment:\s*THROUGHOUT:\s*(.*)', blocks[blockCounter])]
+                            
+                            for comment in throughout_comments:
+                                # Parse Purge Volume
+                                if 'purge volume' in comment.lower():
+                                    volumes = re.findall(r'(\d+)L.*?([3/48]+)"', comment)
+                                    for volume, size in volumes:
+                                        skidSizeDict[size]["Purge Volume"] = int(volume)
+                                        
+                                # Parse Manflow
+                                if 'manflow' in comment.lower():
+                                    # Handle percentage values
+                                    manflows = re.findall(r'(\d+)%.*?([3/48]+)"', comment)
+                                    for manflow, size in manflows:
+                                        skidSizeDict[size]["Manflow"] = int(manflow)
+    
+
+
 
                         if "block:" in text.lower() and "purge" in text.lower():
 
@@ -140,24 +168,9 @@ def protein_A_method_parser(textDoc, userInput):
                                     individualBlockData[-1]['settings']['end_block_setting'] = ''
 
                                 try:
-                                    individualBlockData[-1]['settings']['grad_mode_setting'] = watchBlockSettings['grad_mode_setting']
+                                    individualBlockData[-1]['settings']['gradient_settings'] = individualBlockData[-1]['settings']['gradient_settings']+ watchBlockSettings['gradient_settings']
                                 except (IndexError, KeyError):
-                                    individualBlockData[-1]['settings']['grad_mode_setting'] = ''
-
-                                try:
-                                    individualBlockData[-1]['settings']['grad_setting'] = watchBlockSettings['grad_setting']
-                                except (IndexError, KeyError):
-                                    individualBlockData[-1]['settings']['grad_setting'] = ''
-
-                                try:
-                                    individualBlockData[-1]['settings']['grad_volume_setting'] = watchBlockSettings['grad_volume_setting']
-                                except (IndexError, KeyError):
-                                    individualBlockData[-1]['settings']['grad_volume_setting'] = ''
-
-                                try:
-                                    individualBlockData[-1]['settings']['grad_mode_volume_setting'] = watchBlockSettings['grad_mode_volume_setting']
-                                except (IndexError, KeyError):
-                                    individualBlockData[-1]['settings']['grad_mode_volume_setting'] = ''
+                                    pass
 
 
 
@@ -203,8 +216,8 @@ def protein_A_method_parser(textDoc, userInput):
     inletsNotPurged = []
     for val in remainingInlets:
         unpurgedQD = (pfcData.get(val).get('qd'))
-        if isinstance(unpurgedQD, list):
-            for qd in unpurgedQD:
+        if isinstance(unpurgedQD, dict):
+            for qd in [unpurgedQD["Buffer A QD"], unpurgedQD["Buffer B QD"]]:
                 qd.strip()
                 if qd.strip() != ''and qd.strip() not in trackedInletQDs:
                     inletsNotPurged.append(val)
@@ -226,7 +239,8 @@ def protein_A_method_parser(textDoc, userInput):
         "final_block_data": finalBlock, 
         "scouting_data": scoutingData, 
         "compensation_factor": comp_factor_setting, 
-        "UV_Auto_Zero": uvAutoZero
+        "UV_Auto_Zero": uvAutoZero, 
+        "skid_size_dict": skidSizeDict
     }
 
 

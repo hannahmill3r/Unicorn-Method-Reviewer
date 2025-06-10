@@ -19,13 +19,6 @@ def query_block_data(block):
     QD_match = re.search(r'QD\s*(.*)', block)
     setmark_match = re.search(r'Set mark:\s*(.*)', block)
 
-    #gradient information
-    gradient_mode_match = re.search(r'GradMode::\s*(.*)', block)
-    gradient_match = re.search(r'Gradient:\s*(.*)', block)
-    gradient_volume_match = re.search(r'(\d+\.?\d*)\s*Gradient:', block)
-    gradient_mode_volume_match = re.search(r'(\d+\.?\d*)\s*GradMode:', block)
-
-
     #there can be multiple snapshot volumes, we only care about the last one
     snapshot_line =  re.finditer(r'.*Snapshot:', block)
     snapshot_volume_match = ''
@@ -96,14 +89,41 @@ def query_block_data(block):
     flow_value = float(manflow_match.group(1)) if manflow_match else ' '
     QD_match_value = QD_match.group().strip().replace(" ", "") if QD_match else ' '
     comp_factor = methodCompFactor.group(1).strip() if methodCompFactor else ' '
-    grad_mode = gradient_mode_match.group(1).strip() if gradient_mode_match else ' '
-    grad_setting = gradient_match.group(1).strip() if gradient_match else ' '
-    grad_volume = gradient_volume_match.group(1).strip() if gradient_volume_match else ' '
-    grad_mode_volume = gradient_mode_volume_match.group(1).strip() if gradient_mode_volume_match else ' '
 
+    gradient_settings = []
 
+    for line in block.splitlines():
+        # Only process lines that have the markers you're interested in
+        if 'GradMode' in line or 'Gradient' in line:
+            entry = {}
 
-    
+            grad_mode_volume = re.search(r'(\d+\.?\d*)\s*GradMode:', line)
+            if grad_mode_volume:
+                entry['grad_mode_volume_setting'] = grad_mode_volume.group(1).strip()
+            else:
+                entry['grad_mode_volume_setting'] = ''
+
+            grad_mode = re.search(r'GradMode:\s*(.*)', line)
+            if grad_mode:
+                entry['grad_mode_setting'] = grad_mode.group(1).strip()
+            else:
+                entry['grad_mode_setting'] = ''
+
+            grad_volume = re.search(r'(\d+\.?\d*)\s*Gradient:', line)
+            if grad_volume:
+                entry['grad_volume_setting'] = grad_volume.group(1).strip()
+            else:
+                entry['grad_volume_setting'] = ''
+
+            grad = re.search(r'Gradient:\s*(.*)', line)
+            if grad:
+                entry['grad_setting'] = grad.group(1).strip()
+            else:
+                entry['grad_setting'] = ''
+
+            if entry:  # only append if we found something
+                gradient_settings.append(entry)
+
     inlet_number = None
     if inlet_match:
         inlet_spec = inlet_match.group(1).strip()
@@ -142,10 +162,7 @@ def query_block_data(block):
             'snapshot_breakpoint_setting': snapshot_volume_match, 
             'compensation_setting': comp_factor, 
             'comments_setting': commentMatches, 
-            'grad_mode_setting': grad_mode, 
-            'grad_setting': grad_setting, 
-            'grad_volume_setting': grad_volume, 
-            'grad_mode_volume_setting': grad_mode_volume
+            'gradient_settings': gradient_settings
 
         }
     return currentBlock
@@ -172,7 +189,40 @@ def query_watch(block):
     for match in multi_end_block_match:  
         endMatches.append(match.group(1).strip() if match else ' ')
 
-    #snapshot_volume_match = snapshot_volume_match.group(1).strip() if snapshot_volume_match else ' '
+
+    gradient_settings = []
+
+    for line in block.splitlines():
+        # Only process lines that have the markers you're interested in
+        if 'GradMode' in line or 'Gradient' in line:
+            entry = {}
+
+            grad_mode_volume = re.search(r'(\d+\.?\d*)\s*GradMode:', line)
+            if grad_mode_volume:
+                entry['grad_mode_volume_setting'] = grad_mode_volume.group(1).strip()
+            else:
+                entry['grad_mode_volume_setting'] = ''
+
+            grad_mode = re.search(r'GradMode:\s*(.*)', line)
+            if grad_mode:
+                entry['grad_mode_setting'] = grad_mode.group(1).strip()
+            else:
+                entry['grad_mode_setting'] = ''
+
+            grad_volume = re.search(r'(\d+\.?\d*)\s*Gradient:', line)
+            if grad_volume:
+                entry['grad_volume_setting'] = grad_volume.group(1).strip()
+            else:
+                entry['grad_volume_setting'] = ''
+
+            grad = re.search(r'Gradient:\s*(.*)', line)
+            if grad:
+                entry['grad_setting'] = grad.group(1).strip()
+            else:
+                entry['grad_setting'] = ''
+
+            if entry:  # only append if we found something
+                gradient_settings.append(entry)
 
 
 
@@ -202,7 +252,8 @@ def query_watch(block):
         'outlet_setting': outlet_setting, 
         'end_block_setting': endMatches, 
         'snapshot_setting': snapMatches, 
-        'snapshot_breakpoint_setting':snapVolumeMatches
+        'snapshot_breakpoint_setting':snapVolumeMatches,
+        'gradient_settings': gradient_settings, 
     }
     return watchBlock
 

@@ -130,10 +130,15 @@ def writeColumns(default_qd_map, requiredBuffers, inputs_disabled, directOptions
                     parsed_gradient = parse_gradient_composition(default_qd_map[buffer].get(key))
 
                     col5, col6 = st.columns(2)
-                    default_qd_map[buffer][key] = [0, 0]
+                    default_qd_map[buffer][key] = {
+                                                "Buffer A QD": parsed_gradient['Buffer A']['QD'], 
+                                                "Buffer A Percent": parsed_gradient['Buffer A']['percent'],
+                                                "Buffer B QD": parsed_gradient['Buffer B']['QD'],
+                                                "Buffer B Percent": parsed_gradient['Buffer B']['percent'],
+                                                   }
                     
                     with col5:
-                        default_qd_map[buffer][key][0] = st.text_input(
+                        default_qd_map[buffer][key]["Buffer A QD"] = st.text_input(
                             label,
                             value=parsed_gradient['Buffer A']['QD'],
                             help = f"Buffer A: {parsed_gradient['Buffer A']['percent']}% {parsed_gradient['Buffer A']['QD']}",
@@ -143,7 +148,7 @@ def writeColumns(default_qd_map, requiredBuffers, inputs_disabled, directOptions
 
                         
                     with col6:
-                        default_qd_map[buffer][key][1] = st.text_input(
+                        default_qd_map[buffer][key]["Buffer B QD"] = st.text_input(
                             label,
                             value=parsed_gradient['Buffer B']['QD'],
                             help = f"Buffer B: {parsed_gradient['Buffer B']['percent']}% {parsed_gradient['Buffer B']['QD']}",
@@ -555,8 +560,8 @@ def create_inlet_qd_interface():
 
         #check if any required feilds are empty
         for buffer in requiredBuffersInPFC:
-            if isinstance(default_qd_map[buffer]['qd'], list):
-                for qd in default_qd_map[buffer]['qd']:
+            if isinstance(default_qd_map[buffer]['qd'], dict):
+                for qd in [default_qd_map[buffer]['qd']["Buffer A QD"], default_qd_map[buffer]['qd']["Buffer B QD"]]:
                     if not qd.strip() or not default_qd_map[buffer]['flow_rate'].strip() or not default_qd_map[buffer]['direction'].strip():
                         invalidError.append(f"{buffer} is missing required information")
             elif not default_qd_map[buffer]['qd'].strip() or not default_qd_map[buffer]['flow_rate'].strip() or not default_qd_map[buffer]['direction'].strip():
@@ -596,8 +601,8 @@ def create_inlet_qd_interface():
 
         # Check QD format for all fields that have values
         for buffer in default_qd_map.keys():
-            if isinstance(default_qd_map[buffer]['qd'], list):
-                for qd in default_qd_map[buffer]['qd']:
+            if isinstance(default_qd_map[buffer]['qd'], dict):
+                for qd in [default_qd_map[buffer]['qd']["Buffer A QD"], default_qd_map[buffer]['qd']["Buffer B QD"]]:
                     if qd.strip() and not is_valid_qd(qd):
                         invalidError.append(f"Invalid QD format for {buffer}. Format should be 'QD' followed by 5 digits (e.g., QD00015)")
             elif default_qd_map[buffer]['qd'].strip() and not is_valid_qd(default_qd_map[buffer]['qd']):
