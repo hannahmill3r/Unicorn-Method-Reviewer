@@ -129,9 +129,7 @@ def create_buffer_inputs(buffer, inlet,default_qd_map,requiredBuffers, inputs_di
                 )
     with cols[6]:
         if st.button("✖️", key=f'{buffer}_delete_key', help="Delete this row"):
-            print('st.buffer:',st.session_state.buffers)
             st.session_state.buffers.remove(buffer)
-            print('st.buffer:',st.session_state.buffers)
             st.rerun()
 
 def add_new_buffer(default_qd_map, buffer,inputs_disabled, directOptions):
@@ -233,40 +231,40 @@ def writeColumns(default_qd_map, requiredBuffers, inputs_disabled, directOptions
         directOptions (list): Available options for flow direction
         parameters_in_pfc:
     """
+    if 'pfcData' in st.session_state:
+        if 'buffers' not in st.session_state:
+            st.session_state.buffers = st.session_state.pfcData.copy()
 
-    if 'buffers' not in st.session_state:
-        st.session_state.buffers = st.session_state.pfcData.copy()
+        # Process Pump A Inlets
+        st.subheader("Pump A Inlets")
+        pump_a_buffers = [key for key, value in default_qd_map.items() if value['pump'] == 'A']
 
-    # Process Pump A Inlets
-    pump_a_buffers = [key for key, value in default_qd_map.items() if value['pump'] == 'A']
-    print(pump_a_buffers)
+        for buffer in pump_a_buffers:
+            if buffer in st.session_state.buffers:
+                #create_buffer_inputs(buffer, default_qd_map[buffer].get('inlet'))
+                create_buffer_inputs(buffer, default_qd_map[buffer].get('inlet'),default_qd_map,requiredBuffers, inputs_disabled, directOptions)
+                
 
-    for buffer in pump_a_buffers:
-        if buffer in st.session_state.buffers:
-            #create_buffer_inputs(buffer, default_qd_map[buffer].get('inlet'))
-            create_buffer_inputs(buffer, default_qd_map[buffer].get('inlet'),default_qd_map,requiredBuffers, inputs_disabled, directOptions)
-            
+        # =================================== additional buffer ===================================
+        
+        enable_add_buffer(pump_a_buffers, default_qd_map,'pump_a','Add Buffer to Pump A ➕',inputs_disabled,directOptions)
 
-    # =================================== additional buffer ===================================
-    
-    enable_add_buffer(pump_a_buffers, default_qd_map,'pump_a','Add Buffer to Pump A ➕',inputs_disabled,directOptions)
+        # ==========================================================================================
 
-    # ==========================================================================================
+        # Process Pump B Inlets
+        st.subheader("Pump B Inlets")
+        pump_b_buffers = [key for key, value in default_qd_map.items() if value['pump'] == 'B']
 
-    # Process Pump B Inlets
-    st.subheader("Pump B Inlets")
-    pump_b_buffers = [key for key, value in default_qd_map.items() if value['pump'] == 'B']
+        for buffer in pump_b_buffers:
+            if buffer in st.session_state.buffers:
+                #create_buffer_inputs(buffer,pump_b_buffers, default_qd_map[buffer].get('inlet'))
+                create_buffer_inputs(buffer, default_qd_map[buffer].get('inlet'),default_qd_map,requiredBuffers, inputs_disabled, directOptions)
 
-    for buffer in pump_b_buffers:
-        if buffer in st.session_state.buffers:
-            #create_buffer_inputs(buffer,pump_b_buffers, default_qd_map[buffer].get('inlet'))
-            create_buffer_inputs(buffer, default_qd_map[buffer].get('inlet'),default_qd_map,requiredBuffers, inputs_disabled, directOptions)
+        # =================================== additional buffer ===================================
+        
+        enable_add_buffer(pump_b_buffers, default_qd_map,'pump_b','Add Buffer to Pump B ➕',inputs_disabled,directOptions)
 
-    # =================================== additional buffer ===================================
-    
-    enable_add_buffer(pump_b_buffers, default_qd_map,'pump_b','Add Buffer to Pump B ➕',inputs_disabled,directOptions)
-
-    # ==========================================================================================
+        # ==========================================================================================
 
 def display_pdf(file):
     # Opening file from file path
@@ -564,8 +562,8 @@ def create_inlet_qd_interface():
 
     st.header("Verify Inlet Parameters")
 
-    # Create columns for Pump A Inlets
-    st.subheader("Pump A Inlets")
+    # Create columns for Pump A/B Inlets
+    
     directOptions = ['Downflow', 'Upflow', '']
     requiredBuffers = ['Post Sanitization', 'Equilibration', 'Wash 1', 'Storage']
 
