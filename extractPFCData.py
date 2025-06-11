@@ -229,15 +229,17 @@ def extract_process_info(array, unitOP):
             
             if process_info[buffer][key].strip()!='' and process_info[buffer][key].strip()!='--'and buffer not in parameters_in_pfc:
                 parameters_in_pfc.append(buffer)
+    
     if highSaltWash:
         process_info['High Salt Wash'] = process_info['Regeneration']
         parameters_in_pfc.append('High Salt Wash')
         parameters_in_pfc.remove('Regeneration')
-
+    
+    '''
     if 'Regeneration' in parameters_in_pfc and unitOP != "Protein A Capture Chromatography":
         if process_info['Regeneration']['composition'] == process_info['Post Sanitization']['composition']:
             parameters_in_pfc.remove('Regeneration')
-
+            '''
 
     for key in process_info['Pre-Equilibration'].keys():
         if key!= 'CV':
@@ -266,6 +268,7 @@ def extract_process_info(array, unitOP):
         if key in parameters_in_pfc:
             if process_info[key]['direction'] == '' and default_flow:
                 process_info[key]['direction'] = default_flow
+
 
     return process_info, sanitizationStrategy, parameters_in_pfc
 

@@ -3,6 +3,8 @@ import re
 import numpy as np
 from queryMethodCodeBlocks import query_block_data, query_watch, query_final_block, query_column_data
 from parseScoutingMethods import parse_scouting_table
+from blockVerification import get_pfc_data_from_block_name
+
 
 """
 Protein A UNICORN Method Parser
@@ -44,6 +46,10 @@ def protein_A_method_parser(textDoc, userInput):
     allBlockTextExceptLast = ''
     comp_factor_setting = {}
     uvAutoZero = False
+    firstPumpAInlet = ''
+    firstPumpBInlet = ''
+    a_pump_purged = None
+    b_pump_purged = None
 
     # Loop through each page
     for page_num in range(len(doc)):
@@ -117,8 +123,13 @@ def protein_A_method_parser(textDoc, userInput):
                                 if blockSettings["inlet_setting"] in remainingInlets:
                                     remainingInlets.pop(remainingInlets.index(blockSettings["inlet_setting"]))
 
-                                if "purge_a_pump" not in text.lower() and "purge_a_pump" not in text.lower():
+                                if "purge_a_pump" not in text.lower() and "purge_b_pump" not in text.lower():
                                     finalPurgeBlock = blockCounter
+                                if "purge_a_pump" in text.lower():
+                                    a_pump_purged = True
+                                if "purge_b_pump" in text.lower():
+                                    b_pump_purged = True
+
                                 firstPurge = False
 
                             
@@ -184,6 +195,23 @@ def protein_A_method_parser(textDoc, userInput):
                                         "location": get_page_location(span),
                                         "settings": indivBlockSettings
                                     })
+                                closestTitleMatch, pfcQD, direct, flowRate, residenceTime, columnVolume, pump, inlet, isocraticHoldCV = get_pfc_data_from_block_name(text, pfcData)
+
+                                if a_pump_purged and not firstPumpAInlet and "A" in pump:
+                                    try:
+                                        firstPumpAInlet = indivBlockSettings['inlet_setting'][0]
+                                    except Exception as e:
+                                        print("except", e)
+    
+                                if b_pump_purged and not firstPumpBInlet and "B" in pump:
+                                    try:
+                                        if len(indivBlockSettings['inlet_setting'])>1:
+                                            firstPumpBInlet = indivBlockSettings['inlet_setting'][1]
+                                        else:
+                                            firstPumpBInlet = indivBlockSettings['inlet_setting'][0]
+                                    except Exception as e:
+                                        print(e)
+
                         if "run" in text.lower() and allBlockTextExceptLast!='':                          
                             scoutingRunLocations.append((page_num+1, get_page_location(span)))
 
@@ -228,7 +256,10 @@ def protein_A_method_parser(textDoc, userInput):
     #purge and equil blocks might have empty inlet settings if they chare an inlet, so fill in any missing data with shared inlet connections
     update_inlet_qd_settings(connection, purgeBlockData, equillibrationBlockData)
 
-
+    if not firstPumpAInlet:
+        firstPumpAInlet = "Inlet 1"
+    if not firstPumpBInlet:
+        firstPumpBInlet = "Inlet 7"
     return {
         "purge_data": purgeBlockData, 
         "inlets_not_purged": inletsNotPurged, 
@@ -240,7 +271,9 @@ def protein_A_method_parser(textDoc, userInput):
         "scouting_data": scoutingData, 
         "compensation_factor": comp_factor_setting, 
         "UV_Auto_Zero": uvAutoZero, 
-        "skid_size_dict": skidSizeDict
+        "skid_size_dict": skidSizeDict, 
+        "pump_a_inlet": firstPumpAInlet, 
+        "pump_b_inlet": firstPumpBInlet, 
     }
 
 

@@ -46,7 +46,7 @@ def define_field_config(buffer,inlet):
     return field_configs
 
 # Helper function to create input fields for a buffer
-def create_buffer_inputs(buffer, inlet,default_qd_map,requiredBuffers, inputs_disabled, directOptions):
+def create_buffer_inputs(buffer, inlet,default_qd_map,requiredBuffers, inputs_disabled, directOptions, parameters_in_pfc):
     """Creates standardized input fields for each buffer"""
     # Create 5 columns with specific width ratios
     cols = st.columns([2.25, 3,3,3,3,3,1], vertical_alignment="center")
@@ -137,7 +137,9 @@ def create_buffer_inputs(buffer, inlet,default_qd_map,requiredBuffers, inputs_di
         with colx:
             if st.button("X", key=f'{buffer}_delete_key', help="Delete this row", use_container_width = True, type = 'tertiary' ):
                 st.session_state.buffers.remove(buffer)
+                
                 st.rerun()
+
     
 
 def add_new_buffer(default_qd_map, buffer,inputs_disabled, directOptions):
@@ -204,7 +206,7 @@ def add_new_buffer(default_qd_map, buffer,inputs_disabled, directOptions):
                         key=field_key + "Buffer B",
                         disabled=inputs_disabled
                     )
-                    
+
             elif key == 'CV' and default_qd_map[buffer].get('isocratic hold').strip() !='':
                 col5, col6 = st.columns(2)
                 with col5:
@@ -284,6 +286,7 @@ def writeColumns(default_qd_map, requiredBuffers, inputs_disabled, directOptions
         if 'buffers' not in st.session_state:
             st.session_state.buffers = st.session_state.pfcData.copy()
 
+
         # Process Pump A Inlets
         st.subheader("Pump A Inlets")
         pump_a_buffers = [key for key, value in default_qd_map.items() if value['pump'] == 'A']
@@ -291,7 +294,7 @@ def writeColumns(default_qd_map, requiredBuffers, inputs_disabled, directOptions
         for buffer in pump_a_buffers:
             if buffer in st.session_state.buffers:
                 #create_buffer_inputs(buffer, default_qd_map[buffer].get('inlet'))
-                create_buffer_inputs(buffer, default_qd_map[buffer].get('inlet'),default_qd_map,requiredBuffers, inputs_disabled, directOptions)
+                create_buffer_inputs(buffer, default_qd_map[buffer].get('inlet'),default_qd_map,requiredBuffers, inputs_disabled, directOptions, parameters_in_pfc)
                 
 
         # =================================== additional buffer ===================================
@@ -307,7 +310,7 @@ def writeColumns(default_qd_map, requiredBuffers, inputs_disabled, directOptions
         for buffer in pump_b_buffers:
             if buffer in st.session_state.buffers:
                 #create_buffer_inputs(buffer,pump_b_buffers, default_qd_map[buffer].get('inlet'))
-                create_buffer_inputs(buffer, default_qd_map[buffer].get('inlet'),default_qd_map,requiredBuffers, inputs_disabled, directOptions)
+                create_buffer_inputs(buffer, default_qd_map[buffer].get('inlet'),default_qd_map,requiredBuffers, inputs_disabled, directOptions, parameters_in_pfc)
 
         # =================================== additional buffer ===================================
         
@@ -608,7 +611,7 @@ def create_inlet_qd_interface():
     
     if not inputs_disabled:
         default_qd_map =fill_default_sample_map(default_qd_map, column_params, pfcQDMap, selected_option)
-
+    
     st.header("Verify Inlet Parameters")
 
     # Create columns for Pump A/B Inlets
@@ -726,6 +729,7 @@ def create_inlet_qd_interface():
         "Submit for Comparison", 
         disabled=not (st.session_state.get('qd_validated', False) and uploaded_file is not None)
     )
+
 
     return {
         'inlet_data': default_qd_map,

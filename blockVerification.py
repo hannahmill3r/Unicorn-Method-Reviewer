@@ -2,9 +2,7 @@ from extractText import closest_match_unit_op
 import re
 import math
 from flowCalculations import calc_LFlow, calc_LFlow_from_residence_time
-#from blockNameDict import blockNameDictionary
 from blockNameDict_user_validation import *
-
 
 
 def check_column_params(methodsColumnParams, pfcColumnParams):
@@ -50,7 +48,7 @@ def check_column_params(methodsColumnParams, pfcColumnParams):
     return highlights
 
 
-def check_purge_block_settings(purge_blocks, pfcData, skid_size, firstPumpAInlet, firstPumpBInlet, skidSizeDict):
+def check_purge_block_settings(purge_blocks, pfcData, skid_size, firstPumpAInlet, firstPumpBInlet, skidSizeDict, parameters_in_methods):
     """
     Check purge method block data against the user entered pfc data 
     
@@ -92,7 +90,7 @@ def check_purge_block_settings(purge_blocks, pfcData, skid_size, firstPumpAInlet
             for error in validate_common_settings(block['settings'], "Bypass", "Inline", expected_manflow, expected_purge_breakpoint):
                 incorrectFieldText.append(error)
 
-            if firstPumpAInlet != block["settings"]['inlet_setting']: 
+            if firstPumpAInlet != block["settings"]['inlet_setting'][0]: 
                 incorrectFieldText.append(f"Expected {firstPumpAInlet}")
 
             if block['settings']['filter_setting']!= "Inline":
@@ -104,7 +102,7 @@ def check_purge_block_settings(purge_blocks, pfcData, skid_size, firstPumpAInlet
             for error in validate_common_settings(block['settings'], "Bypass", "Bypass", expected_manflow, expected_purge_breakpoint):
                 incorrectFieldText.append(error)
                   
-            if firstPumpBInlet != block["settings"]['inlet_setting']: 
+            if firstPumpBInlet != block["settings"]['inlet_setting'][0]: 
                 incorrectFieldText.append(f"Expected {firstPumpBInlet}")
                   
             if block['settings']['filter_setting']!= "Bypass":
@@ -125,13 +123,15 @@ def check_purge_block_settings(purge_blocks, pfcData, skid_size, firstPumpAInlet
 
         #grab the QD for the current inlet from the pfc data dict
         pfcQD = ' '
+        buffer = ''
         for key in pfcData.keys():
-            if block['settings']['inlet_setting'] == pfcData[key]['inlet']:
-                    try:
-                        if pfcData[key]['qd'].strip() != '' and pfcData[key]['direction'].strip() != '' and pfcData[key]['flow_rate'] != '':
-                            pfcQD = pfcData[key]['qd']
-                    except:
-                        pfcQD = pfcData[key]['qd']
+            if isinstance(pfcData[key]['qd'], dict):
+                tempQD = pfcData[key]['qd']['Buffer A QD']
+            else:
+                tempQD = pfcData[key]['qd']
+
+            if block['settings']['inlet_setting'][0] == pfcData[key]['inlet'] and key in parameters_in_methods and tempQD.strip()!='':
+                    pfcQD =tempQD
 
         expected_purge_breakpoint = skidSizeDict[skid_size]["Purge Volume"]
 
@@ -153,14 +153,22 @@ def check_purge_block_settings(purge_blocks, pfcData, skid_size, firstPumpAInlet
         else:
             for error in validate_common_settings(block['settings'], "Bypass", "Inline", expected_manflow, float(20.0)):
                 incorrectFieldText.append(error)
-    
-            if pfcData['Equilibration']['qd']!= pfcQD != block["settings"]['inlet_QD_setting']:
+            if isinstance(pfcData['Equilibration']['qd'], dict):
+                equilQD = pfcData['Equilibration']['qd']['Buffer A QD']
+            else:
+                equilQD = pfcData['Equilibration']['qd']
+
+
+            if block["settings"]['inlet_QD_setting'].split():
+                if equilQD!= pfcQD != block["settings"]['inlet_QD_setting']:
+                    incorrectFieldText.append(f"Final purge should use equillibration buffer")
+            elif block['settings']['inlet_setting'][0]!= "Inlet 1":
                 incorrectFieldText.append(f"Final purge should use equillibration buffer")
 
         if isinstance(pfcQD, dict):
             pfcQD = pfcQD["Buffer A QD"]
 
-        if pfcQD != block["settings"]['inlet_QD_setting']:
+        if pfcQD != block["settings"]['inlet_QD_setting'] and block['settings']['inlet_setting'][0]!= "Inlet 1" and block['settings']['inlet_setting'][0]!= "Inlet 5":
             incorrectFieldText.append(f"Expected {pfcQD}")
         
         if incorrectFieldText:
@@ -181,7 +189,11 @@ def check_MS_blocks_settings_pdf(MS_blocks, pfcData, numberofMS, skid_size, skid
     for block in MS_blocks:
 
         incorrectFieldText = []
-        methodQD = pfcData['Equilibration']['qd']
+
+        pfcQD = pfcData['Equilibration']['qd']
+        if isinstance(pfcQD, dict):
+            pfcQD = pfcQD["Buffer A QD"]
+            
 
         for error in validate_common_settings(block['settings'],  "Bypass", "Inline", expected_manflow, float(numberofMS)*5):
                 incorrectFieldText.append(error)
@@ -192,11 +204,10 @@ def check_MS_blocks_settings_pdf(MS_blocks, pfcData, numberofMS, skid_size, skid
         if int(block["settings"]['fraction_setting']) != int(numberofMS):
             incorrectFieldText.append(f"Expected number of mainstreams to be: {numberofMS}")
         
-        if isinstance(methodQD, dict):
-            methodQD = methodQD["Buffer A QD"]
-        if methodQD != block["settings"]['inlet_QD_setting']: 
-            blockQD = block["settings"]['inlet_QD_setting']
-            incorrectFieldText.append(f"Expected {methodQD}, got {blockQD}")
+        if block["settings"]['inlet_QD_setting'].strip()!='' and pfcQD.strip()!='': 
+            if pfcQD != block["settings"]['inlet_QD_setting']: 
+                blockQD = block["settings"]['inlet_QD_setting']
+                incorrectFieldText.append(f"Expected {pfcQD}, got {blockQD}")
              
         if incorrectFieldText !=[]:
             highlights.append({
@@ -259,24 +270,24 @@ def check_indiv_blocks_settings_pdf(indiv_blocks, pfcData, columnParam, userInpu
         #Flushes do not have a totalizer reset
         else:
             #Check buffers that should be reset through wash pump A
-            if "A" in pump:
-                if not firstPumpAInlet:
-                    firstPumpAInlet = inlet
-                if ("pa" not in block['settings']['reset_setting'].lower()):
+            for reset_param in block['settings']['reset_setting']:
+                if "A" in pump:
+                    if not firstPumpAInlet:
+                        firstPumpAInlet = inlet
+                    if ("pa" not in reset_param.lower()):
 
-                    #Blocks will sometime's share previous buffer settings if they have the same QD
-                    if (indiv_blocks[index-1]['settings']['inlet_QD_setting'] != block['settings']['inlet_QD_setting']) and 'pa' not in indiv_blocks[index-1]['settings']['reset_setting'].lower():
-                        incorrectFieldText.append("Totalizer should be reset through pump A")
-                          
+                        #Blocks will sometime's share previous buffer settings if they have the same QD
+                        if (indiv_blocks[index-1]['settings']['inlet_QD_setting'] != block['settings']['inlet_QD_setting']) and 'pa' not in indiv_blocks[index-1]['settings']['reset_setting'].lower():
+                            incorrectFieldText.append("Totalizer should be reset through pump A")
 
-            #Check buffers that should be reset through wash pump B
-            elif "B" in pump:
-                if not firstPumpBInlet:
-                    firstPumpBInlet = inlet
-                if ("pb" not in block['settings']['reset_setting'].lower()):
-                    #Blocks will sometime's share previous buffer settings if they have the same QD
-                    if (indiv_blocks[index-1]['settings']['inlet_QD_setting'] != block['settings']['inlet_QD_setting']) and 'pb' not in indiv_blocks[index-1]['settings']['reset_setting'].lower():
-                        incorrectFieldText.append("Totalizer should be reset through pump B")
+                #Check buffers that should be reset through wash pump B
+                elif "B" in pump:
+                    if not firstPumpBInlet:
+                        firstPumpBInlet = inlet
+                    if ("pb" not in reset_param.lower()):
+                        #Blocks will sometime's share previous buffer settings if they have the same QD
+                        if (indiv_blocks[index-1]['settings']['inlet_QD_setting'] != block['settings']['inlet_QD_setting']) and 'pb' not in indiv_blocks[index-1]['settings']['reset_setting'].lower():
+                            incorrectFieldText.append("Totalizer should be reset through pump B")
 
             if not any(term in block["blockName"] for term in block['settings']['setmark_setting'].split()) and not any(term in block["blockName"] for term in block['settings']['setmark_setting'].split('_')) and block['settings']['setmark_setting'].strip() !='':
                 incorrectFieldText.append("Incorrect setmark naming")
@@ -346,7 +357,7 @@ def check_indiv_blocks_settings_pdf(indiv_blocks, pfcData, columnParam, userInpu
                 "annotationText": incorrectFieldText
             })
 
-    return highlights, firstPumpAInlet, firstPumpBInlet
+    return highlights
 
 def check_watch_settings(blocks):
     highlights = []
@@ -516,6 +527,7 @@ def check_settings(header, run, index, keyList, keywords, errorMsg, cycleIndex):
             # Check if it's not the first run and the value is not "Blank"
             elif j != cycleIndex and "Blank" not in val and errorMsg not in incorrectFieldText:
                 incorrectFieldText.append(errorMsg)
+
     return incorrectFieldText
 
 

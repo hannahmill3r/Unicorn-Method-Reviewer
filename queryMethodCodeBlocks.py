@@ -11,13 +11,11 @@ def query_block_data(block):
     base_match = re.search(r'Base:\s*(.*)', block)
     snapshot_match = re.search(r'Snapshot:\s*(.*)', block)
     inlet_match = re.search(r'Inlet:\s*(.*)', block)
-
-    #TODO this needs to be an interation, in non pro A there may be multiple inlets in two different pumps for the same buffer
-    reset_match = re.search(r'FIT\s*(.*)', block)
     fraction_match = re.search(r'Fractions:\s*(.*)', block)
     manflow_match = re.search(r'ManFlow:\s*(\d+\.?\d*)\s*{\%}', block)
     QD_match = re.search(r'QD\s*(.*)', block)
     setmark_match = re.search(r'Set mark:\s*(.*)', block)
+    methodCompFactor = re.search(r'Compensation Factor = \s*(.*)', block)
 
     #there can be multiple snapshot volumes, we only care about the last one
     snapshot_line =  re.finditer(r'.*Snapshot:', block)
@@ -27,26 +25,20 @@ def query_block_data(block):
         numbers = re.findall(r'\d+\.?\d*', line.group(0))
         snapshot_volume_match = numbers[0] if numbers else ' '
 
-    #there can be multiple comments
-    multi_comment_match = re.finditer(r'Comment:\s*(.*)', block)
-    commentMatches = []
-    for match in multi_comment_match:  
-        commentMatches.append(match.group(1).strip() if match else ' ')
+    def extract_matches(block, pattern):
+        matches = []
+        for match in re.finditer(pattern, block):
+            matches.append(match.group(1).strip())
+        return matches
     
-    
-    multi_column_match = re.finditer(r'Column:\s*(.*)', block)
-    methodCompFactor = re.search(r'Compensation Factor = \s*(.*)', block)
-                            
-    columnMatches = []
-    for match in multi_column_match:
-        columnMatches.append(match.group(1).strip())
 
-    multi_end_block_match = re.finditer(r'(\d+\.?\d*)\s*End_Block', block)
-    endMatches = []
+    # Extract all matches
+    commentMatches = extract_matches(block, r'Comment:\s*(.*)')
+    resetMatches = extract_matches(block, r'FIT\s*(.*)')
+    columnMatches = extract_matches(block, r'Column:\s*(.*)')
+    endMatches = extract_matches(block, r'(\d+\.?\d*)\s*End_Block')
+
     end_block_setting = ''
-    for match in multi_end_block_match:  
-        endMatches.append(match.group(1).strip() if match else ' ')
-
     if len(endMatches)>0:
         for val in endMatches[::-1]:
             if float(val)!=float(0.00) or end_block_setting == '':
@@ -83,7 +75,6 @@ def query_block_data(block):
     outlet_setting = outlet_match.group(1).strip() if outlet_match else ' '
     bubbletrap_setting = bubbletrap_match.group(1).strip() if bubbletrap_match else ' '
     filter_setting = filter_match.group(1).strip() if filter_match else ' '
-    reset_match = reset_match.group(1).strip() if reset_match else ' '
     snapshot_match = snapshot_match.group(1).strip() if snapshot_match else ' '
     setmark_match = setmark_match.group(1).strip() if setmark_match else ' '
     flow_value = float(manflow_match.group(1)) if manflow_match else ' '
@@ -124,24 +115,20 @@ def query_block_data(block):
             if entry:  # only append if we found something
                 gradient_settings.append(entry)
 
-    inlet_number = None
+
+    inlet_setting = []
     if inlet_match:
         inlet_spec = inlet_match.group(1).strip()
         for part in inlet_spec.split(','):
             part = part.strip()
             if 'Inlet' in part and part != 'Inlet':
-                inlet_number = ''.join(filter(str.isdigit, part))
-                inlet_setting = 'Inlet '+inlet_number
+                inlet_number=''.join(filter(str.isdigit, part))
+                inlet_setting.append('Inlet '+inlet_number)
             elif 'Sample' in part:
-                inlet_number = 'Sample'
-                inlet_setting = 'Sample'
+                inlet_setting.append("Inlet 1")
 
-        if inlet_number == None:
+        if inlet_setting == []:
             return{}
-
-
-        if "sample" in inlet_setting.lower():
-            inlet_setting = "Inlet 1"
 
         currentBlock = {
             'column_setting': column_setting,
@@ -151,7 +138,7 @@ def query_block_data(block):
             'end_block_setting': end_block_setting, 
             'filter_setting': filter_setting, 
             'base_setting': base_value, 
-            'reset_setting': reset_match, 
+            'reset_setting': resetMatches, 
             "flow_setting": ', '.join(flowMatches),
             "flow_tags": flowTags,
             'fraction_setting': numberOfMS, 
