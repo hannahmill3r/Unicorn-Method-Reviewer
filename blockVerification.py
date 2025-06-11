@@ -83,7 +83,7 @@ def check_purge_block_settings(purge_blocks, pfcData, skid_size, firstPumpAInlet
             expected_purge_breakpoint = skidSizeDict[skid_size]["Purge Volume"]
         
         for comment in block['settings']['comments_setting']:
-            volume = parse_breakpoint_volume(comment, skid_size, skidSizeDict)
+            volume = parse_breakpoint_volume(comment, skid_size)
             if volume and isinstance(volume, float):
                 expected_purge_breakpoint = volume
             
@@ -136,7 +136,7 @@ def check_purge_block_settings(purge_blocks, pfcData, skid_size, firstPumpAInlet
         expected_purge_breakpoint = skidSizeDict[skid_size]["Purge Volume"]
 
         for comment in block['settings']['comments_setting']:
-            volume = parse_breakpoint_volume(comment, skid_size, skidSizeDict)
+            volume = parse_breakpoint_volume(comment, skid_size)
             if volume and isinstance(volume, float):
                 expected_purge_breakpoint = volume
 
@@ -218,7 +218,7 @@ def check_indiv_blocks_settings_pdf(indiv_blocks, pfcData, columnParam, userInpu
     for index, block in enumerate(indiv_blocks):
         incorrectFieldText = []
         for comment in block['settings']['comments_setting']:
-            volume = parse_breakpoint_volume(comment, skid_size, skidSizeDict)
+            volume = parse_breakpoint_volume(comment, skid_size)
             if volume and isinstance(volume, float):
                 expected_flush_breakpoint = volume
 
@@ -620,7 +620,7 @@ def get_pfc_data_from_block_name(blockName, pfcData):
         return '', '', '', '', '', '', '', ''
     
 
-def parse_breakpoint_volume(comment: str, skid_size: str, skidSizeDict:dict) -> float:
+def parse_breakpoint_volume(comment: str, skid_size: str) -> float:
     """
     Parse comments to determine breakpoint volume based on skid size and other parameters
     
@@ -638,7 +638,7 @@ def parse_breakpoint_volume(comment: str, skid_size: str, skidSizeDict:dict) -> 
         multiplier = 2
     else:
         multiplier = 1
-    print(multiplier)
+
     # Case 1: Fixed volume regardless of skid size
     if "regardless of skid size" in comment and ("breakpoint" in comment or "block volume" in comment or "purge volume" in comment):
         match = re.findall(r'(\d+)\s*[lL]', comment)
