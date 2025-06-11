@@ -27,6 +27,201 @@ def parse_gradient_composition(text):
         }
     return None
 
+def define_field_config(buffer,inlet):
+    """
+    This function is used to create pre-defined field configuration 
+    :param buffer: buffer name to associate the configuration
+    :param inlet: inlet for the buffer
+    :return :list of tuples
+    """
+    # Create input fields across columns
+    field_configs = [
+        ('qd', f"{inlet} QD Number", f"{buffer}_qd", "QD"),
+        ('flow_rate', f"{inlet} Flow Rate (cm/h)", f"{buffer}_flow", "Flow Rate"),
+        ('direction', f"{inlet} Flow Direction", f"{buffer}_direction", "Flow Direction"),
+        ('residence time', f"{inlet} Residence Time (NLT)", f"{buffer}_residence_time", "Residence Time"),
+        ('CV', f"{inlet} Column Volume (CV)", f"{buffer}_CV", f"{buffer} CV")
+    ]
+
+    return field_configs
+
+# Helper function to create input fields for a buffer
+def create_buffer_inputs(buffer, inlet,default_qd_map,requiredBuffers, inputs_disabled, directOptions):
+    """Creates standardized input fields for each buffer"""
+    # Create 5 columns with specific width ratios
+    cols = st.columns([2.25, 3,3,3,3,3,1], vertical_alignment="center")
+
+    #input files accross columns
+    field_configs = define_field_config(buffer,inlet)
+
+    # Column 0: Buffer name (with * if required)
+    with cols[0]:
+        buffer_label = f"{buffer}*" if buffer in requiredBuffers else buffer
+        st.write(buffer_label)
+    
+    # Create input fields in columns 1-4
+    for i, (key, helpLabel, field_key, label) in enumerate(field_configs, 1):
+        with cols[i]:
+            if key == 'direction':
+                # Special handling for direction dropdown
+                default_qd_map[buffer][key] = st.selectbox(
+                    label,
+                    directOptions,
+                    help = helpLabel,
+                    key=field_key,
+                    index=directOptions.index(default_qd_map[buffer].get(key).strip()),
+                    disabled=inputs_disabled
+                )
+            elif key == 'qd' and parse_gradient_composition(default_qd_map[buffer].get(key)):
+                parsed_gradient = parse_gradient_composition(default_qd_map[buffer].get(key))
+
+                col5, col6 = st.columns(2)
+                default_qd_map[buffer][key] = [0, 0]
+                
+                with col5:
+                    default_qd_map[buffer][key][0] = st.text_input(
+                        label,
+                        value=parsed_gradient['Buffer A']['QD'],
+                        help = f"Buffer A: {parsed_gradient['Buffer A']['percent']}% {parsed_gradient['Buffer A']['QD']}",
+                        key=field_key + "Buffer A",
+                        disabled=inputs_disabled
+                    )
+
+                    
+                with col6:
+                    default_qd_map[buffer][key][1] = st.text_input(
+                        label,
+                        value=parsed_gradient['Buffer B']['QD'],
+                        help = f"Buffer B: {parsed_gradient['Buffer B']['percent']}% {parsed_gradient['Buffer B']['QD']}",
+                        key=field_key + "Buffer B",
+                        disabled=inputs_disabled
+                    )
+
+            elif key == 'CV' and default_qd_map[buffer].get('isocratic hold').strip() !='':
+                col5, col6 = st.columns(2)
+                with col5:
+                    default_qd_map[buffer][key] = st.text_input(
+                        label,
+                        value=default_qd_map[buffer].get(key),
+                        help = helpLabel,
+                        key=field_key,
+                        disabled=inputs_disabled
+                    )
+
+                    
+                with col6:
+                    default_qd_map[buffer]['isocratic hold'] = st.text_input(
+                        'Hold CV',
+                        value=default_qd_map[buffer].get('isocratic hold'),
+                        help = f"{buffer} Isocratic Hold (CV)",
+                        key=field_key + 'isocraticHold',
+                        disabled=inputs_disabled
+                    )
+                
+            else:
+                # Standard text input for other fields
+                default_qd_map[buffer][key] = st.text_input(
+                    label,
+                    value=default_qd_map[buffer].get(key),
+                    help = helpLabel,
+                    key=field_key,
+                    disabled=inputs_disabled
+                )
+    with cols[6]:
+        if st.button("✖️", key=f'{buffer}_delete_key', help="Delete this row"):
+            print('st.buffer:',st.session_state.buffers)
+            st.session_state.buffers.remove(buffer)
+            print('st.buffer:',st.session_state.buffers)
+            st.rerun()
+
+def add_new_buffer(default_qd_map, buffer,inputs_disabled, directOptions):
+
+    #default_qd_map[buffer] = {'inlet': 'Inlet 7', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': }
+
+    """Creates standardized input fields for each buffer
+    :param default_qd_map: master qd map dictionary
+    :param buffer: buffer name to associate the configuration
+    :param inputs_disabled: flag
+    :parma directOptions:
+    :return :None
+    """
+   
+
+    # Create 5 columns with specific width ratios
+    cols = st.columns([2.25, 3,3,3,3,3,1], vertical_alignment="center")
+    inlet = default_qd_map[buffer]['inlet']
+
+    #input files accross columns
+    field_configs = define_field_config(buffer,inlet)
+
+    # Column 0: Buffer name (with * if required)
+    with cols[0]:
+        st.write(buffer)
+    
+    # Create input fields in columns 1-4
+    for i, (key, helpLabel, field_key, label) in enumerate(field_configs, 1):
+        with cols[i]:
+            if key == 'direction':
+                # Special handling for direction dropdown
+                default_qd_map[buffer][key] = st.selectbox(
+                    label,
+                    directOptions,
+                    help = helpLabel,
+                    key=field_key,
+                    index=directOptions.index(default_qd_map[buffer].get(key).strip()),
+                    disabled=inputs_disabled
+                )
+            elif key == 'qd': 
+
+                default_qd_map[buffer][key] = st.text_input(
+                    label,
+                    key=field_key + "Buffer A",
+                    disabled=inputs_disabled
+                )
+
+            else:
+                # Standard text input for other fields
+                default_qd_map[buffer][key] = st.text_input(
+                    label,
+                    value=default_qd_map[buffer].get(key),
+                    help = helpLabel,
+                    key=field_key,
+                    disabled=inputs_disabled
+                )
+
+def enable_add_buffer(availableBuffers, default_qd_map,button_key,label,inputs_disabled,directOptions):
+    """This function is used to enable additional rows for the Pump sections
+    :param availableBuffers: list of buffer for the section
+    :param default_qd_map: 
+    :param button_key: button key name
+    :param label:
+    :param inputs_disabled: flag
+    :parma directOptions:
+    :return :None
+    """
+
+    #unique session state key per button
+    show_key = f'show_multiselect_{button_key}'
+    select_key = f'additional_buffer_{button_key}'
+
+    # Initialize session state
+    if show_key not in st.session_state:
+        st.session_state[show_key] = False
+
+    #add_buffer_bt = st.button('Add Buffer',key = button_key )
+
+    if st.button(label,key = f'add_buffer_btn_{button_key}'):
+        st.session_state[show_key] = True
+
+    if st.session_state[show_key]:
+        additional_buffer = [i for i in availableBuffers if i not in st.session_state.buffers]
+        new_buffer = st.multiselect('Select Buffer',options = additional_buffer,key = f'additional_buffer_{button_key}')
+
+        for buffer in new_buffer:
+            #add_new_buffer(default_qd_map,buffer)
+            add_new_buffer(default_qd_map, buffer,inputs_disabled, directOptions)
+    
+
 def writeColumns(default_qd_map, requiredBuffers, inputs_disabled, directOptions, parameters_in_pfc):
     """
     Creates a Streamlit interface for configuring pump parameters for both Pump A and B inlets
@@ -36,197 +231,40 @@ def writeColumns(default_qd_map, requiredBuffers, inputs_disabled, directOptions
         requiredBuffers (list): List of buffers that are required and should be marked with *
         inputs_disabled (bool): Whether input fields should be disabled
         directOptions (list): Available options for flow direction
+        parameters_in_pfc:
     """
-    def add_new_buffer(default_qd_map, buffer):
 
-        #default_qd_map[buffer] = {'inlet': 'Inlet 7', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': }
-
-        """Creates standardized input fields for each buffer"""
-        # Create 5 columns with specific width ratios
-        cols = st.columns([2.25, 3,3,3,3,3], vertical_alignment="center")
-        inlet = default_qd_map[buffer]['inlet']
-
-        # Column 0: Buffer name (with * if required)
-        with cols[0]:
-            st.write(buffer)
-            
-        # Create input fields across columns
-        field_configs = [
-            ('qd', f"{inlet} QD Number", f"{buffer}_qd", "QD"),
-            ('flow_rate', f"{inlet} Flow Rate (cm/h)", f"{buffer}_flow", "Flow Rate"),
-            ('direction', f"{inlet} Flow Direction", f"{buffer}_direction", "Flow Direction"),
-            ('residence time', f"{inlet} Residence Time (NLT)", f"{buffer}_residence_time", "Residence Time"),
-            ('CV', f"{inlet} Column Volume (CV)", f"{buffer}_CV", f"{buffer} Volume (CV)")
-        ]
-        
-        # Create input fields in columns 1-4
-        for i, (key, helpLabel, field_key, label) in enumerate(field_configs, 1):
-            with cols[i]:
-                if key == 'direction':
-                    # Special handling for direction dropdown
-                    default_qd_map[buffer][key] = st.selectbox(
-                        label,
-                        directOptions,
-                        help = helpLabel,
-                        key=field_key,
-                        index=directOptions.index(default_qd_map[buffer].get(key).strip()),
-                        disabled=inputs_disabled
-                    )
-                elif key == 'qd': #and parse_gradient_composition(default_qd_map[buffer].get(key)):
-                    #parsed_gradient = parse_gradient_composition(default_qd_map[buffer].get(key))
-
-                    default_qd_map[buffer][key] = st.text_input(
-                        label,
-                        #value=parsed_gradient['Buffer A']['QD'],
-                        #help = f"Buffer A: {parsed_gradient['Buffer A']['percent']}% {parsed_gradient['Buffer A']['QD']}",
-                        key=field_key + "Buffer A",
-                        disabled=inputs_disabled
-                    )
-
-                else:
-                    # Standard text input for other fields
-                    default_qd_map[buffer][key] = st.text_input(
-                        label,
-                        value=default_qd_map[buffer].get(key),
-                        help = helpLabel,
-                        key=field_key,
-                        disabled=inputs_disabled
-                    )
-    
-    # Helper function to create input fields for a buffer
-    def create_buffer_inputs(buffer, inlet):
-        """Creates standardized input fields for each buffer"""
-        # Create 5 columns with specific width ratios
-        cols = st.columns([2.25, 3,3,3,3,3], vertical_alignment="center")
-        
-        # Column 0: Buffer name (with * if required)
-        with cols[0]:
-            buffer_label = f"{buffer}*" if buffer in requiredBuffers else buffer
-            st.write(buffer_label)
-            
-        # Create input fields across columns
-        field_configs = [
-            ('qd', f"{inlet} QD Number", f"{buffer}_qd", "QD"),
-            ('flow_rate', f"{inlet} Flow Rate (cm/h)", f"{buffer}_flow", "Flow Rate"),
-            ('direction', f"{inlet} Flow Direction", f"{buffer}_direction", "Flow Direction"),
-            ('residence time', f"{inlet} Residence Time (NLT)", f"{buffer}_residence_time", "Residence Time"),
-            ('CV', f"{inlet} Column Volume (CV)", f"{buffer}_CV", f"{buffer} CV")
-        ]
-        
-        # Create input fields in columns 1-4
-        for i, (key, helpLabel, field_key, label) in enumerate(field_configs, 1):
-            with cols[i]:
-                if key == 'direction':
-                    # Special handling for direction dropdown
-                    default_qd_map[buffer][key] = st.selectbox(
-                        label,
-                        directOptions,
-                        help = helpLabel,
-                        key=field_key,
-                        index=directOptions.index(default_qd_map[buffer].get(key).strip()),
-                        disabled=inputs_disabled
-                    )
-                elif key == 'qd' and parse_gradient_composition(default_qd_map[buffer].get(key)):
-                    parsed_gradient = parse_gradient_composition(default_qd_map[buffer].get(key))
-
-                    col5, col6 = st.columns(2)
-                    default_qd_map[buffer][key] = [0, 0]
-                    
-                    with col5:
-                        default_qd_map[buffer][key][0] = st.text_input(
-                            label,
-                            value=parsed_gradient['Buffer A']['QD'],
-                            help = f"Buffer A: {parsed_gradient['Buffer A']['percent']}% {parsed_gradient['Buffer A']['QD']}",
-                            key=field_key + "Buffer A",
-                            disabled=inputs_disabled
-                        )
-
-                        
-                    with col6:
-                        default_qd_map[buffer][key][1] = st.text_input(
-                            label,
-                            value=parsed_gradient['Buffer B']['QD'],
-                            help = f"Buffer B: {parsed_gradient['Buffer B']['percent']}% {parsed_gradient['Buffer B']['QD']}",
-                            key=field_key + "Buffer B",
-                            disabled=inputs_disabled
-                        )
-                elif key == 'CV' and default_qd_map[buffer].get('isocratic hold').strip() !='':
-                    col5, col6 = st.columns(2)
-                    with col5:
-                        default_qd_map[buffer][key] = st.text_input(
-                            label,
-                            value=default_qd_map[buffer].get(key),
-                            help = helpLabel,
-                            key=field_key,
-                            disabled=inputs_disabled
-                        )
-
-                        
-                    with col6:
-                        default_qd_map[buffer]['isocratic hold'] = st.text_input(
-                            'Hold CV',
-                            value=default_qd_map[buffer].get('isocratic hold'),
-                            help = f"{buffer} Isocratic Hold (CV)",
-                            key=field_key + 'isocraticHold',
-                            disabled=inputs_disabled
-                        )
-
-
-                    
-                else:
-                    # Standard text input for other fields
-                    default_qd_map[buffer][key] = st.text_input(
-                        label,
-                        value=default_qd_map[buffer].get(key),
-                        help = helpLabel,
-                        key=field_key,
-                        disabled=inputs_disabled
-                    )
-
-    def enable_add_buffer(availableBuffers, default_qd_map, parameters_in_pfc,button_key,label):
-
-        #unique session state key per button
-        show_key = f'show_multiselect_{button_key}'
-        select_key = f'additional_buffer_{button_key}'
-
-        # Initialize session state
-        if show_key not in st.session_state:
-            st.session_state[show_key] = False
-
-        #add_buffer_bt = st.button('Add Buffer',key = button_key )
-
-        if st.button(label,key = f'add_buffer_btn_{button_key}'):
-            st.session_state[show_key] = True
-
-        if st.session_state[show_key]:
-            additional_buffer = [i for i in availableBuffers if i not in parameters_in_pfc]
-            new_buffer = st.multiselect('Select Buffer',options = additional_buffer,key = f'additional_buffer_{button_key}')
-
-            for buffer in new_buffer:
-                add_new_buffer(default_qd_map,buffer)
+    if 'buffers' not in st.session_state:
+        st.session_state.buffers = st.session_state.pfcData.copy()
 
     # Process Pump A Inlets
     pump_a_buffers = [key for key, value in default_qd_map.items() if value['pump'] == 'A']
+    print(pump_a_buffers)
+
     for buffer in pump_a_buffers:
-        if buffer in parameters_in_pfc:
-            create_buffer_inputs(buffer, default_qd_map[buffer].get('inlet'))
+        if buffer in st.session_state.buffers:
+            #create_buffer_inputs(buffer, default_qd_map[buffer].get('inlet'))
+            create_buffer_inputs(buffer, default_qd_map[buffer].get('inlet'),default_qd_map,requiredBuffers, inputs_disabled, directOptions)
+            
 
     # =================================== additional buffer ===================================
     
-    enable_add_buffer(pump_a_buffers, default_qd_map, parameters_in_pfc,'pump_a','Add Buffer to Pump A ➕')
+    enable_add_buffer(pump_a_buffers, default_qd_map,'pump_a','Add Buffer to Pump A ➕',inputs_disabled,directOptions)
 
     # ==========================================================================================
 
     # Process Pump B Inlets
     st.subheader("Pump B Inlets")
     pump_b_buffers = [key for key, value in default_qd_map.items() if value['pump'] == 'B']
+
     for buffer in pump_b_buffers:
-        if buffer in parameters_in_pfc:
-            create_buffer_inputs(buffer, default_qd_map[buffer].get('inlet'))
+        if buffer in st.session_state.buffers:
+            #create_buffer_inputs(buffer,pump_b_buffers, default_qd_map[buffer].get('inlet'))
+            create_buffer_inputs(buffer, default_qd_map[buffer].get('inlet'),default_qd_map,requiredBuffers, inputs_disabled, directOptions)
 
     # =================================== additional buffer ===================================
     
-    enable_add_buffer(pump_b_buffers, default_qd_map, parameters_in_pfc,'pump_b','Add Buffer to Pump B ➕')
+    enable_add_buffer(pump_b_buffers, default_qd_map,'pump_b','Add Buffer to Pump B ➕',inputs_disabled,directOptions)
 
     # ==========================================================================================
 
@@ -657,6 +695,3 @@ def create_inlet_qd_interface():
         'compensation_factor': compFactor,
         'skid_size': skidSizeSetting
     }
-
-
-
