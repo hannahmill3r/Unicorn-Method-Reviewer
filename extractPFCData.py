@@ -137,7 +137,7 @@ def extract_process_info(array, unitOP):
         parts = item.split('|')
         parts = [p.strip() for p in parts]
         lower_item = item.lower()
-        if "/" in lower_item:
+        if "/" in lower_item.split('|')[0]:
             current_steps = []
             lower_items = lower_item.split('/')
             for i in lower_items:
@@ -167,7 +167,9 @@ def extract_process_info(array, unitOP):
             # Flow direction
             if 'flow direction' in lower_item:
                 for buffer in newStep:
-                    process_info[buffer]['direction'] = parts[1] if len(parts) > 1 else ''
+                    if process_info[buffer]['direction'].strip()=='':
+                        process_info[buffer]['direction'] = parts[1] if len(parts) > 1 else ''
+
             # Flow velocity - only capturing NMT value
             elif 'cv' in parts[0].lower() and 'volume' in  parts[0].lower():
                 if 'isocratic' in parts[0].lower():
@@ -176,36 +178,37 @@ def extract_process_info(array, unitOP):
                     key = 'CV'
 
                 for buffer in newStep:
-                    process_info[buffer][key] = parts[1] if len(parts) > 1 else ''
-            elif any(term in lower_item for term in ['flow velocity', 'velocity', 'flow:', 'residence', 'exposure']):
+                    if process_info[buffer][key].strip()=='':
+                        process_info[buffer][key] = parts[1] if len(parts) > 1 else ''
 
+            elif any(term in lower_item for term in ['flow velocity', 'velocity', 'flow:', 'residence', 'exposure']):
                 # Extract the NMT value
                 try:
                     value = item[item.lower().find('nmt'):].split()[1]
 
                     for buffer in newStep:
-                        process_info[buffer]['velocity'] = value
-
-                except:
-                    pass
+                        if process_info[buffer]['velocity'].strip()=='':
+                            process_info[buffer]['velocity'] = value
+                except Exception as e:
+                    print("Caught exception: ", e)
 
                 try:
                     
                     value = item[item.lower().find('nlt'):].split()[1]
                     for buffer in newStep:
-                        process_info[buffer]['residenceTime'] = value
-
-                except:
-                    pass
+                        if process_info[buffer]['residenceTime'].strip()=='':
+                            process_info[buffer]['residenceTime'] = value
+                except Exception as e:
+                    print("Caught exception: ", e)
                 
             # Composition
             elif any(term in lower_item for term in ['composition', 'buffer composition']):
                 for buffer in newStep:
-                    process_info[buffer]['composition'] = parts[1] if len(parts) > 1 else ''
+                    if process_info[buffer]['composition'].strip()=='' or "gradient" in item.lower():
+                        process_info[buffer]['composition'] = parts[1] if len(parts) > 1 else ''
 
     process_info.pop('Neutralization')
     
-
     #grab all of the buffers that had something explicitly included about them in the PFC, will ignore all of the other ones later when we display them with streamlit
     for buffer in process_info.keys():
         for key in process_info[buffer].keys():
@@ -305,6 +308,7 @@ def detect_PFC_step(lower_item, currentHeader, unitOp):
     # Detect current process step
     lower_item = lower_item.split('|')[0]
     current_step = None
+    
    
     if 'elution' in lower_item:
         current_step = 'Elution'
@@ -339,5 +343,6 @@ def detect_PFC_step(lower_item, currentHeader, unitOp):
         current_step = 'Post Sanitization'
     elif 'storage' in lower_item:
         current_step = 'Storage'
+    
 
     return current_step

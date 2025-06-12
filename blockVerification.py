@@ -73,6 +73,7 @@ def check_purge_block_settings(purge_blocks, pfcData, skid_size, firstPumpAInlet
 
     #analyse pump a and b seperately, time based blocks dont have anything we validate so remove them from other purge blocks as well
     #TODO:Check purge pump QD, pump a/b might not be for inlet 1, SHOULD ACTUALLY BE first inlet used from A
+    firstPumpBlock = False
     for block in purge_blocks[::-1]:
         incorrectFieldText = []
         if "time" in block['settings']['base_setting'].lower():
@@ -84,26 +85,31 @@ def check_purge_block_settings(purge_blocks, pfcData, skid_size, firstPumpAInlet
             volume = parse_breakpoint_volume(comment, skid_size)
             if volume and isinstance(volume, float):
                 expected_purge_breakpoint = volume
-            
         if 'purge_a_pump' in block['blockName'].lower():
+            expectedInlet = firstPumpAInlet
+        elif 'purge_b_pump' in block['blockName'].lower():
+            expectedInlet = firstPumpBInlet    
+        if ('purge_a_pump' in block['blockName'].lower() or 'purge_b_pump' in block['blockName'].lower()) and not firstPumpBlock:
             purge_blocks.remove(block)
+            firstPumpBlock = True
             for error in validate_common_settings(block['settings'], "Bypass", "Inline", expected_manflow, expected_purge_breakpoint):
                 incorrectFieldText.append(error)
 
-            if firstPumpAInlet != block["settings"]['inlet_setting'][0]: 
-                incorrectFieldText.append(f"Expected {firstPumpAInlet}")
+            if expectedInlet != block["settings"]['inlet_setting'][0]: 
+                incorrectFieldText.append(f"Expected {expectedInlet}")
 
             if block['settings']['filter_setting']!= "Inline":
                 incorrectFieldText.append("Expected inline filter")
 
-        elif 'purge_b_pump' in block['blockName'].lower():
+        elif ('purge_a_pump' in block['blockName'].lower() or 'purge_b_pump' in block['blockName'].lower()) and firstPumpBlock:
+            
             purge_blocks.remove(block)
             
             for error in validate_common_settings(block['settings'], "Bypass", "Bypass", expected_manflow, expected_purge_breakpoint):
                 incorrectFieldText.append(error)
                   
-            if firstPumpBInlet != block["settings"]['inlet_setting'][0]: 
-                incorrectFieldText.append(f"Expected {firstPumpBInlet}")
+            if expectedInlet != block["settings"]['inlet_setting'][0]: 
+                incorrectFieldText.append(f"Expected {expectedInlet}")
                   
             if block['settings']['filter_setting']!= "Bypass":
                 incorrectFieldText.append("Expected bypass filter")
@@ -453,13 +459,14 @@ def check_scouting(scoutingData, pfcData, uvPreset, numOfCycles, numOfMS, blocks
                     except Exception as e:
                         print("Int value Expected:", methodFlowRate, e)
                           
-            #post sani rinse should be run after every single step
+            #TODO: post sani rinse should only be run after every single step UNLESS designated by the PFC, pfc will specify number of cycles
+            '''
             if "post" in header.lower() and "sani" in header.lower() and "rinse" in header.lower():
                 errorMsg = f"Post Sani Rinse should be run after each step to clear the pump/bubble trap of caustic"
                 for methodFlowRate in run["settings"][index::len(tableHeaderList)]:
                     if header.lower() not in methodFlowRate.lower() and errorMsg not in incorrectFieldText:      
                         incorrectFieldText.append(errorMsg)
-                        
+            '''            
                           
             #ensure that the flowrates in the scouting section alight with the input from the user
             if "flow" in header.lower():   
@@ -482,11 +489,12 @@ def check_scouting(scoutingData, pfcData, uvPreset, numOfCycles, numOfMS, blocks
                                 incorrectFieldText.append(errorMsg)
                             
                     except Exception as e:
+                        print(flowRate)
                         print("Int value Expected:", methodFlowRate, tableHeaderList, e, header)
 
             #Conditions in which only one run is expected to have a certain value, and all other cycles should be blank
             conditions = [
-                (["connect_charge_to_inlet_sample"], "Expected only first run to connect charge to inlet sample", 0),
+                #(["connect_charge_to_inlet_sample"], "Expected only first run to connect charge to inlet sample", 0),
                 (["flush", "pre_use_rinse", "pause"], "Expected only first run to be turned on for mainstream and filter flushes", 0),
                 (["purge"], "Expected only first run to be turned on purges", 0), 
                 (["column_storage"], "Column storage should only be turned on for final run", int(numOfCycles)-1)
@@ -506,7 +514,7 @@ def check_scouting(scoutingData, pfcData, uvPreset, numOfCycles, numOfMS, blocks
             })
     incorrectFieldText = []
     for buffer in blocksToInclude:
-        if buffer != "Storage Rinse":
+        if buffer != "Storage Rinse" and buffer != "Pre-Equilibration":
             incorrectFieldText.append(f"Expected a flowrate block for {buffer}")
 
     if incorrectFieldText:
