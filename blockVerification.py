@@ -265,7 +265,7 @@ def check_indiv_blocks_settings_pdf(indiv_blocks, pfcData, columnParam, userInpu
             if "Bypass" not in block["settings"]['column_setting']:
                 incorrectFieldText.append(f"Expected Bypass")
             if block["settings"]['manflow'] != ' ' and block["settings"]['manflow'] != expected_manflow:
-                incorrectFieldText.append(f"Expected {expected_manflow}% manflow, got ", block["settings"]['manflow'])
+                incorrectFieldText.append(f"Expected {expected_manflow}% manflow, got {block['settings']['manflow']}")
         
         #Flushes do not have a totalizer reset
         else:
@@ -432,13 +432,13 @@ def check_scouting(scoutingData, pfcData, uvPreset, numOfCycles, numOfMS, blocks
                 outletSettings = run["settings"][index::len(tableHeaderList)]
                 runNumber = run["settings"][0::len(tableHeaderList)]
 
-                for runIndex, val in enumerate(outletSettings):
+                for runIndex, methodFlowRate in enumerate(outletSettings):
                     try:
                         outletVal = "Outlet" + str(math.ceil(int(runNumber[runIndex])/int(numberToEachOutlet)))
                         errorMsg = f"Expected run {runNumber[runIndex]} to go to {outletVal}" 
                     
                     
-                        if val!= outletVal and errorMsg not in incorrectFieldText:        
+                        if methodFlowRate!= outletVal and errorMsg not in incorrectFieldText:        
                             incorrectFieldText.append(errorMsg)
                     except:
                         print("error processing run index: ", runNumber, runIndex)
@@ -446,25 +446,26 @@ def check_scouting(scoutingData, pfcData, uvPreset, numOfCycles, numOfMS, blocks
             #charge UV should be equal to user input, default is 3.0
             if "charge_wash_uv" in header.lower():
                 errorMsg = f"Expected post charge wash UV to be set to {uvPreset}" 
-                for val in run["settings"][index::len(tableHeaderList)]:
+                for methodFlowRate in run["settings"][index::len(tableHeaderList)]:
                     try:
-                        if float(val)!= float(uvPreset) and errorMsg not in incorrectFieldText:        
+                        if float(methodFlowRate)!= float(uvPreset) and errorMsg not in incorrectFieldText:        
                             incorrectFieldText.append(errorMsg)
                     except Exception as e:
-                        print("Int value Expected:", val, e)
+                        print("Int value Expected:", methodFlowRate, e)
                           
             #post sani rinse should be run after every single step
             if "post" in header.lower() and "sani" in header.lower() and "rinse" in header.lower():
                 errorMsg = f"Post Sani Rinse should be run after each step to clear the pump/bubble trap of caustic"
-                for val in run["settings"][index::len(tableHeaderList)]:
-                    if header.lower() not in val.lower() and errorMsg not in incorrectFieldText:      
+                for methodFlowRate in run["settings"][index::len(tableHeaderList)]:
+                    if header.lower() not in methodFlowRate.lower() and errorMsg not in incorrectFieldText:      
                         incorrectFieldText.append(errorMsg)
                         
                           
             #ensure that the flowrates in the scouting section alight with the input from the user
             if "flow" in header.lower():   
-                for val in run["settings"][index::len(tableHeaderList)]:
+                for methodFlowRate in run["settings"][index::len(tableHeaderList)]:
                     errorMsg = f"Expected flow rate to be set to {flowRate} for {header}"
+                    reducedErrorsg = f"Expected reduced flow rate to be less than {flowRate} for {header}"
                     #linearFlow = str(calc_LFlow(columnParam["columnHeight"], columnParam["columnDiameter"], columnParam['contactTime'])["linearFlow"])
                     #residenceFlow = str(calc_LFlow_from_residence_time(columnParam["columnHeight"], residenceTime))
                     try:
@@ -474,11 +475,14 @@ def check_scouting(scoutingData, pfcData, uvPreset, numOfCycles, numOfMS, blocks
                         linearFlow = 0
                         residenceFlow = 0
                     try:
-                        if round(float(val))!= round(float(flowRate)) and round(float(val))!= round(linearFlow) and round(float(val)) != round(residenceFlow) and errorMsg not in incorrectFieldText:        
-                            incorrectFieldText.append(errorMsg)
+                        if round(float(methodFlowRate))!= round(float(flowRate)) and round(float(methodFlowRate))!= round(linearFlow) and round(float(methodFlowRate)) != round(residenceFlow):        
+                            if ("reduced" in header.lower() and round(float(methodFlowRate)) >= float(flowRate) and reducedErrorsg not in incorrectFieldText):
+                                incorrectFieldText.append(reducedErrorsg)
+                            elif errorMsg not in incorrectFieldText and "reduced" not in header.lower():
+                                incorrectFieldText.append(errorMsg)
                             
                     except Exception as e:
-                        print("Int value Expected:", val, tableHeaderList, e, header)
+                        print("Int value Expected:", methodFlowRate, tableHeaderList, e, header)
 
             #Conditions in which only one run is expected to have a certain value, and all other cycles should be blank
             conditions = [
@@ -546,6 +550,7 @@ def validate_flow_settings(block, equilLFlow, flowRate, columnParam, residenceTi
     flowRate = str(flowRate)
     # Get flow settings and tags
     flows = [block['settings']['flow_setting']] 
+    flowTags = block['settings']['flow_tags']
     
     # Split into lists if multiple flows specified
     if "," in block['settings']['flow_setting']:
@@ -561,6 +566,13 @@ def validate_flow_settings(block, equilLFlow, flowRate, columnParam, residenceTi
 
     if not any(flow.strip() in flowRate for flow in flows) and not any(flow.strip() in linearFlow for flow in flows) and not any(flow.strip() in residenceFlow for flow in flows) and flowRate.strip() != '':
         incorrectFieldText.append(f"Expected {flowRate} flow")
+    
+    for index, flowTag in enumerate(flowTags):
+        try:
+            if "reduced" in flowTag.lower() and float(flows[index])>=float(flowRate):
+                incorrectFieldText.append(f"Expected reduced flow rate to be less than {flowRate} flow")
+        except Exception as e:
+            print("Error occured with flow verification: ", e)
 
     return incorrectFieldText
 

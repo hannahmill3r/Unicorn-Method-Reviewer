@@ -23,7 +23,6 @@ default_process_info = {
         'Elution': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' ', 'isocratic hold': ' '},
         'Storage': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' ', 'isocratic hold': ' '}, 
         'Neutralization': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' ', 'isocratic hold': ' '}, 
-        'High Salt Wash': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' ', 'isocratic hold': ' '},
         'Pre-Equilibration': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' ', 'isocratic hold': ' '},
 
     }
@@ -97,7 +96,6 @@ def list_unit_ops(pages):
     return unitOperations
     
 def extract_process_info(array, unitOP):
-    highSaltWash = False
     process_info = {
         'Regeneration': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' ', 'isocratic hold': ' '},
         'Pre Sanitization Rinse': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' ', 'isocratic hold': ' '},
@@ -118,7 +116,6 @@ def extract_process_info(array, unitOP):
         'Elution': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' ', 'isocratic hold': ' '},
         'Storage': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' ', 'isocratic hold': ' '}, 
         'Neutralization': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' ', 'isocratic hold': ' '},
-        'High Salt Wash': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' ', 'isocratic hold': ' '},
         'Pre-Equilibration': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' ', 'isocratic hold': ' '},
     }
 
@@ -204,20 +201,6 @@ def extract_process_info(array, unitOP):
             # Composition
             elif any(term in lower_item for term in ['composition', 'buffer composition']):
                 for buffer in newStep:
-                    #In Non ProA Chromatography, high salt washes may replace regeneration steps if the composition is a salt
-                    if buffer == "Regeneration":
-                        salt_indicators = ['nacl', 'kcl', 'cacl', 'mgcl', 'na2so4', 'k2so4',
-                                'sodium chloride', 'potassium chloride', 'calcium chloride',
-                                'sodium acetate', 'potassium acetate',
-                                'sodium phosphate', 'potassium phosphate'
-                            ]
-                        if unitOP!= "Protein A Capture Chromatography":
-                            if any(term in lower_item for term in salt_indicators):
-                                highSaltWash = True
-
-                        
-
-
                     process_info[buffer]['composition'] = parts[1] if len(parts) > 1 else ''
 
     process_info.pop('Neutralization')
@@ -229,17 +212,11 @@ def extract_process_info(array, unitOP):
             
             if process_info[buffer][key].strip()!='' and process_info[buffer][key].strip()!='--'and buffer not in parameters_in_pfc:
                 parameters_in_pfc.append(buffer)
-    
-    if highSaltWash:
-        process_info['High Salt Wash'] = process_info['Regeneration']
-        parameters_in_pfc.append('High Salt Wash')
-        parameters_in_pfc.remove('Regeneration')
-    
-    '''
+
     if 'Regeneration' in parameters_in_pfc and unitOP != "Protein A Capture Chromatography":
         if process_info['Regeneration']['composition'] == process_info['Post Sanitization']['composition']:
             parameters_in_pfc.remove('Regeneration')
-            '''
+
 
     for key in process_info['Pre-Equilibration'].keys():
         if key!= 'CV':
