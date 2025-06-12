@@ -493,17 +493,17 @@ def create_inlet_qd_interface():
         )
 
     compensation_factors = {
-        "LHM 4250": {"2 mm CF": 4.45, "5 mm CF": 1.94},
-        "LHM 4260": {"2 mm CF": 4.71, "5 mm CF": 1.98},
-        "LHM 4270": {"2 mm CF": 4.71, "5 mm CF": 1.97},
-        "LHM 4280": {"2 mm CF": 4.95, "5 mm CF": 2.02},
-        "LHM 4290": {"2 mm CF": 4.89, "5 mm CF": 2.01},
-        "LHM 4300": {"2 mm CF": 4.83, "5 mm CF": 2.00},
-        "LHM 4310": {"2 mm CF": 4.83, "5 mm CF": 2.00},
-        "LHM 4320": {"2 mm CF": 4.50, "5 mm CF": 1.96},
-        "LHM 4330": {"2 mm CF": 4.71, "5 mm CF": 1.91},
-        "LHM 4340": {"2 mm CF": 4.60, "5 mm CF": 1.99},
-        "LHM 4350": {"2 mm CF": 4.92, "5 mm CF": 2.08}
+        "LHM 4250": {"2 mm CF": 4.45, "5 mm CF": 1.94, "skid_size": "3/8"},
+        "LHM 4260": {"2 mm CF": 4.71, "5 mm CF": 1.98, "skid_size": "3/8"},
+        "LHM 4270": {"2 mm CF": 4.71, "5 mm CF": 1.97, "skid_size": "1/2"},
+        "LHM 4280": {"2 mm CF": 4.95, "5 mm CF": 2.02, "skid_size": "1/2"},
+        "LHM 4290": {"2 mm CF": 4.89, "5 mm CF": 2.01, "skid_size": "1/2"},
+        "LHM 4300": {"2 mm CF": 4.83, "5 mm CF": 2.00, "skid_size": "1/2"},
+        "LHM 4310": {"2 mm CF": 4.83, "5 mm CF": 2.00, "skid_size": "1/2"},
+        "LHM 4320": {"2 mm CF": 4.50, "5 mm CF": 1.96, "skid_size": "3/4"},
+        "LHM 4330": {"2 mm CF": 4.71, "5 mm CF": 1.91, "skid_size": "3/4"},
+        "LHM 4340": {"2 mm CF": 4.60, "5 mm CF": 1.99, "skid_size": "3/4"},
+        "LHM 4350": {"2 mm CF": 4.92, "5 mm CF": 2.08, "skid_size": "3/4"},
     }
 
     st.header("Verify Skid Details")
@@ -527,13 +527,15 @@ def create_inlet_qd_interface():
                         disabled=PFC_not_uploaded
                     )
     with col3:
-        skidSizeSetting = st.selectbox("Gradient Skid Size",
-                        gradSkidSizeOptions,
-                        key="skidSize",
-                        index=gradSkidSizeOptions.index("3/4"),
-                        disabled=PFC_not_uploaded
-                    )
+        #st.markdown(compensation_factors[gradientCartSetting]['skid_size'])
+        skidSizeSetting = compensation_factors[gradientCartSetting]['skid_size']
 
+        skidSize = st.text_input("Skid Size",
+                value=skidSizeSetting,
+                key="skidSize",
+                disabled=True
+            )
+              
     try:
         compFactor = compensation_factors[gradientCartSetting][compFactorSetting]
     except:

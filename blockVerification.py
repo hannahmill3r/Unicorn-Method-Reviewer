@@ -543,7 +543,7 @@ def validate_flow_settings(block, equilLFlow, flowRate, columnParam, residenceTi
         pfcData: Process data containing expected values
     """
     incorrectFieldText = []
-    
+    flowRate = str(flowRate)
     # Get flow settings and tags
     flows = [block['settings']['flow_setting']] 
     
@@ -558,7 +558,7 @@ def validate_flow_settings(block, equilLFlow, flowRate, columnParam, residenceTi
         residenceFlow = ''
 
     # Validate each flow value
-    
+
     if not any(flow.strip() in flowRate for flow in flows) and not any(flow.strip() in linearFlow for flow in flows) and not any(flow.strip() in residenceFlow for flow in flows) and flowRate.strip() != '':
         incorrectFieldText.append(f"Expected {flowRate} flow")
 
