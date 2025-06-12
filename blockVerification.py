@@ -510,7 +510,18 @@ def check_scouting(scoutingData, pfcData, uvPreset, numOfCycles, numOfMS, blocks
             incorrectFieldText.append(f"Expected a flowrate block for {buffer}")
 
     if incorrectFieldText:
-            highlights[0]["annotationText"]= highlights[0]["annotationText"]+(incorrectFieldText)
+            firstBlockIncluded = False
+            for index, run in enumerate(highlights):
+                if run['blockData'] == scoutingData[0]:
+                    firstBlockIncluded = True
+                    highlights[index]["annotationText"]= highlights[index]["annotationText"]+(incorrectFieldText)
+
+            if not firstBlockIncluded:
+                highlights.append({
+                    "blockData": scoutingData[0], 
+                    "annotationText": incorrectFieldText
+                })
+
 
     return highlights
 
