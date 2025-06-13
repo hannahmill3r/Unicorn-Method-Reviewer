@@ -347,7 +347,19 @@ def create_inlet_qd_interface():
     )
     show_block_name()
     create_bug_report_menu()
-    st.title("UNICORN Method Validator")
+
+    col1, col2 = st.columns([0.9, 0.1])
+
+    with col1:
+        st.title("UNICORN Method Validator")
+
+    with col2:
+        # Use a refresh icon emoji or Unicode character
+        if st.button("🔄", help="Reset text inputs"):
+            for key in st.session_state:  # or any keys you want to reset
+                if 'qd'in key or 'flow' in key or 'direction' in key or 'time' in key or 'cv' in key:
+                    del st.session_state[key]
+            st.rerun()
 
     uploaded_file = st.file_uploader("Upload UNICORN Method PDF", type="pdf")
     uploaded_PFC_file = None

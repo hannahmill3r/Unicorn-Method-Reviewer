@@ -2,6 +2,10 @@ import docx
 from extractText import closest_match_unit_op
 import re
 from blockNameDict_user_validation import blockNameDictionary
+from docx import Document
+from collections import defaultdict
+from docx.oxml import parse_xml
+from docx.oxml.ns import qn
 
 default_process_info = {
         'Regeneration': {'direction': '', 'velocity': '', 'composition': '','residenceTime': '--', 'CV': ' ', 'isocratic hold': ' '},
@@ -28,6 +32,94 @@ default_process_info = {
     }
 
 
+def write_docx(xml_string):
+    doc = Document()
+    body = doc.element.body
+
+    # Parse the string into an XML element
+    element = parse_xml(xml_string)
+
+    # Append it directly to the <w:body>
+    body.append(element)
+
+    # Save the document
+    doc.save("xml_inserted_paragraph.docx")
+    print("✅ XML element inserted and saved.")
+
+
+def append_xml_elements_to_doc(xml_strings, output_path):
+    doc = Document()
+    body = doc.element.body
+
+    for xml_str in xml_strings:
+        try:
+            element = parse_xml(xml_str)
+            body.append(element)
+        except Exception as e:
+            print(f"❌ Failed to parse/append XML:\n{xml_str}\nError: {e}")
+
+    doc.save(output_path)
+    print(f"✅ Saved {len(xml_strings)} XML elements to {output_path}")
+
+
+
+def extract_pages_by_unit(doc_path, keyword="unit operation"):
+    xml_content = []
+    doc = Document(doc_path)
+    tables_by_title = defaultdict(list)
+
+    current_title = None
+    table_index = 0
+
+    # Get elements in flow order
+    body = doc.element.body
+    all_tables = doc.tables
+    used_tables = set()
+
+    for child in body.iterchildren():
+        # Paragraph
+        if child.tag.endswith('}p'):
+            # Match the paragraph object by element
+            para = next((p for p in doc.paragraphs if p._element == child), None)
+            if para:
+                if para.style.name.startswith('Heading') and keyword.lower() in para.text.lower():
+                    current_title = para.text.strip()
+                    xml_content.append(child.xml)
+                    blank_paragraph = '''<w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+                                            <w:r>
+                                                <w:br/>
+                                            </w:r>
+                                        </w:p>'''
+                    #element = parse_xml(blank_paragraph)
+                    xml_content.append(blank_paragraph)
+
+        # Table
+        elif child.tag.endswith('}tbl'):
+            # Find the next unused table in doc.tables
+            while table_index < len(all_tables):
+                table = all_tables[table_index]
+                table_index += 1
+                if table not in used_tables:
+                    used_tables.add(table)
+                    if current_title:
+                        tables_by_title[current_title].append(table)
+                        xml_content.append(child.xml)
+                        blank_paragraph = '''<w:p xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+                                            <w:r>
+                                                <w:br/>
+                                            </w:r>
+                                        </w:p>'''
+                        #element = parse_xml(blank_paragraph)
+                        xml_content.append(blank_paragraph)
+                    break
+
+                    
+
+    append_xml_elements_to_doc(xml_content, "unit_operation_list.docx")#appended_xml_output.docx
+
+
+
+
 def read_docx2(file_path):
     """Read content from a docx file separating into nested lists by unit operation"""
     doc = docx.Document(file_path)
@@ -37,10 +129,17 @@ def read_docx2(file_path):
     is_first_page = True
     
     def is_unit_op_header(text):
-        return "unit" in text.lower() and 'op' in text.lower() and "process flow chart" in text.lower()
-    
+        if "unit" in text.lower() and 'op' in text.lower() and "process flow chart" in text.lower():
+            return "unit" in text.lower() and 'op' in text.lower() and "process flow chart" in text.lower()
+        else:
+            pattern =  r'^Unit\s+Operation\s+(\d+):\s+([\w\-]+)\s+\(([\w\-]+)\)\s+(.*)$'
+            match = re.match(pattern, text, flags=re.IGNORECASE)
+            if match:
+                return True
+ 
     def is_downstream_header(text):
         return "Downstream Process Flow Chart" in text
+
     
     # Process elements in order of appearance
     for element in doc.element.body:
@@ -190,7 +289,7 @@ def extract_process_info(array, unitOP):
                         if process_info[buffer]['velocity'].strip()=='':
                             process_info[buffer]['velocity'] = value
                 except Exception as e:
-                    print("Caught exception: ", e)
+                    print("Caught exception processing Flow/Velocity: ", e)
 
                 try:
                     
@@ -199,7 +298,7 @@ def extract_process_info(array, unitOP):
                         if process_info[buffer]['residenceTime'].strip()=='':
                             process_info[buffer]['residenceTime'] = value
                 except Exception as e:
-                    print("Caught exception: ", e)
+                    print("Caught exception processing residenceTime: ", e)
                 
             # Composition
             elif any(term in lower_item for term in ['composition', 'buffer composition']):
@@ -252,11 +351,27 @@ def extract_process_info(array, unitOP):
 
     return process_info, sanitizationStrategy, parameters_in_pfc
 
+def format_checker(doc_path):
+    doc = Document(doc_path)
 
+    pattern = r'^([\w\-]+)\s+Downstream\sProcess\s+Flow\s+Chart$'
+
+    for para in doc.paragraphs:
+        text = para.text
+        match = re.match(pattern, text, flags=re.IGNORECASE)
+        if match:
+            return True
+        else:
+            return False
 
 def output_PFC_params(PFCInput, unitOperationInMethod):
 
-    textPages = read_docx2(PFCInput)
+    if format_checker(PFCInput):
+        textPages = read_docx2(PFCInput)
+    else:
+        extract_pages_by_unit(PFCInput)
+        textPages = read_docx2('unit_operation_list.docx')
+
 
     unit_operations = list_unit_ops(textPages)
 
