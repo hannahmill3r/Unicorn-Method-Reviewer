@@ -12,6 +12,7 @@ blockNameDictionary = {
         'Col_Wash_3': 'Wash 3',
         'Charge': 'Charge',
         'Storage': 'Storage',
+        "Column_Storage": "Storage",
         'Regeneration': 'Regeneration',
         'Regen': 'Regeneration',
         'Col_Regen': 'Regeneration',

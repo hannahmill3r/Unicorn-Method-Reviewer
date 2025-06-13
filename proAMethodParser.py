@@ -102,10 +102,7 @@ def protein_A_method_parser(textDoc, userInput):
                                         skidSizeDict[size]["Manflow"] = int(manflow)
     
 
-
-
                         if "block:" in text.lower() and "purge" in text.lower():
-
                             blockSettings = query_block_data(blocks[blockCounter])
                             if blockSettings !={}:
                                 purgeBlockData.append({
@@ -115,7 +112,6 @@ def protein_A_method_parser(textDoc, userInput):
                                     "settings": blockSettings,
                                     "First Purge?": firstPurge
                                 })
-
 
                                 trackedInletQDs.append(blockSettings["inlet_QD_setting"])
 
@@ -195,6 +191,7 @@ def protein_A_method_parser(textDoc, userInput):
                                         "location": get_page_location(span),
                                         "settings": indivBlockSettings
                                     })
+
                                 closestTitleMatch, pfcQD, direct, flowRate, residenceTime, columnVolume, pump, inlet, isocraticHoldCV = get_pfc_data_from_block_name(text, pfcData)
 
                                 if a_pump_purged and not firstPumpAInlet and "A" in pump:

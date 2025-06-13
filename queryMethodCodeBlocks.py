@@ -15,7 +15,8 @@ def query_block_data(block):
     manflow_match = re.search(r'ManFlow:\s*(\d+\.?\d*)\s*{\%}', block)
     QD_match = re.search(r'QD\s*(.*)', block)
     setmark_match = re.search(r'Set mark:\s*(.*)', block)
-    methodCompFactor = re.search(r'Compensation Factor = \s*(.*)', block)
+
+    methodCompFactor = re.search(r'Compensation Factor.*?=\s*([\d.]+)', block)
 
     #there can be multiple snapshot volumes, we only care about the last one
     snapshot_line =  re.finditer(r'.*Snapshot:', block)

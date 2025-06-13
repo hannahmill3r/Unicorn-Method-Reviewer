@@ -85,10 +85,13 @@ def check_purge_block_settings(purge_blocks, pfcData, skid_size, firstPumpAInlet
             volume = parse_breakpoint_volume(comment, skid_size)
             if volume and isinstance(volume, float):
                 expected_purge_breakpoint = volume
+
         if 'purge_a_pump' in block['blockName'].lower():
             expectedInlet = firstPumpAInlet
+
         elif 'purge_b_pump' in block['blockName'].lower():
-            expectedInlet = firstPumpBInlet    
+            expectedInlet = firstPumpBInlet   
+
         if ('purge_a_pump' in block['blockName'].lower() or 'purge_b_pump' in block['blockName'].lower()) and not firstPumpBlock:
             purge_blocks.remove(block)
             firstPumpBlock = True
@@ -102,7 +105,6 @@ def check_purge_block_settings(purge_blocks, pfcData, skid_size, firstPumpAInlet
                 incorrectFieldText.append("Expected inline filter")
 
         elif ('purge_a_pump' in block['blockName'].lower() or 'purge_b_pump' in block['blockName'].lower()) and firstPumpBlock:
-            
             purge_blocks.remove(block)
             
             for error in validate_common_settings(block['settings'], "Bypass", "Bypass", expected_manflow, expected_purge_breakpoint):
@@ -127,17 +129,24 @@ def check_purge_block_settings(purge_blocks, pfcData, skid_size, firstPumpAInlet
     for blockCounter, block in enumerate(purge_blocks):
         incorrectFieldText = []
 
-        #grab the QD for the current inlet from the pfc data dict
-        pfcQD = ' '
-        buffer = ''
+        #grab the QD for the current inlet from the pfc data dict, if the step has a gradient, then grab the buffer corresponding to the pump ID (A or B)
+        pfcQD = ''
         for key in pfcData.keys():
-            if isinstance(pfcData[key]['qd'], dict):
-                tempQD = pfcData[key]['qd']['Buffer A QD']
-            else:
-                tempQD = pfcData[key]['qd']
-
-            if block['settings']['inlet_setting'][0] == pfcData[key]['inlet'] and key in parameters_in_methods and tempQD.strip()!='':
-                    pfcQD =tempQD
+            for pfcIndex, pfcInlet in enumerate(pfcData[key]['inlet']):
+                for methodIndex, methodInlet in enumerate(block['settings']['inlet_setting']):
+                    
+                    if methodInlet == pfcInlet and  key in parameters_in_methods:
+                        if isinstance(pfcData[key]['qd'], dict):
+                            if pfcIndex>0:
+        
+                                tempQD = pfcData[key]['qd']['Buffer B QD']
+                            else:
+                                tempQD = pfcData[key]['qd']['Buffer A QD']
+                            
+                        else:
+                            tempQD = pfcData[key]['qd']
+                        
+                        pfcQD =tempQD
 
         expected_purge_breakpoint = skidSizeDict[skid_size]["Purge Volume"]
 
@@ -168,6 +177,7 @@ def check_purge_block_settings(purge_blocks, pfcData, skid_size, firstPumpAInlet
             if block["settings"]['inlet_QD_setting'].split():
                 if equilQD!= pfcQD != block["settings"]['inlet_QD_setting']:
                     incorrectFieldText.append(f"Final purge should use equillibration buffer")
+                    print(equilQD, pfcQD, block["settings"]['inlet_QD_setting'])
             elif block['settings']['inlet_setting'][0]!= "Inlet 1":
                 incorrectFieldText.append(f"Final purge should use equillibration buffer")
 
@@ -230,6 +240,7 @@ def check_indiv_blocks_settings_pdf(indiv_blocks, pfcData, columnParam, userInpu
 
     expected_flush_breakpoint = skidSizeDict[skid_size]["Purge Volume"]
     expected_manflow = skidSizeDict[skid_size]["Manflow"]
+    previousPFCBlock = ''
 
     equilLFlow = calc_LFlow(float(columnParam["columnHeight"]), float(columnParam["columnDiameter"]), float(columnParam["contactTime"]))["linearFlow"]
     for index, block in enumerate(indiv_blocks):
@@ -283,8 +294,12 @@ def check_indiv_blocks_settings_pdf(indiv_blocks, pfcData, columnParam, userInpu
                     if ("pa" not in reset_param.lower()):
 
                         #Blocks will sometime's share previous buffer settings if they have the same QD
-                        if (indiv_blocks[index-1]['settings']['inlet_QD_setting'] != block['settings']['inlet_QD_setting']) and 'pa' not in indiv_blocks[index-1]['settings']['reset_setting'].lower():
-                            incorrectFieldText.append("Totalizer should be reset through pump A")
+                        if (indiv_blocks[index-1]['settings']['inlet_QD_setting'] != block['settings']['inlet_QD_setting']):
+                            if prevPump:
+                                if 'A' not in prevPump:
+                                    incorrectFieldText.append("Totalizer should be reset through pump A")
+                            else:
+                                incorrectFieldText.append("Totalizer should be reset through pump A")
 
                 #Check buffers that should be reset through wash pump B
                 elif "B" in pump:
@@ -292,8 +307,13 @@ def check_indiv_blocks_settings_pdf(indiv_blocks, pfcData, columnParam, userInpu
                         firstPumpBInlet = inlet
                     if ("pb" not in reset_param.lower()):
                         #Blocks will sometime's share previous buffer settings if they have the same QD
-                        if (indiv_blocks[index-1]['settings']['inlet_QD_setting'] != block['settings']['inlet_QD_setting']) and 'pb' not in indiv_blocks[index-1]['settings']['reset_setting'].lower():
-                            incorrectFieldText.append("Totalizer should be reset through pump B")
+                        if (indiv_blocks[index-1]['settings']['inlet_QD_setting'] != block['settings']['inlet_QD_setting']):
+                            if prevPump:
+                                if 'B' not in prevPump:
+                                    incorrectFieldText.append("Totalizer should be reset through pump B")
+                            else:
+                                incorrectFieldText.append("Totalizer should be reset through pump B")
+                            
 
             if not any(term in block["blockName"] for term in block['settings']['setmark_setting'].split()) and not any(term in block["blockName"] for term in block['settings']['setmark_setting'].split('_')) and block['settings']['setmark_setting'].strip() !='':
                 incorrectFieldText.append("Incorrect setmark naming")
@@ -303,15 +323,12 @@ def check_indiv_blocks_settings_pdf(indiv_blocks, pfcData, columnParam, userInpu
         try:
             if float(block['settings']['compensation_setting'])!= float(userInputCompensationData):
                 incorrectFieldText.append(f"Expected compensation factor to be {userInputCompensationData}")
-        except:
-            pass
-        
+        except Exception as e:
+            print(e, userInputCompensationData, block['settings']['compensation_setting'])
         
         if not any(term in block["blockName"] for term in block['settings']['snapshot_setting'].split()) and not any(term in block["blockName"] for term in block['settings']['snapshot_setting'].split('_'))and block['settings']['snapshot_setting'].strip() !='':
             incorrectFieldText.append("Incorrect snapshot naming")      
 
-
-        
                   
         #check the end block breakpoint column volumes
         try:
@@ -342,11 +359,11 @@ def check_indiv_blocks_settings_pdf(indiv_blocks, pfcData, columnParam, userInpu
 
                 baseMatch = re.search(r'(\d+(?:\.\d+)?)\s*\{base\}', settings['grad_setting'])
                 bufferBMEthodsBase = baseMatch.group(1).strip() if baseMatch else ' '
-                
-                if bufferBMEthodsPercent.strip() and pfcQD["Buffer B Percent"] not in bufferBMEthodsPercent:
-                    incorrectFieldText.append(f"Incorrect buffer gradient, expected {pfcQD['Buffer B Percent']}")
-                if bufferBMEthodsPercent.strip() and columnVolume not in bufferBMEthodsBase and 'elution' in closestTitleMatch.lower() and float(settings['grad_volume_setting'])==0:
-                    incorrectFieldText.append(f"Incorrect base volume, expected {columnVolume}, got {bufferBMEthodsBase}")
+                if isinstance(pfcQD, dict):
+                    if bufferBMEthodsPercent.strip() and pfcQD["Buffer B Percent"] not in bufferBMEthodsPercent:
+                        incorrectFieldText.append(f"Incorrect buffer gradient, expected {pfcQD['Buffer B Percent']}")
+                    if bufferBMEthodsPercent.strip() and columnVolume not in bufferBMEthodsBase and 'elution' in closestTitleMatch.lower() and float(settings['grad_volume_setting'])==0:
+                        incorrectFieldText.append(f"Incorrect base volume, expected {columnVolume}, got {bufferBMEthodsBase}")
 
             #only the last setting should have a volume eqal to column volume before isocratic hold, all others should be 0 unless other hold strategy is used
             gradVolumeErrorMsg = f"When isocratic hold used, expected gradient volume of {columnVolume}"
@@ -362,6 +379,8 @@ def check_indiv_blocks_settings_pdf(indiv_blocks, pfcData, columnParam, userInpu
                 "blockData": block, 
                 "annotationText": incorrectFieldText
             })
+        
+        prevClosestTitleMatch, prevPfcQD, prevDirect, prevFlowRate, prevResidenceTime, prevColumnVolume, prevPump, prevInlet, prevIsocraticHoldCV = closestTitleMatch, pfcQD, direct, flowRate, residenceTime, columnVolume, pump, inlet, isocraticHoldCV
 
     return highlights
 
@@ -489,7 +508,6 @@ def check_scouting(scoutingData, pfcData, uvPreset, numOfCycles, numOfMS, blocks
                                 incorrectFieldText.append(errorMsg)
                             
                     except Exception as e:
-                        print(flowRate)
                         print("Int value Expected:", methodFlowRate, tableHeaderList, e, header)
 
             #Conditions in which only one run is expected to have a certain value, and all other cycles should be blank
@@ -570,7 +588,6 @@ def validate_flow_settings(block, equilLFlow, flowRate, columnParam, residenceTi
     # Get flow settings and tags
     flows = [block['settings']['flow_setting']] 
     flowTags = block['settings']['flow_tags']
-    
     # Split into lists if multiple flows specified
     if "," in block['settings']['flow_setting']:
         flows = block['settings']['flow_setting'].strip().split(",")
@@ -660,7 +677,7 @@ def get_pfc_data_from_block_name(blockName, pfcData):
 
         return blockNameDictionary.get(closestTitleMatch), pfcQD, direct, flowRate, residenceTime, columnVolume, pump, inlet, isocraticHoldCV
     except:
-        return '', '', '', '', '', '', '', ''
+        return '', '', '', '', '', '', '', '', ''
     
 
 def parse_breakpoint_volume(comment: str, skid_size: str) -> float:

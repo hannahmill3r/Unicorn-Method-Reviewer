@@ -52,7 +52,7 @@ def create_buffer_inputs(buffer, inlet,default_qd_map,requiredBuffers, inputs_di
     cols = st.columns([2.25, 3,3,3,3,3,1], vertical_alignment="center")
 
     #input files accross columns
-    field_configs = define_field_config(buffer,inlet)
+    field_configs = define_field_config(buffer, ', '.join(inlet))
 
     # Column 0: Buffer name (with * if required)
     with cols[0]:
@@ -289,7 +289,7 @@ def writeColumns(default_qd_map, requiredBuffers, inputs_disabled, directOptions
 
         # Process Pump A Inlets
         st.subheader("Pump A Inlets")
-        pump_a_buffers = [key for key, value in default_qd_map.items() if value['pump'] == 'A']
+        pump_a_buffers = [key for key, value in default_qd_map.items() if 'A' in value['pump']]
 
         for buffer in pump_a_buffers:
             if buffer in st.session_state.buffers:
@@ -387,20 +387,20 @@ def create_inlet_qd_interface():
         outputFile = extract_text_from_pdf('tempfile.pdf', 'output2')
         unitOperationFromMethod = extract_unit_opertaion_from_method(outputFile, options)
 
-        selected_option = st.selectbox('Verify Unit Operation:', options, index=options.index(unitOperationFromMethod), disabled=False)
+        selected_unitOperation = st.selectbox('Verify Unit Operation:', options, index=options.index(unitOperationFromMethod), disabled=False)
 
-        if selected_option is not None:
+        if selected_unitOperation is not None:
             uploaded_PFC_file = st.file_uploader("Upload PFC Word Document Containing " + unitOperationFromMethod + " Information", type="docx")
     else:
         options = ['None']
-        selected_option = st.selectbox('Verify Unit Operation:', options, index=options.index('None'), disabled=True)
+        selected_unitOperation = st.selectbox('Verify Unit Operation:', options, index=options.index('None'), disabled=True)
         st.info("Please upload UNICORN Method PDF first before uploading PFC document")
 
     PFC_not_uploaded = uploaded_PFC_file is None
     saniStrategyOptions = ["PrismA", "SuRe", "None"]
     if not PFC_not_uploaded:
         try:
-            pfcQDMap, saniStrategy, parameters_in_pfc = output_PFC_params(uploaded_PFC_file, selected_option)
+            pfcQDMap, saniStrategy, parameters_in_pfc = output_PFC_params(uploaded_PFC_file, selected_unitOperation)
             
             st.session_state['pfcData']= parameters_in_pfc
 
@@ -424,26 +424,69 @@ def create_inlet_qd_interface():
         selectedSaniStrategy = st.selectbox('Verify Sanitatization Strategy:', saniNoOptions, index=saniNoOptions.index('None'), disabled=True)
         st.info("Please upload PFC before specifying sanitization strategy")
 
-    default_qd_map = {
-        'Equilibration': {'inlet': 'Inlet 1', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'A', 'isocratic hold': ' '},
-        'Elution': {'inlet': 'Inlet 2', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'A', 'isocratic hold': ' '},
-        'Wash 1': {'inlet': 'Inlet 3', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'A', 'isocratic hold': ' '},
-        'Wash 3': {'inlet': 'Inlet 3', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'A', 'isocratic hold': ' '},
-        'Charge': {'inlet': 'Inlet 1', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'A', 'isocratic hold': ' '},
-        'Storage': {'inlet': 'Inlet 5', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'B', 'isocratic hold': ' '},
-        'Regeneration': {'inlet': 'Inlet 6', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'B', 'isocratic hold': ' '},
-        'Pre Sanitization': {'inlet': 'Inlet 4', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'A', 'isocratic hold': ' '},
-        'Pre Sanitization Rinse': {'inlet': 'Inlet 1', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'A', 'isocratic hold': ' '},
-        'Post Sanitization': {'inlet': 'Inlet 4', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'B', 'isocratic hold': ' '},
-        'Post Sanitization Rinse': {'inlet': 'Inlet 1', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'A', 'isocratic hold': ' '},
-        'Pre Sanitization 2': {'inlet': 'Inlet 6', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'A', 'isocratic hold': ' '},
-        'Pre Sanitization Rinse 2': {'inlet': 'Inlet 1', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'A', 'isocratic hold': ' '},
-        'Post Sanitization 2': {'inlet': 'Inlet 6', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'B', 'isocratic hold': ' '},
-        'Post Sanitization Rinse 2': {'inlet': 'Inlet 1', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'A', 'isocratic hold': ' '},
-        'Storage Rinse': {'inlet': 'Inlet 1', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'A', 'isocratic hold': ' '},
-        'Wash 2': {'inlet': 'Inlet 7', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'B', 'isocratic hold': ' '},
-        'Pre-Equilibration': {'inlet': 'Inlet 7', 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'B', 'isocratic hold': ' '}
-    }
+    if  selected_unitOperation == 'Protein A Capture Chromatography':
+        default_qd_map = {
+            'Equilibration': {'inlet': ['Inlet 1', 'Closed'], 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'A', 'isocratic hold': ' '},
+            'Elution': {'inlet': ['Inlet 2', 'Closed'], 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'A', 'isocratic hold': ' '},
+            'Wash 1': {'inlet': ['Inlet 3', 'Closed'], 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'A', 'isocratic hold': ' '},
+            'Wash 3': {'inlet': ['Inlet 3', 'Closed'], 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'A', 'isocratic hold': ' '},
+            'Charge': {'inlet': ['Sample', 'Closed'], 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'A', 'isocratic hold': ' '},
+            'Storage': {'inlet': ['Closed', 'Inlet 5'], 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'B', 'isocratic hold': ' '},
+            'Regeneration': {'inlet': ['Closed', 'Inlet 6'], 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'B', 'isocratic hold': ' '},
+            'Pre Sanitization': {'inlet': ['Closed', 'Inlet 4'], 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'B', 'isocratic hold': ' '},
+            'Pre Sanitization Rinse': {'inlet': ['Inlet 1', 'Closed'], 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'A', 'isocratic hold': ' '},
+            'Post Sanitization': {'inlet': ['Closed', 'Inlet 4'], 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'B', 'isocratic hold': ' '},
+            'Post Sanitization Rinse': {'inlet': ['Inlet 1', 'Closed'], 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'A', 'isocratic hold': ' '},
+            'Pre Sanitization 2': {'inlet': ['Closed', 'Inlet 6'], 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'B', 'isocratic hold': ' '},
+            'Pre Sanitization Rinse 2': {'inlet': ['Inlet 1', 'Closed'], 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'A', 'isocratic hold': ' '},
+            'Post Sanitization 2': {'inlet': ['Closed', 'Inlet 6'], 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'B', 'isocratic hold': ' '},
+            'Post Sanitization Rinse 2': {'inlet': ['Inlet 1', 'Closed'], 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'A', 'isocratic hold': ' '},
+            'Storage Rinse': {'inlet': ['Inlet 1', 'Closed'], 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'A', 'isocratic hold': ' '},
+            'Wash 2': {'inlet': ['Closed', 'Inlet 7'], 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'B', 'isocratic hold': ' '},
+            'Pre-Equilibration': {'inlet': ['Closed', 'Inlet 7'], 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'B', 'isocratic hold': ' '}
+        }
+    elif 'Chromatography' in selected_unitOperation:
+        default_qd_map = {
+            'Pre Sanitization': {'inlet': ['Closed', 'Inlet 4'], 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'B', 'isocratic hold': ' '},
+            'Pre Sanitization 2': {'inlet': ['Closed', 'Inlet 6'], 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'B', 'isocratic hold': ' '},
+            'Pre-Equilibration': {'inlet': ['Closed', 'Inlet 7'], 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'B', 'isocratic hold': ' '},
+            'Equilibration': {'inlet': ['Inlet 1', 'Inlet 7'], 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'AB', 'isocratic hold': ' '},
+            'Charge': {'inlet': ['Sample', 'Closed'], 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'A', 'isocratic hold': ' '},
+            'Wash 1': {'inlet': ['Inlet 1', 'Inlet 7'], 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'AB', 'isocratic hold': ' '},
+            'Wash 2': {'inlet': ['Inlet 1', 'Inlet 7'], 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'AB', 'isocratic hold': ' '},
+            'Wash 3': {'inlet': ['Inlet 1', 'Inlet 7'], 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'AB', 'isocratic hold': ' '},
+            'Elution': {'inlet': ['Inlet 1', 'Inlet 7'], 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'AB', 'isocratic hold': ' '},
+            'Regeneration': {'inlet': ['Inlet 1', 'Inlet 7'], 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'AB', 'isocratic hold': ' '},
+            'Post Sanitization': {'inlet': ['Closed', 'Inlet 4'], 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'B', 'isocratic hold': ' '},
+            'Post Sanitization 2': {'inlet': ['Closed', 'Inlet 4'], 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'B', 'isocratic hold': ' '},
+            'Storage': {'inlet': ['Closed', 'Inlet 5'], 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'B', 'isocratic hold': ' '}, 
+            'Storage Rinse': {'inlet': ['Inlet 1', 'Closed'], 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'A', 'isocratic hold': ' '},   
+            'Pre Sanitization Rinse': {'inlet': ['Inlet 1', 'Closed'], 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'A', 'isocratic hold': ' '},
+            'Pre Sanitization Rinse 2': {'inlet': ['Inlet 1', 'Closed'], 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'A', 'isocratic hold': ' '},
+            'Post Sanitization Rinse 2': {'inlet': ['Inlet 1', 'Closed'], 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'A', 'isocratic hold': ' '},
+            'Post Sanitization Rinse': {'inlet': ['Inlet 1', 'Closed'], 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'A', 'isocratic hold': ' '},
+        }
+    else:
+        default_qd_map = {
+            'Equilibration': {'inlet': ['Inlet 1'], 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'A', 'isocratic hold': ' '},
+            'Elution': {'inlet': ['Inlet 2'], 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'A', 'isocratic hold': ' '},
+            'Wash 1': {'inlet': ['Inlet 3'], 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'A', 'isocratic hold': ' '},
+            'Wash 3': {'inlet': ['Inlet 3'], 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'A', 'isocratic hold': ' '},
+            'Charge': {'inlet': ['Sample'], 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'A', 'isocratic hold': ' '},
+            'Storage': {'inlet': ['Inlet 5'], 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'B', 'isocratic hold': ' '},
+            'Regeneration': {'inlet': ['Inlet 6'], 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'B', 'isocratic hold': ' '},
+            'Pre Sanitization': {'inlet': ['Inlet 4'], 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'A', 'isocratic hold': ' '},
+            'Pre Sanitization Rinse': {'inlet': ['Inlet 1'], 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'A', 'isocratic hold': ' '},
+            'Post Sanitization': {'inlet': ['Inlet 4'], 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'B', 'isocratic hold': ' '},
+            'Post Sanitization Rinse': {'inlet': ['Inlet 1'], 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'A', 'isocratic hold': ' '},
+            'Pre Sanitization 2': {'inlet': ['Inlet 6'], 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'A', 'isocratic hold': ' '},
+            'Pre Sanitization Rinse 2': {'inlet': ['Inlet 1'], 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'A', 'isocratic hold': ' '},
+            'Post Sanitization 2': {'inlet': ['Inlet 6'], 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'B', 'isocratic hold': ' '},
+            'Post Sanitization Rinse 2': {'inlet': ['Inlet 1'], 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'A', 'isocratic hold': ' '},
+            'Storage Rinse': {'inlet': ['Inlet 1'], 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'A', 'isocratic hold': ' '},
+            'Wash 2': {'inlet': ['Inlet 7'], 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'B', 'isocratic hold': ' '},
+            'Pre-Equilibration': {'inlet': ['Inlet 7'], 'qd': ' ', 'flow_rate': ' ', 'direction': ' ', 'residence time': ' ', 'CV': ' ', 'pump': 'B', 'isocratic hold': ' '}
+        }
 
 
     with st.expander(f"Default Settings"):
@@ -534,12 +577,12 @@ def create_inlet_qd_interface():
                 key="skidSize",
                 disabled=True
             )
-              
+    
     try:
         compFactor = compensation_factors[gradientCartSetting][compFactorSetting]
     except:
         compFactor = ''
-
+      
     
     st.header("Verify Number of Mainstreams and Cycles")
     col1, col2 = st.columns(2)
@@ -611,7 +654,7 @@ def create_inlet_qd_interface():
         return default_qd_map
     
     if not inputs_disabled:
-        default_qd_map =fill_default_sample_map(default_qd_map, column_params, pfcQDMap, selected_option)
+        default_qd_map =fill_default_sample_map(default_qd_map, column_params, pfcQDMap, selected_unitOperation)
     
     st.header("Verify Inlet Parameters")
 
@@ -730,7 +773,6 @@ def create_inlet_qd_interface():
         "Submit for Comparison", 
         disabled=not (st.session_state.get('qd_validated', False) and uploaded_file is not None)
     )
-
 
     return {
         'inlet_data': default_qd_map,

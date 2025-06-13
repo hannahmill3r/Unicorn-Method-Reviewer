@@ -153,17 +153,19 @@ def extract_process_info(array, unitOP):
                 doubleBuffer = True
             else:
                 doubleBuffer = False
-        if not doubleBuffer or "/" not in lower_item:
+        if not doubleBuffer or "/" not in lower_item.split('|')[0]:
             if detect_PFC_step(lower_item, currentHeader, unitOP):
                 current_step = detect_PFC_step(lower_item, currentHeader, unitOP)
 
         # If we're in a process step, capture its parameters
         if current_step and 'step' not in lower_item:
             newStep = current_step.split(', ')
-            if 'rinse' in lower_item:
-                if current_step + " Rinse" in process_info.keys():
-                    newStep = [current_step + " Rinse"]
-                
+            print(newStep)
+            if 'rinse' in lower_item.split('|')[0]:
+                for index, buffer in enumerate(newStep):
+                    if buffer + " Rinse" in process_info.keys():
+                        newStep[index] = buffer + " Rinse"
+   
             # Flow direction
             if 'flow direction' in lower_item:
                 for buffer in newStep:
@@ -196,10 +198,10 @@ def extract_process_info(array, unitOP):
                     
                     value = item[item.lower().find('nlt'):].split()[1]
                     for buffer in newStep:
-                        if process_info[buffer]['residenceTime'].strip()=='':
+                        if process_info[buffer]['residenceTime'].strip()=='' or process_info[buffer]['residenceTime'].strip()=='--':
                             process_info[buffer]['residenceTime'] = value
                 except Exception as e:
-                    print("Caught exception: ", e)
+                    print("Caught exception: ", e, item.lower())
                 
             # Composition
             elif any(term in lower_item for term in ['composition', 'buffer composition']):
@@ -233,7 +235,7 @@ def extract_process_info(array, unitOP):
             if process_info['Wash 3'][key].strip() == '' and process_info['Wash 1'][key].strip() != '':
                 process_info['Wash 3'][key] = process_info['Wash 1'][key]
 
-
+    process_info['Charge']['composition'] = ' '
     #parameters are assumed to be shared across a rinse and a buffer step if it is not specified in the pfc for proA
     if unitOP == "Protein A Capture Chromatography":
         checks = ['direction', 'velocity', 'composition']
@@ -248,7 +250,6 @@ def extract_process_info(array, unitOP):
         if key in parameters_in_pfc:
             if process_info[key]['direction'] == '' and default_flow:
                 process_info[key]['direction'] = default_flow
-
 
     return process_info, sanitizationStrategy, parameters_in_pfc
 
@@ -308,6 +309,8 @@ def detect_PFC_step(lower_item, currentHeader, unitOp):
     # Detect current process step
     lower_item = lower_item.split('|')[0]
     current_step = None
+
+    
     
    
     if 'elution' in lower_item:
